@@ -48,6 +48,7 @@ public class CarCompanyManager : MonoBehaviour
     private UIDocument uiDoc;
     private VisualElement mainPanel;
     private VisualElement notificationContainer;
+    private Label eventLabel; // Новый Label для событий
 
     private VisualElement carsOverlay;
     private VisualElement carsContainer;
@@ -112,6 +113,11 @@ public class CarCompanyManager : MonoBehaviour
     public string bulkProductionTechName = "Массовое производство";
     public string carUpgradeTechName = "Улучшить авто";
 
+    // --- Экономические события (только Hard) ---
+    private float currentEventMultiplier = 1f;
+    private string currentEventText = "";
+    private Coroutine eventCoroutine;
+
     // --- Для дерева технологий ---
     private List<TechNode> techNodes = new List<TechNode>();
     private class TechNode
@@ -153,6 +159,10 @@ public class CarCompanyManager : MonoBehaviour
 
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
         if (notificationContainer == null) Debug.LogError("NotificationContainer не найден!");
+
+        // Находим Label для событий
+        eventLabel = root.Q<Label>("EventLabel");
+        if (eventLabel == null) Debug.LogWarning("EventLabel не найден! Добавьте его в UXML.");
 
         carsOverlay = root.Q<VisualElement>("CarsOverlay");
         carsContainer = root.Q<VisualElement>("CarsContainer");
@@ -268,6 +278,11 @@ public class CarCompanyManager : MonoBehaviour
         VisualElement root = uiDoc.rootVisualElement;
         if (root == null) return;
 
+        // Поиск eventLabel, если ещё не найден
+        if (eventLabel == null)
+            eventLabel = root.Q<Label>("EventLabel");
+
+        // --- Кнопки открытия и закрытия ---
         Button openCarsButton = root.Q<Button>("OpenCarsButton");
         if (openCarsButton != null) openCarsButton.clicked += OpenCarsWindow;
         else Debug.LogError("OpenCarsButton не найден!");
@@ -370,6 +385,12 @@ public class CarCompanyManager : MonoBehaviour
 
         StartCoroutine(PassiveIncome());
         UpdateProductionButtons();
+
+        // Запускаем экономические события, если сложность Hard
+        if (currentDifficulty == DifficultyLevel.Hard)
+            StartEconomicEvents();
+        else
+            StopEconomicEvents();
     }
 
     // ============================== ПОСТРОЕНИЕ СПИСКА ДОСТУПНЫХ МАШИН ==============================
@@ -544,18 +565,21 @@ public class CarCompanyManager : MonoBehaviour
                 costMultiplier = 0.8f;
                 profitMultiplier = 1.2f;
                 techCostMultiplier = 1f;
+                StopEconomicEvents();
                 break;
             case DifficultyLevel.Normal:
                 startMoney = 100f;
                 costMultiplier = 1f;
                 profitMultiplier = 1f;
                 techCostMultiplier = 1f;
+                StopEconomicEvents();
                 break;
             case DifficultyLevel.Hard:
                 startMoney = 50f;
                 costMultiplier = 1.5f;
                 profitMultiplier = 0.8f;
                 techCostMultiplier = 5f;
+                StartEconomicEvents();
                 break;
         }
     }
@@ -572,6 +596,9 @@ public class CarCompanyManager : MonoBehaviour
         foreach (var tech in technologies) tech.isResearched = false;
         List<CarBlueprint> allCars = GetAllPossibleCars();
         foreach (var car in allCars) car.demandMultiplier = 1f;
+        currentEventMultiplier = 1f;
+        currentEventText = "";
+        UpdateEventUI();
         BuildAvailableCars();
         CreateCarButtons();
         CreateTechButtons();
@@ -579,6 +606,69 @@ public class CarCompanyManager : MonoBehaviour
         UpdateUpgradeUI();
         CloseAllWindows();
         ShowNotification($"Сложность изменена на {currentDifficulty}");
+    }
+
+    // ============================== ЭКОНОМИЧЕСКИЕ СОБЫТИЯ (HARD) ==============================
+    private void StartEconomicEvents()
+    {
+        if (eventCoroutine != null)
+            StopCoroutine(eventCoroutine);
+        eventCoroutine = StartCoroutine(EconomicEvents());
+    }
+
+    private void StopEconomicEvents()
+    {
+        if (eventCoroutine != null)
+        {
+            StopCoroutine(eventCoroutine);
+            eventCoroutine = null;
+        }
+        currentEventMultiplier = 1f;
+        currentEventText = "";
+        UpdateEventUI();
+    }
+
+    private IEnumerator EconomicEvents()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(15f);
+
+            // Генерируем случайное событие
+            float multiplier = UnityEngine.Random.Range(0.5f, 2.0f);
+            // Округляем до одного знака для красоты
+            multiplier = Mathf.Round(multiplier * 10f) / 10f;
+
+            string text;
+            if (multiplier < 0.8f)
+                text = $"⚠️ Кризис! Спрос упал на {(1f - multiplier) * 100:F0}%";
+            else if (multiplier > 1.2f)
+                text = $"🚀 Бум! Спрос вырос на {(multiplier - 1f) * 100:F0}%";
+            else
+                text = $"📊 Спрос стабилен ({multiplier:F1}x)";
+
+            currentEventMultiplier = multiplier;
+            currentEventText = text;
+            UpdateEventUI();
+
+            // Обновляем карточки машин, чтобы показать новый спрос
+            UpdateCarCards();
+        }
+    }
+
+    private void UpdateEventUI()
+    {
+        if (eventLabel != null)
+        {
+            eventLabel.text = currentEventText;
+            // Можно добавить цвет в зависимости от события
+            if (currentEventMultiplier < 0.8f)
+                eventLabel.style.color = new StyleColor(Color.red);
+            else if (currentEventMultiplier > 1.2f)
+                eventLabel.style.color = new StyleColor(Color.green);
+            else
+                eventLabel.style.color = new StyleColor(Color.white);
+        }
     }
 
     // ============================== УПРАВЛЕНИЕ КОЛИЧЕСТВОМ ==============================
@@ -833,7 +923,6 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // Стоимость улучшения (можно изменить)
         int cost = 100 * (car.currentLevel + 1);
         if (money < cost)
         {
@@ -894,7 +983,6 @@ public class CarCompanyManager : MonoBehaviour
             nameLabel.style.color = Color.white;
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            // Используем CurrentPrice и CurrentProductionCost
             Label detailsLabel = new Label($"Цена: ${car.CurrentPrice}  |  Себ: ${car.CurrentProductionCost}");
             detailsLabel.style.fontSize = 13;
             detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
@@ -968,7 +1056,6 @@ public class CarCompanyManager : MonoBehaviour
             cardData.demandLabel.text = $"Спрос: {demand:F1}x";
             cardData.demandLabel.style.color = demand > 1.2f ? Color.green : (demand < 0.8f ? Color.red : Color.yellow);
 
-            // Обновляем кнопку улучшения
             if (cardData.upgradeButton != null)
             {
                 bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
@@ -1157,7 +1244,13 @@ public class CarCompanyManager : MonoBehaviour
                     car.demandMultiplier = 1f;
                     continue;
             }
-            car.demandMultiplier = UnityEngine.Random.Range(min, max);
+            // Базовый спрос
+            float baseDemand = UnityEngine.Random.Range(min, max);
+            // Умножаем на множитель текущего события (только для Hard, но он всегда 1 для других)
+            car.demandMultiplier = baseDemand * currentEventMultiplier;
+            // Ограничиваем, чтобы спрос не уходил в бесконечность (оставляем в разумных пределах 0.1-5)
+            if (car.demandMultiplier > 5f) car.demandMultiplier = 5f;
+            if (car.demandMultiplier < 0.1f) car.demandMultiplier = 0.1f;
         }
         UpdateCarCards();
     }
@@ -1366,15 +1459,13 @@ public class CarCompanyManager : MonoBehaviour
             button.text = $"{tech.techName} (Изучено)";
             button.SetEnabled(false);
             button.style.backgroundColor = new StyleColor(Color.gray);
-            button.style.unityFontStyleAndWeight = FontStyle.Normal; // обычный шрифт
+            button.style.unityFontStyleAndWeight = FontStyle.Normal;
             return;
         }
 
-        // --- Не исследована ---
-        // Делаем текст жирным
+        // Не исследована – жирный шрифт
         button.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-        // Проверяем требования
         bool requirementsMet = true;
         if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
         {
