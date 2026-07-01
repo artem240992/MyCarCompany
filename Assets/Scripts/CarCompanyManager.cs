@@ -81,6 +81,7 @@ public class CarCompanyManager : MonoBehaviour
     private Label moneyLabel;
     private Label incomeLabel;
     private Label savedDifficultyLabel;
+    private Label versionLabel; // НОВОЕ ПОЛЕ ДЛЯ ВЕРСИИ
 
     // --- Экономика ---
     private double money = 100;
@@ -153,6 +154,15 @@ public class CarCompanyManager : MonoBehaviour
 
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
         if (notificationContainer == null) Debug.LogError("NotificationContainer не найден!");
+
+        // --- НАХОДИМ LABEL ДЛЯ ВЕРСИИ ---
+        versionLabel = root.Q<Label>("VersionLabel");
+        if (versionLabel != null)
+        {
+            versionLabel.text = $"v. {Application.version}";
+            // Если версия не задана в Player Settings, можно задать по умолчанию:
+            // versionLabel.text = "v1.0.0";
+        }
 
         carsOverlay = root.Q<VisualElement>("CarsOverlay");
         carsContainer = root.Q<VisualElement>("CarsContainer");
@@ -833,7 +843,6 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // Стоимость улучшения (можно изменить)
         int cost = 100 * (car.currentLevel + 1);
         if (money < cost)
         {
@@ -894,7 +903,6 @@ public class CarCompanyManager : MonoBehaviour
             nameLabel.style.color = Color.white;
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            // Используем CurrentPrice и CurrentProductionCost
             Label detailsLabel = new Label($"Цена: ${car.CurrentPrice}  |  Себ: ${car.CurrentProductionCost}");
             detailsLabel.style.fontSize = 13;
             detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
@@ -968,7 +976,6 @@ public class CarCompanyManager : MonoBehaviour
             cardData.demandLabel.text = $"Спрос: {demand:F1}x";
             cardData.demandLabel.style.color = demand > 1.2f ? Color.green : (demand < 0.8f ? Color.red : Color.yellow);
 
-            // Обновляем кнопку улучшения
             if (cardData.upgradeButton != null)
             {
                 bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
@@ -1358,7 +1365,6 @@ public class CarCompanyManager : MonoBehaviour
 
     private void UpdateTechButtonState(Button button, Technology tech)
     {
-        // Устанавливаем чёрный цвет текста для всех кнопок технологий
         button.style.color = Color.black;
 
         if (tech.isResearched)
@@ -1366,15 +1372,12 @@ public class CarCompanyManager : MonoBehaviour
             button.text = $"{tech.techName} (Изучено)";
             button.SetEnabled(false);
             button.style.backgroundColor = new StyleColor(Color.gray);
-            button.style.unityFontStyleAndWeight = FontStyle.Normal; // обычный шрифт
+            button.style.unityFontStyleAndWeight = FontStyle.Normal;
             return;
         }
 
-        // --- Не исследована ---
-        // Делаем текст жирным
         button.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-        // Проверяем требования
         bool requirementsMet = true;
         if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
         {
