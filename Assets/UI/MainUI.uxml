@@ -79,4 +79,5 @@
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="NotificationContainer" style="position: absolute; right: 20px; bottom: 20px; width: 300px; flex-direction: column-reverse; align-items: flex-end; pointer-events: none;"/>
+    <ui:Label text="" name="VersionLabel" style="position: absolute; right: 10px; bottom: 10px; font-size: 12px; color: black;"/>
 </ui:UXML>

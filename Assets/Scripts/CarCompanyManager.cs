@@ -82,6 +82,7 @@ public class CarCompanyManager : MonoBehaviour
     private Label moneyLabel;
     private Label incomeLabel;
     private Label savedDifficultyLabel;
+    private Label versionLabel; // НОВОЕ ПОЛЕ ДЛЯ ВЕРСИИ
 
     // --- Экономика ---
     private double money = 100;
@@ -160,9 +161,14 @@ public class CarCompanyManager : MonoBehaviour
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
         if (notificationContainer == null) Debug.LogError("NotificationContainer не найден!");
 
-        // Находим Label для событий
-        eventLabel = root.Q<Label>("EventLabel");
-        if (eventLabel == null) Debug.LogWarning("EventLabel не найден! Добавьте его в UXML.");
+        // --- НАХОДИМ LABEL ДЛЯ ВЕРСИИ ---
+        versionLabel = root.Q<Label>("VersionLabel");
+        if (versionLabel != null)
+        {
+            versionLabel.text = $"v. {Application.version}";
+            // Если версия не задана в Player Settings, можно задать по умолчанию:
+            // versionLabel.text = "v1.0.0";
+        }
 
         carsOverlay = root.Q<VisualElement>("CarsOverlay");
         carsContainer = root.Q<VisualElement>("CarsContainer");
@@ -1451,7 +1457,6 @@ public class CarCompanyManager : MonoBehaviour
 
     private void UpdateTechButtonState(Button button, Technology tech)
     {
-        // Устанавливаем чёрный цвет текста для всех кнопок технологий
         button.style.color = Color.black;
 
         if (tech.isResearched)
@@ -1463,7 +1468,6 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // Не исследована – жирный шрифт
         button.style.unityFontStyleAndWeight = FontStyle.Bold;
 
         bool requirementsMet = true;
