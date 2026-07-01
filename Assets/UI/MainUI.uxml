@@ -1,0 +1,81 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/MainStyles.uss?fileID=7433441132597879392&amp;guid=d64cd3bf55159af439848732d18ccb82&amp;type=3#MainStyles"/>
+    <ui:VisualElement name="MainInterface" style="flex-grow: 1;">
+        <ui:VisualElement name="MainPanel" style="display: flex; padding: 10px;">
+            <ui:Label text="Деньги" name="MoneyLabel"/>
+            <ui:Label text="Авто/сек:" name="IncomeLabel"/>
+            <ui:Label text="Сложность:" name="SavedDifficultyLabel" style="font-size: 14px; color: rgb(170, 170, 170); margin-top: 5px;"/>
+            <ui:Button text="Произвести авто" name="ProduceButton" style="margin-top: 15px;"/>
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px;">
+                <ui:Button text="☰" name="HamburgerButton" style="font-size: 28px; width: 44px; height: 44px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="MenuContainer" style="position: absolute; right: 10px; top: 70px; background-color: rgb(30, 30, 30); border-radius: 8px; padding: 10px; display: none; width: 160px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);">
+                <ui:Button text="Машины" name="OpenCarsButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Технологии" name="OpenTechButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Улучшения" name="OpenUpgradeButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Настройки" name="OpenSettingsButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Сохранить" name="SaveButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Загрузить" name="LoadButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Новая игра" name="NewGameButton" style="width: 100%; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="WelcomeOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement name="WelcomeWindow" style="background-color: rgb(40, 40, 40); padding: 30px; border-radius: 10px; width: 350px;">
+            <ui:Label text="Выберите сложность" style="font-size: 24px; color: white; margin-bottom: 10px; text-align: center;"/>
+            <ui:Label text="Установите уровень сложности для начала игры:" style="color: rgb(204, 204, 204); margin-bottom: 15px; text-align: center;"/>
+            <ui:Button text="Easy" name="WelcomeEasyButton" style="width: 100%; margin-bottom: 8px; color: white; font-size: 16px;"/>
+            <ui:Button text="Normal" name="WelcomeNormalButton" style="width: 100%; margin-bottom: 8px; color: white; font-size: 16px;"/>
+            <ui:Button text="Hard" name="WelcomeHardButton" style="width: 100%; color: white; font-size: 16px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="CarsOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement name="CarsWindow" style="background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; width: 600px; max-height: 80%;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+                <ui:Label text="Производство машин" style="font-size: 20px; color: white;"/>
+                <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 10px;">
+                <ui:Label text="Количество:" style="color: white; margin-right: 10px;"/>
+                <ui:Button text="-" name="DecreaseCountButton" style="width: 30px;"/>
+                <ui:Label text="1" name="CountLabel" style="color: white; font-size: 18px; min-width: 40px; text-align: center;"/>
+                <ui:Button text="+" name="IncreaseCountButton" style="width: 30px;"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="CarsContainer" style="flex-direction: row; flex-wrap: wrap; max-height: 350px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="TechOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement name="TechWindow" style="background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; width: 90%; max-width: 1200px; height: 90%; max-height: 800px;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+                <ui:Label text="Дерево технологий" style="font-size: 20px; color: white;"/>
+                <ui:Button text="✕" name="CloseTechButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="TechContainer" style="flex-grow: 1;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="UpgradeOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement name="UpgradeWindow" style="background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; width: 400px;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+                <ui:Label text="Улучшения завода" style="font-size: 20px; color: white;"/>
+                <ui:Button text="✕" name="CloseUpgradeButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:Label text="Уровень конвейера: 0" name="ConveyorLevelLabel" style="color: white; margin-bottom: 5px;"/>
+            <ui:Button text="Улучшить конвейер (10)" name="BuyConveyorButton" style="margin-bottom: 10px;"/>
+            <ui:Label text="Инженеров: 0" name="EngineerCountLabel" style="color: white; margin-bottom: 5px;"/>
+            <ui:Button text="Нанять инженера (50)" name="HireEngineerButton" style="margin-bottom: 10px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="SettingsOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement name="SettingsWindow" style="background-color: rgb(40, 40, 40); padding: 30px; border-radius: 10px; width: 350px;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 20px;">
+                <ui:Label text="Настройки сложности" style="font-size: 20px; color: white;"/>
+                <ui:Button text="✕" name="CloseSettingsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:Label text="Выберите уровень сложности:" style="color: rgb(204, 204, 204); margin-bottom: 15px;"/>
+            <ui:Button text="Easy" name="EasyButton" style="width: 100%; margin-bottom: 8px; color: white; font-size: 16px;"/>
+            <ui:Button text="Normal" name="NormalButton" style="width: 100%; margin-bottom: 8px; color: white; font-size: 16px;"/>
+            <ui:Button text="Hard" name="HardButton" style="width: 100%; color: white; font-size: 16px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="NotificationContainer" style="position: absolute; right: 20px; bottom: 20px; width: 300px; flex-direction: column-reverse; align-items: flex-end; pointer-events: none;"/>
+</ui:UXML>
