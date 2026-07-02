@@ -807,8 +807,6 @@ MonoBehaviour:
     levelPrefabs:
     - {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
     - {fileID: 919132149155446097, guid: 10e7cb01c3556db44a379229e63a357b, type: 3}
-    pricePerLevel: 780000008c000000
-    productionCostPerLevel: 640000006e000000
     currentLevel: 0
   availableCars:
   - carName: "\u042D\u043A\u043E\u043D\u043E\u043C-\u0441\u0435\u0434\u0430\u043D"
@@ -818,8 +816,6 @@ MonoBehaviour:
     carIcon: {fileID: 49806788, guid: 1d816f539e7604d40a77bd7a60900a5f, type: 3}
     carPrefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
     levelPrefabs: []
-    pricePerLevel: 
-    productionCostPerLevel: 
     currentLevel: 0
   technologies:
   - techName: "\u041E\u0441\u043D\u043E\u0432\u044B \u043C\u0435\u0445\u0430\u043D\u0438\u043A\u0438"
@@ -838,9 +834,10 @@ MonoBehaviour:
       carIcon: {fileID: 1183244749, guid: e01f826cc2f643047a7e5f4b87611411, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0414\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0435\u0433\u043E
       \u0441\u0433\u043E\u0440\u0430\u043D\u0438\u044F"
     description: "\u0420\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u043C\u043E\u0449\u043D\u043E\u0433\u043E
@@ -857,9 +854,10 @@ MonoBehaviour:
       carIcon: {fileID: 1347596325, guid: 8f0d5755e7cf92242bed80d971a46842, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 15e3b883b05343c409ed2f085de014a1, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0410\u044D\u0440\u043E\u0434\u0438\u043D\u0430\u043C\u0438\u043A\u0430"
     description: "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u0435 \u043E\u0431\u0442\u0435\u043A\u0430\u0435\u043C\u043E\u0441\u0442\u0438
       \u043A\u0443\u0437\u043E\u0432\u0430"
@@ -875,9 +873,10 @@ MonoBehaviour:
       carIcon: {fileID: 1183244749, guid: e01f826cc2f643047a7e5f4b87611411, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 41c288592429ad74ea436c2cc1011e3c, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0422\u0443\u0440\u0431\u043E\u043D\u0430\u0434\u0434\u0443\u0432"
     description: "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0442\u0443\u0440\u0431\u0438\u043D\u044B
       \u0434\u043B\u044F \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u0438\u044F \u043C\u043E\u0449\u043D\u043E\u0441\u0442\u0438"
@@ -895,9 +894,10 @@ MonoBehaviour:
       carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 41c288592429ad74ea436c2cc1011e3c, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0413\u0438\u0431\u0440\u0438\u0434\u043D\u044B\u0439 \u043F\u0440\u0438\u0432\u043E\u0434"
     description: "\u0421\u043E\u0447\u0435\u0442\u0430\u043D\u0438\u0435 \u0414\u0412\u0421
       \u0438 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043C\u043E\u0442\u043E\u0440\u0430"
@@ -913,9 +913,10 @@ MonoBehaviour:
       carIcon: {fileID: 1820142613, guid: 832e02b5fbc0613429703791eb483f5d, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u042D\u043B\u0435\u043A\u0442\u0440\u0438\u0447\u0435\u0441\u043A\u0438\u0439
       \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
     description: "\u041F\u043E\u043B\u043D\u044B\u0439 \u043F\u0435\u0440\u0435\u0445\u043E\u0434
@@ -932,9 +933,10 @@ MonoBehaviour:
       carIcon: {fileID: -816730248, guid: c979e5aac502d8a499b0a03ffe3f584e, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0410\u0432\u0442\u043E\u043F\u0438\u043B\u043E\u0442"
     description: "\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u0430\u0432\u0442\u043E\u043D\u043E\u043C\u043D\u043E\u0433\u043E
       \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F"
@@ -952,9 +954,10 @@ MonoBehaviour:
       carIcon: {fileID: 597639432, guid: 9cc55f7289094fc4bb15a29458869690, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 2efc3c5afc9e5bc4c94d564a9c0c48b4, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u041C\u0430\u0441\u0441\u043E\u0432\u043E\u0435 \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0441\u0442\u0432\u043E"
     description: "\u041C\u0430\u0441\u0441\u043E\u0432\u043E\u0435 \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0441\u0442\u0432\u043E"
     researchCost: 3500
@@ -968,9 +971,10 @@ MonoBehaviour:
       carIcon: {fileID: -816730248, guid: c979e5aac502d8a499b0a03ffe3f584e, type: 3}
       carPrefab: {fileID: 919132149155446097, guid: 10e7cb01c3556db44a379229e63a357b, type: 3}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 1
+    priceModifier: 1
+    demandModifier: 1
   - techName: "\u0423\u043B\u0443\u0447\u0448\u0438\u0442\u044C \u0430\u0432\u0442\u043E"
     description: "\u0423\u043B\u0443\u0447\u0448\u0438\u0442\u044C \u0430\u0432\u0442\u043E
       \u0434\u043E \u043C\u0430\u043A\u0441 \u0443\u0440\u043E\u0432\u043D\u044F"
@@ -985,9 +989,139 @@ MonoBehaviour:
       carIcon: {fileID: 0}
       carPrefab: {fileID: 0}
       levelPrefabs: []
-      pricePerLevel: 
-      productionCostPerLevel: 
       currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1
+    demandModifier: 1
+  - techName: "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u043D\u044B\u0439 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
+    description: "\u041C\u043E\u0449\u043D\u0435\u0435 \u0438 \u043D\u0430\u0434\u0451\u0436\u043D\u0435\u0435"
+    researchCost: 150
+    isResearched: 0
+    requiredTechNames: []
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.1
+    demandModifier: 1
+  - techName: "\u0410\u044D\u0440\u043E\u0434\u0438\u043D\u0430\u043C\u0438\u0447\u0435\u0441\u043A\u0438\u0439
+      \u043A\u0443\u0437\u043E\u0432"
+    description: "\u041C\u0435\u043D\u044C\u0448\u0435 \u0441\u043E\u043F\u0440\u043E\u0442\u0438\u0432\u043B\u0435\u043D\u0438\u044F"
+    researchCost: 200
+    isResearched: 0
+    requiredTechNames:
+    - "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u043D\u044B\u0439 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.08
+    demandModifier: 1.05
+  - techName: "\u042D\u043A\u043E\u043B\u043E\u0433\u0438\u0447\u043D\u044B\u0439
+      \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
+    description: "\u041D\u0438\u0437\u043A\u0438\u0439 \u0440\u0430\u0441\u0445\u043E\u0434
+      \u0442\u043E\u043F\u043B\u0438\u0432\u0430"
+    researchCost: 250
+    isResearched: 0
+    requiredTechNames:
+    - "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u043D\u044B\u0439 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.12
+    demandModifier: 1
+  - techName: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C \u0438\u043D\u0442\u0435\u0440\u044C\u0435\u0440"
+    description: "\u041A\u043E\u043C\u0444\u043E\u0440\u0442 \u0438 \u0441\u0442\u0438\u043B\u044C"
+    researchCost: 180
+    isResearched: 0
+    requiredTechNames: []
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.15
+    demandModifier: 1
+  - techName: "\u0410\u0432\u0442\u043E\u043F\u0438\u043B\u043E\u0442"
+    description: "\u0410\u0432\u0442\u043E\u043D\u043E\u043C\u043D\u043E\u0435 \u0432\u043E\u0436\u0434\u0435\u043D\u0438\u0435"
+    researchCost: 350
+    isResearched: 0
+    requiredTechNames:
+    - "\u0410\u044D\u0440\u043E\u0434\u0438\u043D\u0430\u043C\u0438\u0447\u0435\u0441\u043A\u0438\u0439
+      \u043A\u0443\u0437\u043E\u0432"
+    - "\u041F\u0440\u0435\u043C\u0438\u0443\u043C \u0438\u043D\u0442\u0435\u0440\u044C\u0435\u0440"
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.2
+    demandModifier: 1.1
+  - techName: "\u0413\u0438\u0431\u0440\u0438\u0434\u043D\u044B\u0439 \u043F\u0440\u0438\u0432\u043E\u0434"
+    description: "\u042D\u043A\u043E\u043D\u043E\u043C\u0438\u044F \u0442\u043E\u043F\u043B\u0438\u0432\u0430"
+    researchCost: 280
+    isResearched: 0
+    requiredTechNames:
+    - "\u042D\u043A\u043E\u043B\u043E\u0433\u0438\u0447\u043D\u044B\u0439 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044C"
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.18
+    demandModifier: 1
+  - techName: "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u043D\u0430\u044F \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C"
+    description: "\u0421\u0438\u0441\u0442\u0435\u043C\u044B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439
+      \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438"
+    researchCost: 220
+    isResearched: 0
+    requiredTechNames: []
+    unlockedCar:
+      carName: 
+      price: 0
+      productionCost: 0
+      demandMultiplier: 0
+      carIcon: {fileID: 0}
+      carPrefab: {fileID: 0}
+      levelPrefabs: []
+      currentLevel: 0
+    unlockCarOnResearch: 0
+    priceModifier: 1.1
+    demandModifier: 0.05
   carDisplayContainer: {fileID: 414377229}
   startPoint: {fileID: 1827808876}
   endPoint: {fileID: 1616114900}
