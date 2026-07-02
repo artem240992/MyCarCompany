@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random; // Убираем конфликт с System.Random
 
 public enum DifficultyLevel
 {
@@ -48,7 +49,7 @@ public class CarCompanyManager : MonoBehaviour
     private UIDocument uiDoc;
     private VisualElement mainPanel;
     private VisualElement notificationContainer;
-    private Label eventLabel; // Новый Label для событий
+    private Label eventLabel;
 
     private VisualElement carsOverlay;
     private VisualElement carsContainer;
@@ -78,11 +79,15 @@ public class CarCompanyManager : MonoBehaviour
     private Button hamburgerButton;
     private VisualElement menuContainer;
 
+    // --- Окно конкурентов ---
+    private VisualElement competitorsOverlay;
+    private VisualElement competitorsContainer;
+
     // --- Элементы главной панели ---
     private Label moneyLabel;
     private Label incomeLabel;
     private Label savedDifficultyLabel;
-    private Label versionLabel; // НОВОЕ ПОЛЕ ДЛЯ ВЕРСИИ
+    private Label versionLabel;
 
     // --- Экономика ---
     private double money = 100;
@@ -118,6 +123,11 @@ public class CarCompanyManager : MonoBehaviour
     private float currentEventMultiplier = 1f;
     private string currentEventText = "";
     private Coroutine eventCoroutine;
+
+    // --- Конкуренты ---
+    private List<Competitor> competitors = new List<Competitor>();
+    private Coroutine competitorCoroutine;
+    private string[] competitorNames = { "АвтоСтар", "ТехноТранс", "ЭкоДрайв", "СпортМотор", "ГородскойАвто" };
 
     // --- Для дерева технологий ---
     private List<TechNode> techNodes = new List<TechNode>();
@@ -161,13 +171,11 @@ public class CarCompanyManager : MonoBehaviour
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
         if (notificationContainer == null) Debug.LogError("NotificationContainer не найден!");
 
-        // --- НАХОДИМ LABEL ДЛЯ ВЕРСИИ ---
         versionLabel = root.Q<Label>("VersionLabel");
         if (versionLabel != null)
         {
             versionLabel.text = $"v. {Application.version}";
-            // Если версия не задана в Player Settings, можно задать по умолчанию:
-            // versionLabel.text = "v1.0.0";
+            versionLabel.style.color = Color.black;
         }
 
         carsOverlay = root.Q<VisualElement>("CarsOverlay");
@@ -176,6 +184,8 @@ public class CarCompanyManager : MonoBehaviour
         techScrollView = root.Q<ScrollView>("TechContainer");
         upgradeOverlay = root.Q<VisualElement>("UpgradeOverlay");
         settingsOverlay = root.Q<VisualElement>("SettingsOverlay");
+        competitorsOverlay = root.Q<VisualElement>("CompetitorsOverlay");
+        competitorsContainer = root.Q<VisualElement>("CompetitorsContainer");
 
         welcomeOverlay = root.Q<VisualElement>("WelcomeOverlay");
         welcomeEasyButton = welcomeOverlay?.Q<Button>("WelcomeEasyButton");
@@ -188,6 +198,7 @@ public class CarCompanyManager : MonoBehaviour
         if (techScrollView == null) Debug.LogError("TechContainer (ScrollView) не найден!");
         if (upgradeOverlay == null) Debug.LogError("UpgradeOverlay не найден!");
         if (settingsOverlay == null) Debug.LogError("SettingsOverlay не найден!");
+        if (competitorsOverlay == null) Debug.LogError("CompetitorsOverlay не найден!");
 
         if (welcomeEasyButton != null) welcomeEasyButton.clicked += () => { SetDifficulty(DifficultyLevel.Easy); CloseWelcomeScreen(); };
         if (welcomeNormalButton != null) welcomeNormalButton.clicked += () => { SetDifficulty(DifficultyLevel.Normal); CloseWelcomeScreen(); };
@@ -284,7 +295,7 @@ public class CarCompanyManager : MonoBehaviour
         VisualElement root = uiDoc.rootVisualElement;
         if (root == null) return;
 
-        // Поиск eventLabel, если ещё не найден
+        // Поиск eventLabel
         if (eventLabel == null)
             eventLabel = root.Q<Label>("EventLabel");
 
@@ -305,6 +316,10 @@ public class CarCompanyManager : MonoBehaviour
         if (openSettingsButton != null) openSettingsButton.clicked += OpenSettingsWindow;
         else Debug.LogError("OpenSettingsButton не найден!");
 
+        Button openCompetitorsButton = root.Q<Button>("OpenCompetitorsButton");
+        if (openCompetitorsButton != null) openCompetitorsButton.clicked += OpenCompetitorsWindow;
+        else Debug.LogWarning("OpenCompetitorsButton не найден!");
+
         Button closeCarsButton = root.Q<Button>("CloseCarsButton");
         if (closeCarsButton != null) closeCarsButton.clicked += CloseCarsWindow;
         else Debug.LogError("CloseCarsButton не найден!");
@@ -320,6 +335,14 @@ public class CarCompanyManager : MonoBehaviour
         Button closeSettingsButton = root.Q<Button>("CloseSettingsButton");
         if (closeSettingsButton != null) closeSettingsButton.clicked += CloseSettingsWindow;
         else Debug.LogError("CloseSettingsButton не найден!");
+
+        Button closeCompetitorsButton = root.Q<Button>("CloseCompetitorsButton");
+        if (closeCompetitorsButton != null) closeCompetitorsButton.clicked += CloseCompetitorsWindow;
+        else Debug.LogWarning("CloseCompetitorsButton не найден!");
+
+        Button refreshCompetitorsButton = root.Q<Button>("RefreshCompetitorsButton");
+        if (refreshCompetitorsButton != null) refreshCompetitorsButton.clicked += RefreshCompetitorsList;
+        else Debug.LogWarning("RefreshCompetitorsButton не найден!");
 
         Button saveButton = root.Q<Button>("SaveButton");
         if (saveButton != null) saveButton.clicked += SaveGame;
@@ -380,6 +403,9 @@ public class CarCompanyManager : MonoBehaviour
         if (buyConveyorButton != null) buyConveyorButton.clicked += BuyConveyorUpgrade;
         if (hireEngineerButton != null) hireEngineerButton.clicked += HireEngineer;
 
+        // --- Инициализация конкурентов ---
+        InitCompetitors();
+
         BuildAvailableCars();
         CreateCarButtons();
         CreateTechButtons();
@@ -392,27 +418,242 @@ public class CarCompanyManager : MonoBehaviour
         StartCoroutine(PassiveIncome());
         UpdateProductionButtons();
 
-        // Запускаем экономические события, если сложность Hard
         if (currentDifficulty == DifficultyLevel.Hard)
             StartEconomicEvents();
         else
             StopEconomicEvents();
+
+        // Запускаем AI конкурентов
+        StartCompetitorAI();
     }
 
-    // ============================== ПОСТРОЕНИЕ СПИСКА ДОСТУПНЫХ МАШИН ==============================
-    private void BuildAvailableCars()
+    // ============================== КОНКУРЕНТЫ ==============================
+    private void InitCompetitors()
     {
-        List<CarBlueprint> cars = new List<CarBlueprint>();
-        if (startCars != null)
-            cars.AddRange(startCars);
-        if (technologies != null)
+        competitors.Clear();
+        int count = 3 + (int)currentDifficulty; // Easy=3, Normal=4, Hard=5
+        for (int i = 0; i < count && i < competitorNames.Length; i++)
         {
-            foreach (var tech in technologies)
-                if (tech.isResearched && tech.unlockedCar != null && !cars.Contains(tech.unlockedCar))
-                    cars.Add(tech.unlockedCar);
+            Competitor comp = new Competitor();
+            comp.companyName = competitorNames[i];
+            comp.money = Random.Range(200f, 500f);
+            comp.factoryLevel = Random.Range(1, 3);
+            comp.researchLevel = Random.Range(1, 3);
+            comp.reputation = Random.Range(30, 70);
+            comp.priceMultiplier = Random.Range(0.8f, 1.2f);
+            comp.marketShare = Random.Range(0.05f, 0.15f);
+            // Назначаем стартовые машины (первые 1-2 из доступных)
+            int carCount = Mathf.Min(Random.Range(1, 3), availableCars.Length);
+            for (int j = 0; j < carCount; j++)
+            {
+                comp.availableCars.Add(availableCars[j]);
+            }
+            competitors.Add(comp);
         }
-        availableCars = cars.ToArray();
+        RefreshCompetitorsList();
     }
+
+    private void StartCompetitorAI()
+    {
+        if (competitorCoroutine != null) StopCoroutine(competitorCoroutine);
+        competitorCoroutine = StartCoroutine(CompetitorAILoop());
+    }
+
+    private IEnumerator CompetitorAILoop()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(GetDecisionInterval());
+            foreach (var comp in competitors)
+            {
+                RunCompetitorDecision(comp);
+            }
+            UpdateDemand(); // обновляем спрос после действий конкурентов
+            RefreshCompetitorsList(); // обновляем таблицу конкурентов
+        }
+    }
+
+    private float GetDecisionInterval()
+    {
+        switch (currentDifficulty)
+        {
+            case DifficultyLevel.Easy: return 10f;
+            case DifficultyLevel.Normal: return 7f;
+            case DifficultyLevel.Hard: return 5f;
+            default: return 8f;
+        }
+    }
+
+    private void RunCompetitorDecision(Competitor comp)
+    {
+        float decision = Random.value;
+
+        // 1. Если денег мало – повысить цены
+        if (comp.money < 200 && decision < 0.4f)
+        {
+            comp.priceMultiplier = Mathf.Min(comp.priceMultiplier + 0.1f, 1.5f);
+            ShowNotification($"{comp.companyName} поднял цены!");
+            return;
+        }
+
+        // 2. Если доля рынка мала и есть деньги – ценовая война
+        if (comp.marketShare < 0.2f && comp.money > 300 && decision < 0.5f)
+        {
+            comp.priceMultiplier = Mathf.Max(comp.priceMultiplier - 0.05f, 0.6f);
+            comp.reputation += 10;
+            comp.money -= 50;
+            ShowNotification($"{comp.companyName} снизил цены для захвата рынка!");
+            return;
+        }
+
+        // 3. Инвестиции в исследования
+        if (comp.researchLevel < 5 && comp.money > 400 && decision < 0.6f)
+        {
+            comp.money -= 200;
+            comp.researchLevel++;
+            TryUnlockRandomTech(comp);
+            ShowNotification($"{comp.companyName} инвестирует в исследования!");
+            return;
+        }
+
+        // 4. Инвестиции в завод
+        if (comp.money > 300 && decision < 0.7f)
+        {
+            comp.money -= 150;
+            comp.factoryLevel++;
+            ShowNotification($"{comp.companyName} модернизирует завод!");
+            return;
+        }
+    }
+
+    private void TryUnlockRandomTech(Competitor comp)
+    {
+        List<Technology> available = technologies.Where(t => !t.isResearched && !comp.researchedTechs.Contains(t.techName)).ToList();
+        if (available.Count == 0) return;
+        Technology chosen = available[Random.Range(0, available.Count)];
+        comp.researchedTechs.Add(chosen.techName);
+        if (chosen.unlockedCar != null && !comp.availableCars.Contains(chosen.unlockedCar))
+        {
+            comp.availableCars.Add(chosen.unlockedCar);
+        }
+        ShowNotification($"{comp.companyName} открыл технологию '{chosen.techName}'!");
+    }
+
+    // ============================== ОКНО КОНКУРЕНТОВ ==============================
+    private void OpenCompetitorsWindow()
+    {
+        if (competitorsOverlay != null)
+        {
+            if (menuContainer != null) menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(competitorsOverlay);
+            RefreshCompetitorsList();
+        }
+    }
+
+    private void CloseCompetitorsWindow()
+    {
+        if (competitorsOverlay != null)
+        {
+            AnimateWindowClose(competitorsOverlay, () =>
+            {
+                competitorsOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+        }
+    }
+
+    private void RefreshCompetitorsList()
+{
+    if (competitorsContainer == null) return;
+    competitorsContainer.Clear();
+
+    // Заголовки таблицы
+    var header = new VisualElement();
+    header.style.flexDirection = FlexDirection.Row;
+    header.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+    header.style.paddingTop = 5;
+    header.style.paddingBottom = 5;
+    header.style.paddingLeft = 10;
+    header.style.paddingRight = 10;
+    header.style.borderBottomWidth = 1;
+    header.style.borderBottomColor = new StyleColor(Color.gray);
+
+    string[] headers = { "Компания", "Деньги", "Репутация", "Доля рынка", "Цена", "Завод", "Иссл." };
+    float colWidthPercent = 100f / headers.Length; // вычисляем процент для одной колонки
+
+    foreach (var h in headers)
+    {
+        Label lbl = new Label(h);
+        lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
+        lbl.style.color = Color.white;
+        lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        header.Add(lbl);
+    }
+    competitorsContainer.Add(header);
+
+    // Строки конкурентов
+    foreach (var comp in competitors)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.paddingTop = 5;
+        row.style.paddingBottom = 5;
+        row.style.paddingLeft = 10;
+        row.style.paddingRight = 10;
+        row.style.borderBottomWidth = 1;
+        row.style.borderBottomColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
+
+        string[] values = {
+            comp.companyName,
+            $"${comp.money:F0}",
+            comp.reputation.ToString(),
+            $"{(comp.marketShare * 100):F1}%",
+            $"{comp.priceMultiplier:F2}x",
+            comp.factoryLevel.ToString(),
+            comp.researchLevel.ToString()
+        };
+
+        foreach (var val in values)
+        {
+            Label lbl = new Label(val);
+            lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
+            lbl.style.color = Color.white;
+            row.Add(lbl);
+        }
+        competitorsContainer.Add(row);
+    }
+
+    if (competitors.Count == 0)
+    {
+        Label empty = new Label("Нет конкурентов");
+        empty.style.color = Color.white;
+        empty.style.alignSelf = Align.Center;
+        empty.style.marginTop = 20;
+        competitorsContainer.Add(empty);
+    }
+}
+
+    // ============================== ПОСТРОЕНИЕ СПИСКА ДОСТУПНЫХ МАШИН ==============================
+private void BuildAvailableCars()
+{
+    List<CarBlueprint> cars = new List<CarBlueprint>();
+    if (startCars != null)
+        cars.AddRange(startCars);
+    if (technologies != null)
+    {
+        foreach (var tech in technologies)
+        {
+            // Добавляем машину только если технология исследована, машина существует,
+            // и флаг unlockCarOnResearch = true
+            if (tech.isResearched && tech.unlockedCar != null && tech.unlockCarOnResearch && !cars.Contains(tech.unlockedCar))
+            {
+                cars.Add(tech.unlockedCar);
+            }
+        }
+    }
+    availableCars = cars.ToArray();
+}
 
     // ============================== ПРОВЕРКА ДОСТУПНОСТИ УЛУЧШЕНИЯ ==============================
     private bool IsCarUpgradeUnlocked()
@@ -640,9 +881,7 @@ public class CarCompanyManager : MonoBehaviour
         {
             yield return new WaitForSeconds(15f);
 
-            // Генерируем случайное событие
-            float multiplier = UnityEngine.Random.Range(0.5f, 2.0f);
-            // Округляем до одного знака для красоты
+            float multiplier = Random.Range(0.5f, 2.0f);
             multiplier = Mathf.Round(multiplier * 10f) / 10f;
 
             string text;
@@ -656,8 +895,6 @@ public class CarCompanyManager : MonoBehaviour
             currentEventMultiplier = multiplier;
             currentEventText = text;
             UpdateEventUI();
-
-            // Обновляем карточки машин, чтобы показать новый спрос
             UpdateCarCards();
         }
     }
@@ -667,7 +904,6 @@ public class CarCompanyManager : MonoBehaviour
         if (eventLabel != null)
         {
             eventLabel.text = currentEventText;
-            // Можно добавить цвет в зависимости от события
             if (currentEventMultiplier < 0.8f)
                 eventLabel.style.color = new StyleColor(Color.red);
             else if (currentEventMultiplier > 1.2f)
@@ -675,6 +911,40 @@ public class CarCompanyManager : MonoBehaviour
             else
                 eventLabel.style.color = new StyleColor(Color.white);
         }
+    }
+
+    // ============================== СПРОС (с учётом конкурентов) ==============================
+    private void UpdateDemand()
+    {
+        List<CarBlueprint> allCars = GetAllPossibleCars();
+        foreach (CarBlueprint car in allCars)
+        {
+            float min, max;
+            switch (currentDifficulty)
+            {
+                case DifficultyLevel.Easy: min = 0.9f; max = 1.1f; break;
+                case DifficultyLevel.Normal: min = 0.7f; max = 1.3f; break;
+                case DifficultyLevel.Hard: min = 0.5f; max = 1.8f; break;
+                default: min = 0.8f; max = 1.2f; break;
+            }
+            float baseDemand = Random.Range(min, max);
+
+            // Влияние конкурентов
+            float competitorFactor = 1f;
+            foreach (var comp in competitors)
+            {
+                if (comp.availableCars.Contains(car))
+                {
+                    competitorFactor *= (1f - comp.marketShare * 0.5f);
+                    float priceEffect = 1f - (comp.priceMultiplier - 0.8f) * 0.2f;
+                    competitorFactor *= Mathf.Clamp(priceEffect, 0.5f, 1.2f);
+                }
+            }
+
+            float finalDemand = baseDemand * currentEventMultiplier * competitorFactor;
+            car.demandMultiplier = Mathf.Clamp(finalDemand, 0.1f, 5f);
+        }
+        UpdateCarCards();
     }
 
     // ============================== УПРАВЛЕНИЕ КОЛИЧЕСТВОМ ==============================
@@ -837,6 +1107,7 @@ public class CarCompanyManager : MonoBehaviour
         CloseTechWindow();
         CloseUpgradeWindow();
         CloseSettingsWindow();
+        CloseCompetitorsWindow();
         if (menuContainer != null) menuContainer.style.display = DisplayStyle.None;
     }
 
@@ -846,6 +1117,7 @@ public class CarCompanyManager : MonoBehaviour
         if (techOverlay != null) techOverlay.style.display = DisplayStyle.None;
         if (upgradeOverlay != null) upgradeOverlay.style.display = DisplayStyle.None;
         if (settingsOverlay != null) settingsOverlay.style.display = DisplayStyle.None;
+        if (competitorsOverlay != null) competitorsOverlay.style.display = DisplayStyle.None;
         if (welcomeOverlay != null) welcomeOverlay.style.display = DisplayStyle.None;
     }
 
@@ -1228,39 +1500,6 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
-    // ============================== СПРОС ==============================
-    private void UpdateDemand()
-    {
-        List<CarBlueprint> allCars = GetAllPossibleCars();
-        foreach (CarBlueprint car in allCars)
-        {
-            float min, max;
-            switch (currentDifficulty)
-            {
-                case DifficultyLevel.Easy:
-                    car.demandMultiplier = 1f;
-                    continue;
-                case DifficultyLevel.Normal:
-                    min = 0.8f; max = 1.2f;
-                    break;
-                case DifficultyLevel.Hard:
-                    min = 0.5f; max = 1.8f;
-                    break;
-                default:
-                    car.demandMultiplier = 1f;
-                    continue;
-            }
-            // Базовый спрос
-            float baseDemand = UnityEngine.Random.Range(min, max);
-            // Умножаем на множитель текущего события (только для Hard, но он всегда 1 для других)
-            car.demandMultiplier = baseDemand * currentEventMultiplier;
-            // Ограничиваем, чтобы спрос не уходил в бесконечность (оставляем в разумных пределах 0.1-5)
-            if (car.demandMultiplier > 5f) car.demandMultiplier = 5f;
-            if (car.demandMultiplier < 0.1f) car.demandMultiplier = 0.1f;
-        }
-        UpdateCarCards();
-    }
-
     // ============================== ДЕРЕВО ТЕХНОЛОГИЙ ==============================
     private void CreateTechButtons()
     {
@@ -1500,6 +1739,7 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
+    // ============================== ИССЛЕДОВАНИЕ ТЕХНОЛОГИЙ ==============================
     private void ResearchTechnology(Technology tech)
     {
         if (tech.isResearched)
@@ -1533,8 +1773,16 @@ public class CarCompanyManager : MonoBehaviour
         tech.isResearched = true;
         ShowNotification($"Технология '{tech.techName}' исследована!");
 
-        BuildAvailableCars();
-        CreateCarButtons();
+        // Открываем машину, только если у технологии стоит флаг unlockCarOnResearch = true
+        if (tech.unlockCarOnResearch && tech.unlockedCar != null && !availableCars.Contains(tech.unlockedCar))
+        {
+            var newList = availableCars.ToList();
+            newList.Add(tech.unlockedCar);
+            availableCars = newList.ToArray();
+            CreateCarButtons();
+            ShowNotification($"Открыта новая машина: {tech.unlockedCar.carName}");
+        }
+
         RefreshTechButtons();
         UpdateUI();
 

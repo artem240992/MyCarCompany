@@ -17,6 +17,7 @@
                 <ui:Button text="Сохранить" name="SaveButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
                 <ui:Button text="Загрузить" name="LoadButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
                 <ui:Button text="Новая игра" name="NewGameButton" style="width: 100%; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
+                <ui:Button text="Конкуренты" name="OpenCompetitorsButton" style="width: 100%; margin-bottom: 5px; background-color: transparent; color: white; border-width: 0; text-align: left;"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
@@ -77,6 +78,17 @@
             <ui:Button text="Hard" name="HardButton" style="width: 100%; color: white; font-size: 16px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
+    <!-- ОКНО КОНКУРЕНТОВ -->
+<ui:VisualElement name="CompetitorsOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;">
+    <ui:VisualElement name="CompetitorsWindow" style="background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; width: 700px; max-height: 80%;">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+            <ui:Label text="Конкуренты" style="font-size: 20px; color: white;"/>
+            <ui:Button text="✕" name="CloseCompetitorsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+        </ui:VisualElement>
+        <ui:ScrollView name="CompetitorsContainer" style="flex-grow: 1; max-height: 400px;"/>
+        <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px;"/>
+    </ui:VisualElement>
+</ui:VisualElement>
     <ui:VisualElement name="NotificationContainer" style="position: absolute; right: 20px; bottom: 20px; width: 300px; flex-direction: column-reverse; align-items: flex-end; pointer-events: none;"/>
     <ui:Label text="" name="EventLabel" style="font-size: 20px; color: white; align-self: center; margin-top: 5px;"/>
     <ui:Label text="" name="VersionLabel" style="position: absolute; right: 10px; bottom: 10px; font-size: 12px; color: black;"/>
