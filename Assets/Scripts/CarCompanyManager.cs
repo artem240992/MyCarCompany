@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using UnityEngine.SceneManagement;
-using Random = UnityEngine.Random; // Убираем конфликт с System.Random
+using Random = UnityEngine.Random;
 
 public enum DifficultyLevel
 {
@@ -128,6 +128,11 @@ public class CarCompanyManager : MonoBehaviour
     private List<Competitor> competitors = new List<Competitor>();
     private Coroutine competitorCoroutine;
     private string[] competitorNames = { "АвтоСтар", "ТехноТранс", "ЭкоДрайв", "СпортМотор", "ГородскойАвто" };
+
+    // --- НОВЫЕ МОДИФИКАТОРЫ ОТ ТЕХНОЛОГИЙ ---
+    private float totalPriceModifier = 1f;
+    private float totalDemandModifier = 1f;
+    private float totalCostModifier = 1f; // для снижения себестоимости
 
     // --- Для дерева технологий ---
     private List<TechNode> techNodes = new List<TechNode>();
@@ -286,6 +291,30 @@ public class CarCompanyManager : MonoBehaviour
         return all;
     }
 
+    // ============================== ПЕРЕСЧЁТ МОДИФИКАТОРОВ ==============================
+    private void RecalculateModifiers()
+    {
+        totalPriceModifier = 1f;
+        totalDemandModifier = 1f;
+        totalCostModifier = 1f;
+
+        foreach (var tech in technologies)
+        {
+            if (tech.isResearched)
+            {
+                totalPriceModifier *= tech.priceModifier;
+                totalDemandModifier *= tech.demandModifier;
+                // Специальная обработка для конкретных технологий (например, Гибридный привод)
+                if (tech.techName == "Гибридный привод")
+                    totalCostModifier *= 0.9f; // снижение себестоимости на 10%
+            }
+        }
+        // Ограничиваем, чтобы не уйти в бесконечность
+        totalPriceModifier = Mathf.Clamp(totalPriceModifier, 0.5f, 5f);
+        totalDemandModifier = Mathf.Clamp(totalDemandModifier, 0.5f, 5f);
+        totalCostModifier = Mathf.Clamp(totalCostModifier, 0.5f, 2f);
+    }
+
     // ============================== ИНИЦИАЛИЗАЦИЯ ==============================
     private void InitGame()
     {
@@ -406,6 +435,9 @@ public class CarCompanyManager : MonoBehaviour
         // --- Инициализация конкурентов ---
         InitCompetitors();
 
+        // Пересчёт модификаторов при старте
+        RecalculateModifiers();
+
         BuildAvailableCars();
         CreateCarButtons();
         CreateTechButtons();
@@ -442,7 +474,6 @@ public class CarCompanyManager : MonoBehaviour
             comp.reputation = Random.Range(30, 70);
             comp.priceMultiplier = Random.Range(0.8f, 1.2f);
             comp.marketShare = Random.Range(0.05f, 0.15f);
-            // Назначаем стартовые машины (первые 1-2 из доступных)
             int carCount = Mathf.Min(Random.Range(1, 3), availableCars.Length);
             for (int j = 0; j < carCount; j++)
             {
@@ -468,8 +499,8 @@ public class CarCompanyManager : MonoBehaviour
             {
                 RunCompetitorDecision(comp);
             }
-            UpdateDemand(); // обновляем спрос после действий конкурентов
-            RefreshCompetitorsList(); // обновляем таблицу конкурентов
+            UpdateDemand();
+            RefreshCompetitorsList();
         }
     }
 
@@ -488,7 +519,7 @@ public class CarCompanyManager : MonoBehaviour
     {
         float decision = Random.value;
 
-        // 1. Если денег мало – повысить цены
+        // 1. Ценовая политика
         if (comp.money < 200 && decision < 0.4f)
         {
             comp.priceMultiplier = Mathf.Min(comp.priceMultiplier + 0.1f, 1.5f);
@@ -496,7 +527,6 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // 2. Если доля рынка мала и есть деньги – ценовая война
         if (comp.marketShare < 0.2f && comp.money > 300 && decision < 0.5f)
         {
             comp.priceMultiplier = Mathf.Max(comp.priceMultiplier - 0.05f, 0.6f);
@@ -506,17 +536,39 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // 3. Инвестиции в исследования
+        // 2. Инвестиции в исследования (новые технологии)
         if (comp.researchLevel < 5 && comp.money > 400 && decision < 0.6f)
         {
-            comp.money -= 200;
-            comp.researchLevel++;
-            TryUnlockRandomTech(comp);
-            ShowNotification($"{comp.companyName} инвестирует в исследования!");
-            return;
+            // Попытка исследовать технологию, улучшающую цену
+            List<Technology> availableTechs = technologies.Where(t => !t.isResearched && !comp.researchedTechs.Contains(t.techName) && t.priceModifier > 1f).ToList();
+            if (availableTechs.Count > 0 && comp.money > 300)
+            {
+                Technology chosen = availableTechs[Random.Range(0, availableTechs.Count)];
+                int cost = Mathf.RoundToInt(chosen.researchCost * 0.8f);
+                if (comp.money >= cost)
+                {
+                    comp.money -= cost;
+                    comp.researchedTechs.Add(chosen.techName);
+                    comp.researchLevel++;
+                    // Обновляем модификаторы конкурента (влияет на его цены и спрос)
+                    // Упрощённо: повышаем его репутацию и долю рынка
+                    comp.reputation += 5;
+                    comp.marketShare += 0.02f;
+                    ShowNotification($"{comp.companyName} исследовал технологию '{chosen.techName}'!");
+                    return;
+                }
+            }
+            // Если нет технологий – инвестируем в завод
+            if (comp.money > 300)
+            {
+                comp.money -= 150;
+                comp.factoryLevel++;
+                ShowNotification($"{comp.companyName} модернизирует завод!");
+                return;
+            }
         }
 
-        // 4. Инвестиции в завод
+        // 3. Инвестиции в завод (если есть деньги и не было других действий)
         if (comp.money > 300 && decision < 0.7f)
         {
             comp.money -= 150;
@@ -524,19 +576,6 @@ public class CarCompanyManager : MonoBehaviour
             ShowNotification($"{comp.companyName} модернизирует завод!");
             return;
         }
-    }
-
-    private void TryUnlockRandomTech(Competitor comp)
-    {
-        List<Technology> available = technologies.Where(t => !t.isResearched && !comp.researchedTechs.Contains(t.techName)).ToList();
-        if (available.Count == 0) return;
-        Technology chosen = available[Random.Range(0, available.Count)];
-        comp.researchedTechs.Add(chosen.techName);
-        if (chosen.unlockedCar != null && !comp.availableCars.Contains(chosen.unlockedCar))
-        {
-            comp.availableCars.Add(chosen.unlockedCar);
-        }
-        ShowNotification($"{comp.companyName} открыл технологию '{chosen.techName}'!");
     }
 
     // ============================== ОКНО КОНКУРЕНТОВ ==============================
@@ -564,96 +603,92 @@ public class CarCompanyManager : MonoBehaviour
     }
 
     private void RefreshCompetitorsList()
-{
-    if (competitorsContainer == null) return;
-    competitorsContainer.Clear();
-
-    // Заголовки таблицы
-    var header = new VisualElement();
-    header.style.flexDirection = FlexDirection.Row;
-    header.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
-    header.style.paddingTop = 5;
-    header.style.paddingBottom = 5;
-    header.style.paddingLeft = 10;
-    header.style.paddingRight = 10;
-    header.style.borderBottomWidth = 1;
-    header.style.borderBottomColor = new StyleColor(Color.gray);
-
-    string[] headers = { "Компания", "Деньги", "Репутация", "Доля рынка", "Цена", "Завод", "Иссл." };
-    float colWidthPercent = 100f / headers.Length; // вычисляем процент для одной колонки
-
-    foreach (var h in headers)
     {
-        Label lbl = new Label(h);
-        lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
-        lbl.style.color = Color.white;
-        lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
-        header.Add(lbl);
-    }
-    competitorsContainer.Add(header);
+        if (competitorsContainer == null) return;
+        competitorsContainer.Clear();
 
-    // Строки конкурентов
-    foreach (var comp in competitors)
-    {
-        var row = new VisualElement();
-        row.style.flexDirection = FlexDirection.Row;
-        row.style.paddingTop = 5;
-        row.style.paddingBottom = 5;
-        row.style.paddingLeft = 10;
-        row.style.paddingRight = 10;
-        row.style.borderBottomWidth = 1;
-        row.style.borderBottomColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
+        var header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+        header.style.paddingTop = 5;
+        header.style.paddingBottom = 5;
+        header.style.paddingLeft = 10;
+        header.style.paddingRight = 10;
+        header.style.borderBottomWidth = 1;
+        header.style.borderBottomColor = new StyleColor(Color.gray);
 
-        string[] values = {
-            comp.companyName,
-            $"${comp.money:F0}",
-            comp.reputation.ToString(),
-            $"{(comp.marketShare * 100):F1}%",
-            $"{comp.priceMultiplier:F2}x",
-            comp.factoryLevel.ToString(),
-            comp.researchLevel.ToString()
-        };
+        string[] headers = { "Компания", "Деньги", "Репутация", "Доля рынка", "Цена", "Завод", "Иссл." };
+        float colWidthPercent = 100f / headers.Length;
 
-        foreach (var val in values)
+        foreach (var h in headers)
         {
-            Label lbl = new Label(val);
+            Label lbl = new Label(h);
             lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
             lbl.style.color = Color.white;
-            row.Add(lbl);
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(lbl);
         }
-        competitorsContainer.Add(row);
-    }
+        competitorsContainer.Add(header);
 
-    if (competitors.Count == 0)
-    {
-        Label empty = new Label("Нет конкурентов");
-        empty.style.color = Color.white;
-        empty.style.alignSelf = Align.Center;
-        empty.style.marginTop = 20;
-        competitorsContainer.Add(empty);
+        foreach (var comp in competitors)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.paddingTop = 5;
+            row.style.paddingBottom = 5;
+            row.style.paddingLeft = 10;
+            row.style.paddingRight = 10;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
+
+            string[] values = {
+                comp.companyName,
+                $"${comp.money:F0}",
+                comp.reputation.ToString(),
+                $"{(comp.marketShare * 100):F1}%",
+                $"{comp.priceMultiplier:F2}x",
+                comp.factoryLevel.ToString(),
+                comp.researchLevel.ToString()
+            };
+
+            foreach (var val in values)
+            {
+                Label lbl = new Label(val);
+                lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
+                lbl.style.color = Color.white;
+                row.Add(lbl);
+            }
+            competitorsContainer.Add(row);
+        }
+
+        if (competitors.Count == 0)
+        {
+            Label empty = new Label("Нет конкурентов");
+            empty.style.color = Color.white;
+            empty.style.alignSelf = Align.Center;
+            empty.style.marginTop = 20;
+            competitorsContainer.Add(empty);
+        }
     }
-}
 
     // ============================== ПОСТРОЕНИЕ СПИСКА ДОСТУПНЫХ МАШИН ==============================
-private void BuildAvailableCars()
-{
-    List<CarBlueprint> cars = new List<CarBlueprint>();
-    if (startCars != null)
-        cars.AddRange(startCars);
-    if (technologies != null)
+    private void BuildAvailableCars()
     {
-        foreach (var tech in technologies)
+        List<CarBlueprint> cars = new List<CarBlueprint>();
+        if (startCars != null)
+            cars.AddRange(startCars);
+        if (technologies != null)
         {
-            // Добавляем машину только если технология исследована, машина существует,
-            // и флаг unlockCarOnResearch = true
-            if (tech.isResearched && tech.unlockedCar != null && tech.unlockCarOnResearch && !cars.Contains(tech.unlockedCar))
+            foreach (var tech in technologies)
             {
-                cars.Add(tech.unlockedCar);
+                if (tech.isResearched && tech.unlockedCar != null && tech.unlockCarOnResearch && !cars.Contains(tech.unlockedCar))
+                {
+                    cars.Add(tech.unlockedCar);
+                }
             }
         }
+        availableCars = cars.ToArray();
     }
-    availableCars = cars.ToArray();
-}
 
     // ============================== ПРОВЕРКА ДОСТУПНОСТИ УЛУЧШЕНИЯ ==============================
     private bool IsCarUpgradeUnlocked()
@@ -740,6 +775,9 @@ private void BuildAvailableCars()
                 Technology t = technologies.FirstOrDefault(tech => tech.techName == techName);
                 if (t != null) t.isResearched = true;
             }
+
+            // Пересчёт модификаторов после загрузки
+            RecalculateModifiers();
 
             List<CarBlueprint> allCars = GetAllPossibleCars();
             foreach (CarDemandData d in data.carDemands)
@@ -846,6 +884,8 @@ private void BuildAvailableCars()
         currentEventMultiplier = 1f;
         currentEventText = "";
         UpdateEventUI();
+        // Пересчёт модификаторов (все технологии сброшены)
+        RecalculateModifiers();
         BuildAvailableCars();
         CreateCarButtons();
         CreateTechButtons();
@@ -913,7 +953,7 @@ private void BuildAvailableCars()
         }
     }
 
-    // ============================== СПРОС (с учётом конкурентов) ==============================
+    // ============================== СПРОС (с учётом технологий и конкурентов) ==============================
     private void UpdateDemand()
     {
         List<CarBlueprint> allCars = GetAllPossibleCars();
@@ -941,10 +981,30 @@ private void BuildAvailableCars()
                 }
             }
 
-            float finalDemand = baseDemand * currentEventMultiplier * competitorFactor;
+            // ---- ВЛИЯНИЕ ТЕХНОЛОГИЙ ИГРОКА ----
+            float playerTechDemandModifier = totalDemandModifier;
+
+            // ---- ВЛИЯНИЕ ТЕХНОЛОГИЙ КОНКУРЕНТОВ (упрощённо) ----
+            float competitorTechDemandModifier = 1f;
+            foreach (var comp in competitors)
+            {
+                // Чем больше технологий у конкурента, тем меньше спрос на эту модель у игрока
+                // (каждая исследованная технология конкурента снижает спрос на 2%)
+                competitorTechDemandModifier *= (1f - comp.researchLevel * 0.02f);
+            }
+
+            float finalDemand = baseDemand * currentEventMultiplier * competitorFactor * playerTechDemandModifier * competitorTechDemandModifier;
             car.demandMultiplier = Mathf.Clamp(finalDemand, 0.1f, 5f);
         }
         UpdateCarCards();
+    }
+
+    // ============================== ОБНОВЛЕНИЕ ЦЕН МАШИН (ПОСЛЕ ИССЛЕДОВАНИЙ) ==============================
+    private void UpdateCarPrices()
+    {
+        // Пересоздаём карточки машин, чтобы отобразить новые цены
+        CreateCarButtons();
+        UpdateUI();
     }
 
     // ============================== УПРАВЛЕНИЕ КОЛИЧЕСТВОМ ==============================
@@ -1216,7 +1276,7 @@ private void BuildAvailableCars()
         UpdateUI();
     }
 
-    // ============================== КНОПКИ МАШИН ==============================
+    // ============================== КНОПКИ МАШИН (с учётом модификаторов) ==============================
     private void CreateCarButtons()
     {
         if (carsContainer == null) return;
@@ -1261,13 +1321,17 @@ private void BuildAvailableCars()
             nameLabel.style.color = Color.white;
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            Label detailsLabel = new Label($"Цена: ${car.CurrentPrice}  |  Себ: ${car.CurrentProductionCost}");
+            // Используем модифицированные цену и себестоимость
+            int modPrice = car.GetModifiedPrice(totalPriceModifier);
+            int modCost = car.GetModifiedProductionCost(totalCostModifier);
+            Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
             detailsLabel.style.fontSize = 13;
             detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
 
-            Label profitLabel = new Label($"Прибыль: {car.GetCurrentProfit():F0}");
+            double profit = modPrice - modCost;
+            Label profitLabel = new Label($"Прибыль: {profit:F0}");
             profitLabel.style.fontSize = 14;
-            profitLabel.style.color = car.GetCurrentProfit() > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
+            profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
             Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
@@ -1326,7 +1390,9 @@ private void BuildAvailableCars()
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
-            double profit = car.GetCurrentProfit();
+            int modPrice = car.GetModifiedPrice(totalPriceModifier);
+            int modCost = car.GetModifiedProductionCost(totalCostModifier);
+            double profit = modPrice - modCost;
             cardData.profitLabel.text = $"Прибыль: {profit:F0}";
             cardData.profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
 
@@ -1343,7 +1409,7 @@ private void BuildAvailableCars()
         }
     }
 
-    // ============================== ПРОИЗВОДСТВО ==============================
+    // ============================== ПРОИЗВОДСТВО (с учётом модификаторов) ==============================
     private void SpawnCar(CarBlueprint car)
     {
         if (car == null)
@@ -1419,9 +1485,12 @@ private void BuildAvailableCars()
             return;
         }
 
-        double profit = availableCars[0].GetCurrentProfit() * profitMultiplier;
+        CarBlueprint car = availableCars[0];
+        int modPrice = car.GetModifiedPrice(totalPriceModifier);
+        int modCost = car.GetModifiedProductionCost(totalCostModifier);
+        double profit = (modPrice - modCost) * profitMultiplier;
         money += profit;
-        SpawnCar(availableCars[0]);
+        SpawnCar(car);
         UpdateUI();
     }
 
@@ -1435,7 +1504,10 @@ private void BuildAvailableCars()
 
         if (car == null) return;
 
-        double totalProfit = car.GetCurrentProfit() * productionCount * profitMultiplier;
+        int modPrice = car.GetModifiedPrice(totalPriceModifier);
+        int modCost = car.GetModifiedProductionCost(totalCostModifier);
+        double profit = modPrice - modCost;
+        double totalProfit = profit * productionCount * profitMultiplier;
         money += totalProfit;
         SpawnCar(car);
         UpdateUI();
@@ -1739,7 +1811,7 @@ private void BuildAvailableCars()
         }
     }
 
-    // ============================== ИССЛЕДОВАНИЕ ТЕХНОЛОГИЙ ==============================
+    // ============================== ИССЛЕДОВАНИЕ ТЕХНОЛОГИЙ (с пересчётом модификаторов) ==============================
     private void ResearchTechnology(Technology tech)
     {
         if (tech.isResearched)
@@ -1773,7 +1845,12 @@ private void BuildAvailableCars()
         tech.isResearched = true;
         ShowNotification($"Технология '{tech.techName}' исследована!");
 
-        // Открываем машину, только если у технологии стоит флаг unlockCarOnResearch = true
+        // ---- ПЕРЕСЧЁТ МОДИФИКАТОРОВ ----
+        RecalculateModifiers();
+
+        // ---- ОБНОВЛЕНИЕ ЦЕН МАШИН ----
+        UpdateCarPrices();
+
         if (tech.unlockCarOnResearch && tech.unlockedCar != null && !availableCars.Contains(tech.unlockedCar))
         {
             var newList = availableCars.ToList();

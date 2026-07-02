@@ -1,5 +1,4 @@
-using System;
-using UnityEngine; // <-- ОБЯЗАТЕЛЬНО!
+using UnityEngine;
 
 [System.Serializable]
 public class Technology
@@ -13,4 +12,11 @@ public class Technology
 
     [Tooltip("Открывать ли машину при изучении технологии")]
     public bool unlockCarOnResearch = true;
+
+    // ---- НОВЫЕ ПОЛЯ ДЛЯ ВЛИЯНИЯ НА ЦЕНУ И СПРОС ----
+    [Tooltip("Множитель цены (например, 1.1 = +10%)")]
+    public float priceModifier = 1f;
+
+    [Tooltip("Множитель спроса (например, 1.05 = +5%)")]
+    public float demandModifier = 1f;
 }
