@@ -5,7 +5,6 @@
             <ui:Label text="Деньги" name="MoneyLabel"/>
             <ui:Label text="Авто/сек:" name="IncomeLabel"/>
             <ui:Label text="Сложность:" name="SavedDifficultyLabel" style="font-size: 14px; color: rgb(170, 170, 170); margin-top: 5px;"/>
-            <ui:Label text="" name="EventLabel" style="font-size: 20px; color: white; align-self: center; margin-top: 5px;"/>
             <ui:Button text="Произвести авто" name="ProduceButton" style="margin-top: 15px;"/>
             <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px;">
                 <ui:Button text="☰" name="HamburgerButton" style="font-size: 28px; width: 44px; height: 44px; background-color: transparent; border-width: 0; color: white;"/>
@@ -79,5 +78,6 @@
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="NotificationContainer" style="position: absolute; right: 20px; bottom: 20px; width: 300px; flex-direction: column-reverse; align-items: flex-end; pointer-events: none;"/>
+    <ui:Label text="" name="EventLabel" style="font-size: 20px; color: white; align-self: center; margin-top: 5px;"/>
     <ui:Label text="" name="VersionLabel" style="position: absolute; right: 10px; bottom: 10px; font-size: 12px; color: black;"/>
 </ui:UXML>
