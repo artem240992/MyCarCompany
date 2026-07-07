@@ -194,7 +194,7 @@ GameObject:
   - component: {fileID: 2023311903206475556}
   - component: {fileID: -5225505164636271841}
   m_Layer: 0
-  m_Name: Classic Car_9
+  m_Name: DefaultCar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

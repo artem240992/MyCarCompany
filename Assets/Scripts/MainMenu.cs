@@ -8,7 +8,7 @@ public class MainMenu : MonoBehaviour
     {
         // Предположим, игровая сцена называется "GameScene"
         // Вы можете изменить на точное имя вашей сцены
-        SceneManager.LoadScene("GameScene");
+        SceneManager.LoadScene("SampleScene");
     }
 
     // Метод для кнопки "Настройки" — загружает сцену настроек (опционально)
