@@ -155,6 +155,8 @@ public class CarCompanyManager : MonoBehaviour
         public VisualElement card;
         public Label profitLabel;
         public Label demandLabel;
+        public Label trendLabel;
+        public VisualElement graphContainer;
         public Button upgradeButton;
     }
 
@@ -219,6 +221,13 @@ public class CarCompanyManager : MonoBehaviour
         else
         {
             ShowWelcomeScreen();
+        }
+
+        // Инициализация MarketSystem (он должен быть на сцене)
+        if (MarketSystem.Instance == null)
+        {
+            GameObject marketGO = new GameObject("MarketSystem");
+            marketGO.AddComponent<MarketSystem>();
         }
     }
 
@@ -291,6 +300,12 @@ public class CarCompanyManager : MonoBehaviour
         return all;
     }
 
+    // ---- ПУБЛИЧНЫЙ МЕТОД ДЛЯ ДОСТУПА КО ВСЕМ МАШИНАМ ----
+    public CarBlueprint[] GetAllCars()
+    {
+        return GetAllPossibleCars().ToArray();
+    }
+
     // ============================== ПЕРЕСЧЁТ МОДИФИКАТОРОВ ==============================
     private void RecalculateModifiers()
     {
@@ -304,12 +319,10 @@ public class CarCompanyManager : MonoBehaviour
             {
                 totalPriceModifier *= tech.priceModifier;
                 totalDemandModifier *= tech.demandModifier;
-                // Специальная обработка для конкретных технологий (например, Гибридный привод)
                 if (tech.techName == "Гибридный привод")
-                    totalCostModifier *= 0.9f; // снижение себестоимости на 10%
+                    totalCostModifier *= 0.9f;
             }
         }
-        // Ограничиваем, чтобы не уйти в бесконечность
         totalPriceModifier = Mathf.Clamp(totalPriceModifier, 0.5f, 5f);
         totalDemandModifier = Mathf.Clamp(totalDemandModifier, 0.5f, 5f);
         totalCostModifier = Mathf.Clamp(totalCostModifier, 0.5f, 2f);
@@ -536,10 +549,9 @@ public class CarCompanyManager : MonoBehaviour
             return;
         }
 
-        // 2. Инвестиции в исследования (новые технологии)
+        // 2. Инвестиции в исследования
         if (comp.researchLevel < 5 && comp.money > 400 && decision < 0.6f)
         {
-            // Попытка исследовать технологию, улучшающую цену
             List<Technology> availableTechs = technologies.Where(t => !t.isResearched && !comp.researchedTechs.Contains(t.techName) && t.priceModifier > 1f).ToList();
             if (availableTechs.Count > 0 && comp.money > 300)
             {
@@ -550,15 +562,12 @@ public class CarCompanyManager : MonoBehaviour
                     comp.money -= cost;
                     comp.researchedTechs.Add(chosen.techName);
                     comp.researchLevel++;
-                    // Обновляем модификаторы конкурента (влияет на его цены и спрос)
-                    // Упрощённо: повышаем его репутацию и долю рынка
                     comp.reputation += 5;
                     comp.marketShare += 0.02f;
                     ShowNotification($"{comp.companyName} исследовал технологию '{chosen.techName}'!");
                     return;
                 }
             }
-            // Если нет технологий – инвестируем в завод
             if (comp.money > 300)
             {
                 comp.money -= 150;
@@ -568,7 +577,7 @@ public class CarCompanyManager : MonoBehaviour
             }
         }
 
-        // 3. Инвестиции в завод (если есть деньги и не было других действий)
+        // 3. Инвестиции в завод
         if (comp.money > 300 && decision < 0.7f)
         {
             comp.money -= 150;
@@ -776,7 +785,6 @@ public class CarCompanyManager : MonoBehaviour
                 if (t != null) t.isResearched = true;
             }
 
-            // Пересчёт модификаторов после загрузки
             RecalculateModifiers();
 
             List<CarBlueprint> allCars = GetAllPossibleCars();
@@ -884,7 +892,6 @@ public class CarCompanyManager : MonoBehaviour
         currentEventMultiplier = 1f;
         currentEventText = "";
         UpdateEventUI();
-        // Пересчёт модификаторов (все технологии сброшены)
         RecalculateModifiers();
         BuildAvailableCars();
         CreateCarButtons();
@@ -953,9 +960,11 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
-    // ============================== СПРОС (с учётом технологий и конкурентов) ==============================
+    // ============================== СПРОС (НОВАЯ ВЕРСИЯ) ==============================
     private void UpdateDemand()
     {
+        if (MarketSystem.Instance == null) return;
+
         List<CarBlueprint> allCars = GetAllPossibleCars();
         foreach (CarBlueprint car in allCars)
         {
@@ -981,28 +990,24 @@ public class CarCompanyManager : MonoBehaviour
                 }
             }
 
-            // ---- ВЛИЯНИЕ ТЕХНОЛОГИЙ ИГРОКА ----
+            // Технологии игрока и конкурентов
             float playerTechDemandModifier = totalDemandModifier;
-
-            // ---- ВЛИЯНИЕ ТЕХНОЛОГИЙ КОНКУРЕНТОВ (упрощённо) ----
             float competitorTechDemandModifier = 1f;
             foreach (var comp in competitors)
-            {
-                // Чем больше технологий у конкурента, тем меньше спрос на эту модель у игрока
-                // (каждая исследованная технология конкурента снижает спрос на 2%)
                 competitorTechDemandModifier *= (1f - comp.researchLevel * 0.02f);
-            }
 
-            float finalDemand = baseDemand * currentEventMultiplier * competitorFactor * playerTechDemandModifier * competitorTechDemandModifier;
-            car.demandMultiplier = Mathf.Clamp(finalDemand, 0.1f, 5f);
+            float baseWithTech = baseDemand * currentEventMultiplier * competitorFactor * playerTechDemandModifier * competitorTechDemandModifier;
+
+            // Используем MarketSystem для окончательного расчёта
+            float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, baseWithTech);
+            car.demandMultiplier = finalDemand;
         }
         UpdateCarCards();
     }
 
-    // ============================== ОБНОВЛЕНИЕ ЦЕН МАШИН (ПОСЛЕ ИССЛЕДОВАНИЙ) ==============================
+    // ============================== ОБНОВЛЕНИЕ ЦЕН МАШИН ==============================
     private void UpdateCarPrices()
     {
-        // Пересоздаём карточки машин, чтобы отобразить новые цены
         CreateCarButtons();
         UpdateUI();
     }
@@ -1040,7 +1045,6 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
-    // ============================== МАССОВОЕ ПРОИЗВОДСТВО ==============================
     private bool IsBulkProductionUnlocked()
     {
         if (string.IsNullOrEmpty(bulkProductionTechName)) return true;
@@ -1206,7 +1210,7 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
-    private void ShowNotification(string message)
+    public void ShowNotification(string message) // СДЕЛАНО ПУБЛИЧНЫМ
     {
         if (notificationContainer == null) return;
         Label notificationLabel = new Label();
@@ -1276,7 +1280,7 @@ public class CarCompanyManager : MonoBehaviour
         UpdateUI();
     }
 
-    // ============================== КНОПКИ МАШИН (с учётом модификаторов) ==============================
+    // ============================== КНОПКИ МАШИН (с графиками) ==============================
     private void CreateCarButtons()
     {
         if (carsContainer == null) return;
@@ -1299,8 +1303,13 @@ public class CarCompanyManager : MonoBehaviour
             card.style.paddingLeft = 15;
             card.style.paddingRight = 15;
             card.style.marginBottom = 8;
-            card.style.flexDirection = FlexDirection.Row;
-            card.style.alignItems = Align.Center;
+            card.style.flexDirection = FlexDirection.Column;
+            card.style.alignItems = Align.Stretch;
+
+            // Верхняя часть: иконка и текст
+            VisualElement topRow = new VisualElement();
+            topRow.style.flexDirection = FlexDirection.Row;
+            topRow.style.alignItems = Align.Center;
 
             if (car.carIcon != null)
             {
@@ -1309,7 +1318,7 @@ public class CarCompanyManager : MonoBehaviour
                 iconImage.style.width = 60;
                 iconImage.style.height = 60;
                 iconImage.style.marginRight = 15;
-                card.Add(iconImage);
+                topRow.Add(iconImage);
             }
 
             VisualElement textContainer = new VisualElement();
@@ -1321,7 +1330,6 @@ public class CarCompanyManager : MonoBehaviour
             nameLabel.style.color = Color.white;
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            // Используем модифицированные цену и себестоимость
             int modPrice = car.GetModifiedPrice(totalPriceModifier);
             int modCost = car.GetModifiedProductionCost(totalCostModifier);
             Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
@@ -1342,13 +1350,19 @@ public class CarCompanyManager : MonoBehaviour
             levelLabel.style.fontSize = 12;
             levelLabel.style.color = new Color(0.6f, 0.8f, 1f);
 
+            // Тренд
+            Label trendLabel = new Label("тренд: ...");
+            trendLabel.style.fontSize = 11;
+            trendLabel.style.color = Color.gray;
+
             textContainer.Add(nameLabel);
             textContainer.Add(detailsLabel);
             textContainer.Add(profitLabel);
             textContainer.Add(demandLabel);
             textContainer.Add(levelLabel);
+            textContainer.Add(trendLabel);
 
-            card.Add(textContainer);
+            topRow.Add(textContainer);
 
             Button upgradeButton = new Button();
             upgradeButton.text = "Улучшить";
@@ -1363,16 +1377,27 @@ public class CarCompanyManager : MonoBehaviour
             CarBlueprint localCar = car;
             upgradeButton.clicked += () => UpgradeCar(localCar);
 
-            card.Add(upgradeButton);
+            topRow.Add(upgradeButton);
+            card.Add(topRow);
+
+            // Нижняя часть: график
+            VisualElement graphContainer = new VisualElement();
+            graphContainer.style.width = new Length(100, LengthUnit.Percent);
+            graphContainer.style.height = new Length(60, LengthUnit.Pixel);
+            graphContainer.style.marginTop = 5;
+            card.Add(graphContainer);
 
             CarCardData cardData = new CarCardData();
             cardData.car = car;
             cardData.card = card;
             cardData.profitLabel = profitLabel;
             cardData.demandLabel = demandLabel;
+            cardData.trendLabel = trendLabel;
+            cardData.graphContainer = graphContainer;
             cardData.upgradeButton = upgradeButton;
             carCards.Add(cardData);
 
+            // Клик по карточке для производства
             CarBlueprint localCarForProduction = car;
             card.RegisterCallback<ClickEvent>(evt => ProduceSpecificCar(localCarForProduction));
 
@@ -1406,10 +1431,29 @@ public class CarCompanyManager : MonoBehaviour
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             }
+
+            // Обновляем тренд
+            if (cardData.trendLabel != null && MarketSystem.Instance != null)
+            {
+                string trend = MarketSystem.Instance.GetDemandTrend(car.carName);
+                cardData.trendLabel.text = $"Тренд: {trend}";
+                if (trend.Contains("растёт"))
+                    cardData.trendLabel.style.color = Color.green;
+                else if (trend.Contains("падает"))
+                    cardData.trendLabel.style.color = Color.red;
+                else
+                    cardData.trendLabel.style.color = Color.gray;
+            }
+
+            // Обновляем график
+            if (cardData.graphContainer != null && MarketSystem.Instance != null)
+            {
+                MarketSystem.Instance.DrawDemandGraph(cardData.graphContainer, car.carName);
+            }
         }
     }
 
-    // ============================== ПРОИЗВОДСТВО (с учётом модификаторов) ==============================
+    // ============================== ПРОИЗВОДСТВО ==============================
     private void SpawnCar(CarBlueprint car)
     {
         if (car == null)
@@ -1811,7 +1855,7 @@ public class CarCompanyManager : MonoBehaviour
         }
     }
 
-    // ============================== ИССЛЕДОВАНИЕ ТЕХНОЛОГИЙ (с пересчётом модификаторов) ==============================
+    // ============================== ИССЛЕДОВАНИЕ ТЕХНОЛОГИЙ ==============================
     private void ResearchTechnology(Technology tech)
     {
         if (tech.isResearched)
@@ -1845,10 +1889,7 @@ public class CarCompanyManager : MonoBehaviour
         tech.isResearched = true;
         ShowNotification($"Технология '{tech.techName}' исследована!");
 
-        // ---- ПЕРЕСЧЁТ МОДИФИКАТОРОВ ----
         RecalculateModifiers();
-
-        // ---- ОБНОВЛЕНИЕ ЦЕН МАШИН ----
         UpdateCarPrices();
 
         if (tech.unlockCarOnResearch && tech.unlockedCar != null && !availableCars.Contains(tech.unlockedCar))
@@ -1887,6 +1928,24 @@ public class CarCompanyManager : MonoBehaviour
         button.style.width = new Length(width, LengthUnit.Pixel);
         button.style.height = new Length(height, LengthUnit.Pixel);
         button.style.whiteSpace = WhiteSpace.Normal;
+    }
+
+    // ============================== РЕКЛАМНАЯ КАМПАНИЯ ==============================
+    public void StartAdCampaign(string carName)
+    {
+        if (MarketSystem.Instance == null) return;
+        int cost = 50;
+        if (money >= cost)
+        {
+            money -= cost;
+            MarketSystem.Instance.StartAdvertising(carName);
+            UpdateUI();
+            ShowNotification($"Реклама для {carName} запущена за ${cost}!");
+        }
+        else
+        {
+            ShowNotification($"Не хватает денег на рекламу! (нужно ${cost})");
+        }
     }
 
     // ============================== ОБНОВЛЕНИЕ UI ==============================
