@@ -37,6 +37,9 @@ public class SaveLoadManager : MonoBehaviour
                 if (car != null)
                     data.carDemands.Add(new CarDemandData { carName = car.carName, demandMultiplier = car.demandMultiplier });
 
+            // ---- НОВОЕ: сохраняем созданные машины ----
+            data.createdCars = tech.GetCreatedCarsData();
+
             string json = JsonUtility.ToJson(data, true);
             File.WriteAllText(SaveFilePath, json);
             ui.ShowNotification("Игра сохранена!");
@@ -63,6 +66,13 @@ public class SaveLoadManager : MonoBehaviour
 
             economy.LoadFromSave(data);
             tech.LoadFromSave(data);
+            
+            // ---- НОВОЕ: загружаем созданные машины после загрузки технологий ----
+            if (data.createdCars != null && data.createdCars.Count > 0)
+            {
+                tech.LoadCreatedCars(data.createdCars);
+            }
+
             production.SetProductionCount(data.productionCount);
             difficulty.SetDifficulty((DifficultyLevel)data.currentDifficulty, false);
 
@@ -95,12 +105,14 @@ public class SaveLoadManager : MonoBehaviour
         // Удаляем файл сохранения
         if (File.Exists(SaveFilePath)) File.Delete(SaveFilePath);
 
-        // Сбрасываем состояние всех менеджеров
+        // Сбрасываем состояние всех менеджеров (кроме сложности)
         economy.ResetState();
         tech.ResetTechs();
         production.SetProductionCount(1);
         competitor.ResetCompetitors();
-        difficulty.SetDifficulty(DifficultyLevel.Normal, false); // сбрасываем на Normal без повторного сброса
+        
+        // ---- НЕ МЕНЯЕМ СЛОЖНОСТЬ ----
+        // Оставляем текущую сложность, установленную в настройках
 
         // Обновляем UI
         ui.UpdateMoneyLabels();
@@ -111,7 +123,7 @@ public class SaveLoadManager : MonoBehaviour
         ui.RefreshTechButtons();
         ui.CloseAllWindows();
         
-        // Показываем окно приветствия с выбором сложности
+        // Показываем окно приветствия с выбором сложности (опционально)
         ui.ShowWelcomeScreen();
         
         ui.ShowNotification("Новая игра начата!");

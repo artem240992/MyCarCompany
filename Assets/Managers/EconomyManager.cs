@@ -16,6 +16,21 @@ public class EconomyManager : MonoBehaviour
     private float totalCostModifier = 1f;
     private int reputation = 50;
 
+    // ---- Временный модификатор цены (для событий Hard) ----
+    private float temporaryPriceModifier = 1f;
+    public float TemporaryPriceModifier
+    {
+        get => temporaryPriceModifier;
+        set
+        {
+            temporaryPriceModifier = value;
+            // Пересчитываем модификаторы, чтобы обновить цены
+            RecalculateModifiers(CarCompanyManager.Instance.TechManager.Technologies);
+            CarCompanyManager.Instance.UIManager.UpdateMoneyLabels();
+            CarCompanyManager.Instance.UIManager.UpdateCarCards();
+        }
+    }
+
     // ---- Множители (устанавливаются DifficultyManager) ----
     public float CostMultiplier { get; set; } = 1f;
     public float ProfitMultiplier { get; set; } = 1f;
@@ -110,7 +125,7 @@ public class EconomyManager : MonoBehaviour
         reputation = Mathf.Max(0, value);
     }
 
-    // ---- Модификаторы ----
+    // ---- Модификаторы (теперь учитывают временный модификатор) ----
     public void RecalculateModifiers(Technology[] technologies)
     {
         totalPriceModifier = 1f;
@@ -130,6 +145,10 @@ public class EconomyManager : MonoBehaviour
                 }
             }
         }
+
+        // Применяем временный модификатор (бум/кризис)
+        totalPriceModifier *= temporaryPriceModifier;
+
         totalPriceModifier = Mathf.Clamp(totalPriceModifier, 0.5f, 5f);
         totalDemandModifier = Mathf.Clamp(totalDemandModifier, 0.5f, 5f);
         totalCostModifier = Mathf.Clamp(totalCostModifier, 0.5f, 2f);
@@ -162,6 +181,7 @@ public class EconomyManager : MonoBehaviour
         conveyorLevel = 0;
         engineerCount = 0;
         reputation = 50;
+        temporaryPriceModifier = 1f; // <-- сбрасываем временный модификатор
         OnMoneyChanged?.Invoke();
     }
 
@@ -172,6 +192,7 @@ public class EconomyManager : MonoBehaviour
         passiveIncome = data.passiveIncome;
         conveyorLevel = data.conveyorLevel;
         engineerCount = data.engineerCount;
+        temporaryPriceModifier = 1f; // при загрузке всегда сбрасываем
         OnMoneyChanged?.Invoke();
     }
 
@@ -182,4 +203,20 @@ public class EconomyManager : MonoBehaviour
         data.conveyorLevel = conveyorLevel;
         data.engineerCount = engineerCount;
     }
+    public void AddEngineer()
+{
+    engineerCount++;
+    passiveIncome += 2;
+    OnMoneyChanged?.Invoke();
+}
+
+public void LoseEngineer()
+{
+    if (engineerCount > 0)
+    {
+        engineerCount--;
+        passiveIncome -= 2;
+        OnMoneyChanged?.Invoke();
+    }
+}
 }

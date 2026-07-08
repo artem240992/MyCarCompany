@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using System.Linq;   // FIX: добавлен using для ToList()
+using System.Linq;
 
 public class DifficultyManager : MonoBehaviour
 {
@@ -65,18 +65,20 @@ public class DifficultyManager : MonoBehaviour
     {
         economy.ResetState();
         CarCompanyManager.Instance.TechManager.ResetTechs();
+        CarCompanyManager.Instance.DemandManager.ResetPenalties();
         CarCompanyManager.Instance.ProductionManager.SetProductionCount(1);
         CarCompanyManager.Instance.CompetitorManager.ResetCompetitors();
         var allCars = CarCompanyManager.Instance.TechManager.AvailableCars;
         foreach (var car in allCars) if (car != null) car.demandMultiplier = 1f;
         currentEventMultiplier = 1f;
         currentEventText = "";
+        economy.TemporaryPriceModifier = 1f; // сброс цены
         ui.UpdateEventUI(currentEventText, currentEventMultiplier);
         ui.UpdateUpgradeUI();
         ui.UpdateMoneyLabels();
         ui.CreateCarCards(CarCompanyManager.Instance.TechManager.AvailableCars);
-        ui.CreateTechTree(CarCompanyManager.Instance.TechManager.Technologies.ToList(), economy.TechCostMultiplier); // FIX: ToList() работает
-        ui.CloseAllWindows();   // FIX: теперь public
+        ui.CreateTechTree(CarCompanyManager.Instance.TechManager.Technologies.ToList(), economy.TechCostMultiplier);
+        ui.CloseAllWindows();
         ui.ShowNotification($"Сложность изменена на {currentDifficulty}");
     }
 
@@ -95,7 +97,11 @@ public class DifficultyManager : MonoBehaviour
         }
         currentEventMultiplier = 1f;
         currentEventText = "";
+        economy.TemporaryPriceModifier = 1f; // сбрасываем цену
         ui.UpdateEventUI(currentEventText, currentEventMultiplier);
+        demand.UpdateDemand();
+        ui.UpdateMoneyLabels();
+        ui.UpdateCarCards();
     }
 
     public void StartEconomicEventsIfHard()
@@ -114,17 +120,31 @@ public class DifficultyManager : MonoBehaviour
             multiplier = Mathf.Round(multiplier * 10f) / 10f;
 
             string text;
+            float priceMod = 1f;
             if (multiplier < 0.8f)
-                text = $"⚠️ Кризис! Спрос упал на {(1f - multiplier) * 100:F0}%";
+            {
+                text = $"⚠️ Кризис! Спрос упал на {(1f - multiplier) * 100:F0}%, цена -10%";
+                priceMod = 0.9f;
+            }
             else if (multiplier > 1.2f)
-                text = $"🚀 Бум! Спрос вырос на {(multiplier - 1f) * 100:F0}%";
+            {
+                text = $"🚀 Бум! Спрос вырос на {(multiplier - 1f) * 100:F0}%, цена +10%";
+                priceMod = 1.1f;
+            }
             else
+            {
                 text = $"📊 Спрос стабилен ({multiplier:F1}x)";
+                priceMod = 1f;
+            }
 
+            // Применяем изменения
             currentEventMultiplier = multiplier;
             currentEventText = text;
+            economy.TemporaryPriceModifier = priceMod; // меняем цену
             ui.UpdateEventUI(currentEventText, currentEventMultiplier);
-            demand.UpdateDemand();
+            demand.UpdateDemand();          // обновляем спрос
+            ui.UpdateMoneyLabels();          // обновляем отображение денег (цена изменилась)
+            ui.UpdateCarCards();             // обновляем карточки машин (прибыль, цена, спрос)
         }
     }
 }

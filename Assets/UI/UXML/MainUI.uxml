@@ -36,20 +36,20 @@
 
     <!-- Cars -->
     <ui:VisualElement name="CarsOverlay" class="overlay">
-        <ui:VisualElement name="CarsWindow" class="window cars-window">
-            <ui:VisualElement class="window-header">
-                <ui:Label text="Производство машин" class="window-title"/>
-                <ui:Button text="✕" name="CloseCarsButton" class="close-button"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="count-control">
-                <ui:Label text="Количество:" class="count-label-text"/>
-                <ui:Button text="-" name="DecreaseCountButton" class="count-button"/>
-                <ui:Label text="1" name="CountLabel" class="count-label"/>
-                <ui:Button text="+" name="IncreaseCountButton" class="count-button"/>
-            </ui:VisualElement>
-            <ui:ScrollView name="CarsContainer" class="cars-container"/>
+    <ui:VisualElement name="CarsWindow" style="width: 90%; max-width: 900px; height: 90%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 15px; border-radius: 10px; flex-direction: column;">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+            <ui:Label text="Производство машин" style="font-size: 20px; color: white;"/>
+            <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
         </ui:VisualElement>
+        <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px; flex-shrink: 0;">
+            <ui:Label text="Количество:" style="color: white; margin-right: 10px; font-size: 14px;"/>
+            <ui:Button text="-" name="DecreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
+            <ui:Label text="1" name="CountLabel" style="color: white; font-size: 18px; min-width: 30px; text-align: center;"/>
+            <ui:Button text="+" name="IncreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
+        </ui:VisualElement>
+        <ui:ScrollView name="CarsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
     </ui:VisualElement>
+</ui:VisualElement>
 
     <!-- Tech -->
     <ui:VisualElement name="TechOverlay" class="overlay">
@@ -92,15 +92,15 @@
 
     <!-- Competitors -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
-        <ui:VisualElement name="CompetitorsWindow" class="window competitors-window">
-            <ui:VisualElement class="window-header">
-                <ui:Label text="Конкуренты" class="window-title"/>
-                <ui:Button text="✕" name="CloseCompetitorsButton" class="close-button"/>
-            </ui:VisualElement>
-            <ui:ScrollView name="CompetitorsContainer" class="competitors-container"/>
-            <ui:Button text="Обновить" name="RefreshCompetitorsButton" class="refresh-button"/>
+    <ui:VisualElement name="CompetitorsWindow" style="width: 90%; max-width: 1200px; height: 85%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+            <ui:Label text="Конкуренты" style="font-size: 20px; color: white;"/>
+            <ui:Button text="✕" name="CloseCompetitorsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
         </ui:VisualElement>
+        <ui:ScrollView name="CompetitorsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
+        <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0;"/>
     </ui:VisualElement>
+</ui:VisualElement>
 
     <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>
