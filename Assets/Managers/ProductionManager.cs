@@ -97,7 +97,7 @@ public class ProductionManager : MonoBehaviour
         UpdateButtons();
     }
 
-    // ---- Производство ----
+    // ---- Производство (цена учитывает рыночный спрос) ----
     public void ProduceBasicCar()
     {
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
@@ -105,8 +105,10 @@ public class ProductionManager : MonoBehaviour
         if (availableCars == null || availableCars.Length == 0) { ui.ShowNotification("Нет доступных машин!"); return; }
         CarBlueprint car = availableCars[0];
         if (car == null) return;
+
+        // GetModifiedPrice уже включает модификаторы технологий, тюнинга и рыночного спроса
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
+        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
         double profit = (modPrice - modCost) * economy.ProfitMultiplier;
         economy.AddMoney(profit);
         SpawnCar(car);
@@ -116,8 +118,9 @@ public class ProductionManager : MonoBehaviour
     {
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
         if (car == null) return;
+
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
+        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
         double profit = (modPrice - modCost) * economy.ProfitMultiplier;
         double totalProfit = profit * productionCount;
         economy.AddMoney(totalProfit);

@@ -46,7 +46,9 @@ public class UIManager : MonoBehaviour
     private ProductionManager production => CarCompanyManager.Instance.ProductionManager;
 
     private List<CarCardData> carCards = new List<CarCardData>();
+    private List<(Competitor competitor, DropdownField dropdown)> competitorActionRows = new List<(Competitor, DropdownField)>();
 
+    private Dictionary<string, int> selectedActions = new Dictionary<string, int>();
     private class CarCardData
     {
         public CarBlueprint car;
@@ -54,11 +56,12 @@ public class UIManager : MonoBehaviour
         public Label profitLabel;
         public Label demandLabel;
         public Label trendLabel;
-        public Label levelLabel; // <-- ДОБАВЛЕНО
+        public Label levelLabel;
         public VisualElement graphContainer;
         public Button upgradeButton;
-        public Label powerLabel, economyLabel, designLabel, safetyLabel;
-        public Label powerCostLabel, economyCostLabel, designCostLabel, safetyCostLabel;
+        public SliderInt powerSlider, economySlider, designSlider, safetySlider;
+        public Label powerMaxLabel, economyMaxLabel, designMaxLabel, safetyMaxLabel;
+        public Label powerValueLabel, economyValueLabel, designValueLabel, safetyValueLabel;
         public Button powerUpgradeBtn, economyUpgradeBtn, designUpgradeBtn, safetyUpgradeBtn;
     }
 
@@ -66,6 +69,41 @@ public class UIManager : MonoBehaviour
     private string[] tuningParamDisplay = { "Мощность", "Экономичность", "Дизайн", "Безопасность" };
     private const int TUNING_MAX_LEVEL = 10;
     private VisualElement techGraphRoot;
+
+    private int GetMaxTuning(CarBlueprint car, string param)
+    {
+        switch (param)
+        {
+            case "power": return car.tuningPower;
+            case "economy": return car.tuningEconomy;
+            case "design": return car.tuningDesign;
+            case "safety": return car.tuningSafety;
+            default: return 0;
+        }
+    }
+
+    private int GetCurrentTuning(CarBlueprint car, string param)
+    {
+        switch (param)
+        {
+            case "power": return car.currentPower;
+            case "economy": return car.currentEconomy;
+            case "design": return car.currentDesign;
+            case "safety": return car.currentSafety;
+            default: return 0;
+        }
+    }
+
+    private void SetCurrentTuning(CarBlueprint car, string param, int value)
+    {
+        switch (param)
+        {
+            case "power": car.currentPower = value; break;
+            case "economy": car.currentEconomy = value; break;
+            case "design": car.currentDesign = value; break;
+            case "safety": car.currentSafety = value; break;
+        }
+    }
 
     public void Initialize(UIDocument document)
     {
@@ -115,7 +153,12 @@ public class UIManager : MonoBehaviour
         SubscribeButton("CloseUpgradeButton", CloseUpgradeWindow);
         SubscribeButton("CloseSettingsButton", CloseSettingsWindow);
         SubscribeButton("CloseCompetitorsButton", CloseCompetitorsWindow);
-        SubscribeButton("RefreshCompetitorsButton", () => competitor.RefreshCompetitorsList());
+        SubscribeButton("RefreshCompetitorsButton", () =>
+        {
+            ExecuteAllCompetitorActions();
+            competitor.RefreshCompetitorsList();
+        });
+
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
         SubscribeButton("LoadButton", () => CarCompanyManager.Instance.SaveLoadManager.LoadGame());
         SubscribeButton("NewGameButton", () => CarCompanyManager.Instance.SaveLoadManager.NewGame());
@@ -147,7 +190,6 @@ public class UIManager : MonoBehaviour
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
 
-    // ---- Публичные методы ----
     public void ShowWelcomeScreen()
     {
         if (welcomeOverlay != null)
@@ -238,214 +280,235 @@ public class UIManager : MonoBehaviour
     }
 
     public void CreateCarCards(CarBlueprint[] availableCars)
+{
+    if (carsContainer == null) return;
+    carsContainer.Clear();
+    carCards.Clear();
+    bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
+    foreach (CarBlueprint car in availableCars)
     {
-        if (carsContainer == null) return;
-        carsContainer.Clear();
-        carCards.Clear();
-        bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
-        foreach (CarBlueprint car in availableCars)
+        if (car == null) continue;
+        VisualElement card = new VisualElement();
+        card.AddToClassList("car-card");
+        card.style.backgroundColor = new StyleColor(new Color(0.25f, 0.25f, 0.25f));
+        card.style.borderTopLeftRadius = 6;
+        card.style.borderTopRightRadius = 6;
+        card.style.borderBottomLeftRadius = 6;
+        card.style.borderBottomRightRadius = 6;
+        card.style.paddingTop = 8;          // уменьшено
+        card.style.paddingBottom = 8;
+        card.style.paddingLeft = 12;        // уменьшено
+        card.style.paddingRight = 12;
+        card.style.marginBottom = 6;        // уменьшено
+        card.style.flexDirection = FlexDirection.Column;
+        card.style.alignItems = Align.Stretch;
+
+        VisualElement topRow = new VisualElement();
+        topRow.style.flexDirection = FlexDirection.Row;
+        topRow.style.alignItems = Align.Center;
+
+        Sprite iconSprite = car.carIcon != null ? car.carIcon : LoadCarIcon(car.carName);
+        if (iconSprite != null)
         {
-            if (car == null) continue;
-            VisualElement card = new VisualElement();
-            card.AddToClassList("car-card");
-            card.style.backgroundColor = new StyleColor(new Color(0.25f, 0.25f, 0.25f));
-            card.style.borderTopLeftRadius = 6;
-            card.style.borderTopRightRadius = 6;
-            card.style.borderBottomLeftRadius = 6;
-            card.style.borderBottomRightRadius = 6;
-            card.style.paddingTop = 10;
-            card.style.paddingBottom = 10;
-            card.style.paddingLeft = 15;
-            card.style.paddingRight = 15;
-            card.style.marginBottom = 8;
-            card.style.flexDirection = FlexDirection.Column;
-            card.style.alignItems = Align.Stretch;
-
-            VisualElement topRow = new VisualElement();
-            topRow.style.flexDirection = FlexDirection.Row;
-            topRow.style.alignItems = Align.Center;
-
-            Sprite iconSprite = car.carIcon != null ? car.carIcon : LoadCarIcon(car.carName);
-            if (iconSprite != null)
-            {
-                Image iconImage = new Image();
-                iconImage.sprite = iconSprite;
-                iconImage.style.width = 60;
-                iconImage.style.height = 60;
-                iconImage.style.marginRight = 15;
-                topRow.Add(iconImage);
-            }
-            else
-            {
-                VisualElement placeholder = new VisualElement();
-                placeholder.style.width = 60;
-                placeholder.style.height = 60;
-                placeholder.style.marginRight = 15;
-                placeholder.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
-                topRow.Add(placeholder);
-            }
-
-            VisualElement textContainer = new VisualElement();
-            textContainer.style.flexDirection = FlexDirection.Column;
-            textContainer.style.flexGrow = 1;
-            Label nameLabel = new Label(car.carName);
-            nameLabel.style.fontSize = 16;
-            nameLabel.style.color = Color.white;
-            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-            int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-            int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
-            Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
-            detailsLabel.style.fontSize = 13;
-            detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
-
-            double profit = modPrice - modCost;
-            Label profitLabel = new Label($"Прибыль: {profit:F0}");
-            profitLabel.style.fontSize = 14;
-            profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
-            profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-            Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
-            demandLabel.style.fontSize = 12;
-            demandLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
-            Label levelLabel = new Label($"Уровень: {car.currentLevel + 1}");
-            levelLabel.style.fontSize = 12;
-            levelLabel.style.color = new Color(0.6f, 0.8f, 1f);
-            Label trendLabel = new Label("тренд: ...");
-            trendLabel.style.fontSize = 11;
-            trendLabel.style.color = Color.gray;
-
-            textContainer.Add(nameLabel);
-            textContainer.Add(detailsLabel);
-            textContainer.Add(profitLabel);
-            textContainer.Add(demandLabel);
-            textContainer.Add(levelLabel);
-            textContainer.Add(trendLabel);
-            topRow.Add(textContainer);
-
-            Button upgradeButton = new Button();
-            upgradeButton.text = "Улучшить";
-            upgradeButton.style.width = 80;
-            upgradeButton.style.height = 30;
-            upgradeButton.style.marginLeft = 10;
-            upgradeButton.style.alignSelf = Align.Center;
-            bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
-            upgradeButton.SetEnabled(canUpgrade);
-            CarBlueprint localCar = car;
-            upgradeButton.clicked += () => tech.UpgradeCar(localCar);
-            topRow.Add(upgradeButton);
-            card.Add(topRow);
-
-            // Тюнинг
-            VisualElement tuningPanel = new VisualElement();
-            tuningPanel.style.flexDirection = FlexDirection.Row;
-            tuningPanel.style.flexWrap = Wrap.Wrap;
-            tuningPanel.style.marginTop = 5;
-            tuningPanel.style.marginBottom = 5;
-            tuningPanel.style.backgroundColor = new StyleColor(new Color(0.15f, 0.15f, 0.15f));
-            tuningPanel.style.paddingTop = 5;
-            tuningPanel.style.paddingBottom = 5;
-            tuningPanel.style.paddingLeft = 5;
-            tuningPanel.style.paddingRight = 5;
-            tuningPanel.style.borderTopLeftRadius = 4;
-            tuningPanel.style.borderTopRightRadius = 4;
-            tuningPanel.style.borderBottomLeftRadius = 4;
-            tuningPanel.style.borderBottomRightRadius = 4;
-
-            for (int i = 0; i < tuningParamNames.Length; i++)
-            {
-                string param = tuningParamNames[i];
-                string display = tuningParamDisplay[i];
-                VisualElement paramContainer = new VisualElement();
-                paramContainer.style.flexDirection = FlexDirection.Row;
-                paramContainer.style.alignItems = Align.Center;
-                paramContainer.style.marginRight = 8;
-
-                Label nameLabelParam = new Label(display);
-                nameLabelParam.style.color = Color.white;
-                nameLabelParam.style.fontSize = 10;
-                nameLabelParam.style.width = 50;
-
-                Label valueLabel = new Label("0");
-                valueLabel.style.color = Color.white;
-                valueLabel.style.fontSize = 12;
-                valueLabel.style.width = 20;
-                valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-
-                Button upgradeBtn = new Button();
-                upgradeBtn.text = "↑";
-                upgradeBtn.style.width = 24;
-                upgradeBtn.style.height = 24;
-                upgradeBtn.style.marginLeft = 2;
-                upgradeBtn.style.marginRight = 2;
-                upgradeBtn.style.fontSize = 12;
-                upgradeBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-                Label costLabel = new Label("$0");
-                costLabel.style.color = Color.yellow;
-                costLabel.style.fontSize = 9;
-                costLabel.style.width = 30;
-
-                paramContainer.Add(nameLabelParam);
-                paramContainer.Add(valueLabel);
-                paramContainer.Add(upgradeBtn);
-                paramContainer.Add(costLabel);
-                tuningPanel.Add(paramContainer);
-
-                CarBlueprint localCarTuning = car;
-                string localParam = param;
-                upgradeBtn.clicked += () => tech.UpgradeTuning(localCarTuning, localParam);
-            }
-            card.Add(tuningPanel);
-
-            // График
-            VisualElement graphContainer = new VisualElement();
-            graphContainer.style.width = new Length(100, LengthUnit.Percent);
-            graphContainer.style.height = new Length(60, LengthUnit.Pixel);
-            graphContainer.style.marginTop = 5;
-            card.Add(graphContainer);
-
-            CarCardData cardData = new CarCardData();
-            cardData.car = car;
-            cardData.card = card;
-            cardData.profitLabel = profitLabel;
-            cardData.demandLabel = demandLabel;
-            cardData.trendLabel = trendLabel;
-            cardData.levelLabel = levelLabel; // <-- СОХРАНЯЕМ ССЫЛКУ
-            cardData.graphContainer = graphContainer;
-            cardData.upgradeButton = upgradeButton;
-
-            var children = tuningPanel.Children().ToList();
-            for (int i = 0; i < tuningParamNames.Length && i < children.Count; i++)
-            {
-                var container = children[i] as VisualElement;
-                if (container != null)
-                {
-                    var labels = container.Children().OfType<Label>().ToList();
-                    var buttons = container.Children().OfType<Button>().ToList();
-                    if (labels.Count >= 2 && buttons.Count >= 1)
-                    {
-                        Label valLabel = labels[1];
-                        Label costLabel2 = labels.Count > 2 ? labels[2] : null;
-                        Button btn = buttons[0];
-                        switch (i)
-                        {
-                            case 0: cardData.powerLabel = valLabel; cardData.powerUpgradeBtn = btn; cardData.powerCostLabel = costLabel2; break;
-                            case 1: cardData.economyLabel = valLabel; cardData.economyUpgradeBtn = btn; cardData.economyCostLabel = costLabel2; break;
-                            case 2: cardData.designLabel = valLabel; cardData.designUpgradeBtn = btn; cardData.designCostLabel = costLabel2; break;
-                            case 3: cardData.safetyLabel = valLabel; cardData.safetyUpgradeBtn = btn; cardData.safetyCostLabel = costLabel2; break;
-                        }
-                    }
-                }
-            }
-
-            carCards.Add(cardData);
-            CarBlueprint localCarForProduction = car;
-            card.RegisterCallback<ClickEvent>(evt => production.ProduceSpecificCar(localCarForProduction));
-            carsContainer.Add(card);
+            Image iconImage = new Image();
+            iconImage.sprite = iconSprite;
+            iconImage.style.width = 50;      // немного меньше
+            iconImage.style.height = 50;
+            iconImage.style.marginRight = 12;
+            topRow.Add(iconImage);
         }
-        UpdateCarCards();
+        else
+        {
+            VisualElement placeholder = new VisualElement();
+            placeholder.style.width = 50;
+            placeholder.style.height = 50;
+            placeholder.style.marginRight = 12;
+            placeholder.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+            topRow.Add(placeholder);
+        }
+
+        VisualElement textContainer = new VisualElement();
+        textContainer.style.flexDirection = FlexDirection.Column;
+        textContainer.style.flexGrow = 1;
+        Label nameLabel = new Label(car.GetDisplayName());
+        nameLabel.style.fontSize = 15;      // чуть меньше
+        nameLabel.style.color = Color.white;
+        nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+        int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
+        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+        Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
+        detailsLabel.style.fontSize = 12;    // уменьшено
+        detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+
+        double profit = modPrice - modCost;
+        Label profitLabel = new Label($"Прибыль: {profit:F0}");
+        profitLabel.style.fontSize = 13;     // уменьшено
+        profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
+        profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+        Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
+        demandLabel.style.fontSize = 11;     // уменьшено
+        demandLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+        Label levelLabel = new Label($"Уровень: {car.currentLevel + 1}");
+        levelLabel.style.fontSize = 11;
+        levelLabel.style.color = new Color(0.6f, 0.8f, 1f);
+        Label trendLabel = new Label("тренд: ...");
+        trendLabel.style.fontSize = 10;      // уменьшено
+        trendLabel.style.color = Color.gray;
+
+        textContainer.Add(nameLabel);
+        textContainer.Add(detailsLabel);
+        textContainer.Add(profitLabel);
+        textContainer.Add(demandLabel);
+        textContainer.Add(levelLabel);
+        textContainer.Add(trendLabel);
+        topRow.Add(textContainer);
+
+        Button upgradeButton = new Button();
+        upgradeButton.text = "Улучшить";
+        upgradeButton.style.width = 70;      // уменьшено
+        upgradeButton.style.height = 26;
+        upgradeButton.style.marginLeft = 8;
+        upgradeButton.style.alignSelf = Align.Center;
+        bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
+        upgradeButton.SetEnabled(canUpgrade);
+        CarBlueprint localCar = car;
+        upgradeButton.clicked += () => tech.UpgradeCar(localCar);
+        topRow.Add(upgradeButton);
+        card.Add(topRow);
+
+        VisualElement tuningPanel = new VisualElement();
+        tuningPanel.style.flexDirection = FlexDirection.Column;
+        tuningPanel.style.marginTop = 3;     // уменьшено
+        tuningPanel.style.marginBottom = 3;
+        tuningPanel.style.backgroundColor = new StyleColor(new Color(0.15f, 0.15f, 0.15f));
+        tuningPanel.style.paddingTop = 3;    // уменьшено
+        tuningPanel.style.paddingBottom = 3;
+        tuningPanel.style.paddingLeft = 3;
+        tuningPanel.style.paddingRight = 3;
+        tuningPanel.style.borderTopLeftRadius = 4;
+        tuningPanel.style.borderTopRightRadius = 4;
+        tuningPanel.style.borderBottomLeftRadius = 4;
+        tuningPanel.style.borderBottomRightRadius = 4;
+
+        CarCardData cardData = new CarCardData();
+        cardData.car = car;
+        cardData.card = card;
+        cardData.profitLabel = profitLabel;
+        cardData.demandLabel = demandLabel;
+        cardData.trendLabel = trendLabel;
+        cardData.levelLabel = levelLabel;
+        cardData.upgradeButton = upgradeButton;
+
+        for (int i = 0; i < tuningParamNames.Length; i++)
+        {
+            string param = tuningParamNames[i];
+            string display = tuningParamDisplay[i];
+
+            VisualElement row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.marginBottom = 1;      // уменьшено
+
+            Label nameLabelParam = new Label(display);
+            nameLabelParam.style.width = 40; // уменьшено
+            nameLabelParam.style.color = Color.white;
+            nameLabelParam.style.fontSize = 9; // уменьшено
+            row.Add(nameLabelParam);
+
+            SliderInt slider = new SliderInt();
+            slider.lowValue = 0;
+            slider.highValue = GetMaxTuning(car, param);
+            slider.value = GetCurrentTuning(car, param);
+            slider.style.flexGrow = 1;
+            slider.style.marginLeft = 2;     // уменьшено
+            slider.style.marginRight = 2;
+            row.Add(slider);
+
+            Label valueLabel = new Label(GetCurrentTuning(car, param).ToString());
+            valueLabel.style.width = 16;     // уменьшено
+            valueLabel.style.color = Color.white;
+            valueLabel.style.fontSize = 10;  // уменьшено
+            valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            row.Add(valueLabel);
+
+            Label maxLabel = new Label($"/{GetMaxTuning(car, param)}");
+            maxLabel.style.width = 20;       // уменьшено
+            maxLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+            maxLabel.style.fontSize = 9;     // уменьшено
+            row.Add(maxLabel);
+
+            Button upgradeBtn = new Button();
+            upgradeBtn.text = "↑";
+            upgradeBtn.style.width = 20;     // уменьшено
+            upgradeBtn.style.height = 20;
+            upgradeBtn.style.marginLeft = 1;
+            upgradeBtn.style.fontSize = 12;  // уменьшено
+            upgradeBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            row.Add(upgradeBtn);
+
+            tuningPanel.Add(row);
+
+            switch (i)
+            {
+                case 0: 
+                    cardData.powerSlider = slider; 
+                    cardData.powerValueLabel = valueLabel;
+                    cardData.powerMaxLabel = maxLabel;
+                    cardData.powerUpgradeBtn = upgradeBtn;
+                    break;
+                case 1: 
+                    cardData.economySlider = slider; 
+                    cardData.economyValueLabel = valueLabel;
+                    cardData.economyMaxLabel = maxLabel;
+                    cardData.economyUpgradeBtn = upgradeBtn;
+                    break;
+                case 2: 
+                    cardData.designSlider = slider; 
+                    cardData.designValueLabel = valueLabel;
+                    cardData.designMaxLabel = maxLabel;
+                    cardData.designUpgradeBtn = upgradeBtn;
+                    break;
+                case 3: 
+                    cardData.safetySlider = slider; 
+                    cardData.safetyValueLabel = valueLabel;
+                    cardData.safetyMaxLabel = maxLabel;
+                    cardData.safetyUpgradeBtn = upgradeBtn;
+                    break;
+            }
+
+            CarBlueprint localCarTuning = car;
+            string localParam = param;
+            slider.RegisterValueChangedCallback(evt =>
+            {
+                int newVal = evt.newValue;
+                SetCurrentTuning(localCarTuning, localParam, newVal);
+                valueLabel.text = newVal.ToString();
+                UpdateCarCards();
+                UpdateMoneyLabels();
+            });
+
+            upgradeBtn.clicked += () => tech.UpgradeTuning(localCarTuning, localParam);
+        }
+
+        card.Add(tuningPanel);
+
+        VisualElement graphContainer = new VisualElement();
+        graphContainer.style.width = new Length(100, LengthUnit.Percent);
+        graphContainer.style.height = new Length(40, LengthUnit.Pixel); // уменьшено
+        graphContainer.style.marginTop = 3;  // уменьшено
+        card.Add(graphContainer);
+        cardData.graphContainer = graphContainer;
+
+        carCards.Add(cardData);
+
+        CarBlueprint localCarForProduction = car;
+        card.RegisterCallback<ClickEvent>(evt => production.ProduceSpecificCar(localCarForProduction));
+        carsContainer.Add(card);
     }
+    UpdateCarCards();
+}
 
     public void UpdateCarCards()
     {
@@ -456,7 +519,7 @@ public class UIManager : MonoBehaviour
             CarBlueprint car = cardData.car;
 
             int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-            int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
+            int modCost = Mathf.RoundToInt(car.GetModifiedProductionCost(economy.TotalCostModifier) * economy.CostMultiplier);
             double profit = modPrice - modCost;
             if (cardData.profitLabel != null)
             {
@@ -470,13 +533,11 @@ public class UIManager : MonoBehaviour
                 cardData.demandLabel.style.color = demand > 1.2f ? Color.green : (demand < 0.8f ? Color.red : Color.yellow);
             }
 
-            // ---- ОБНОВЛЕНИЕ УРОВНЯ ----
             if (cardData.levelLabel != null)
             {
                 cardData.levelLabel.text = $"Уровень: {car.currentLevel + 1}";
             }
 
-            // ---- ОБНОВЛЕНИЕ ТРЕНДА ----
             if (cardData.trendLabel != null && MarketSystem.Instance != null)
             {
                 string trend = MarketSystem.Instance.GetDemandTrend(car.carName);
@@ -493,14 +554,229 @@ public class UIManager : MonoBehaviour
 
             if (cardData.graphContainer != null && MarketSystem.Instance != null)
                 MarketSystem.Instance.DrawDemandGraph(cardData.graphContainer, car.carName);
-            UpdateTuningUI(cardData);
+
+            UpdateTuningSliders(cardData, car);
         }
     }
 
+    private void UpdateTuningSliders(CarCardData cardData, CarBlueprint car)
+    {
+        if (cardData.powerSlider != null)
+        {
+            cardData.powerSlider.highValue = car.tuningPower;
+            cardData.powerSlider.value = car.currentPower;
+            cardData.powerValueLabel.text = car.currentPower.ToString();
+            cardData.powerMaxLabel.text = $"/{car.tuningPower}";
+            bool canUpgrade = car.tuningPower < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "power");
+            cardData.powerUpgradeBtn.SetEnabled(canUpgrade);
+        }
+        if (cardData.economySlider != null)
+        {
+            cardData.economySlider.highValue = car.tuningEconomy;
+            cardData.economySlider.value = car.currentEconomy;
+            cardData.economyValueLabel.text = car.currentEconomy.ToString();
+            cardData.economyMaxLabel.text = $"/{car.tuningEconomy}";
+            bool canUpgrade = car.tuningEconomy < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "economy");
+            cardData.economyUpgradeBtn.SetEnabled(canUpgrade);
+        }
+        if (cardData.designSlider != null)
+        {
+            cardData.designSlider.highValue = car.tuningDesign;
+            cardData.designSlider.value = car.currentDesign;
+            cardData.designValueLabel.text = car.currentDesign.ToString();
+            cardData.designMaxLabel.text = $"/{car.tuningDesign}";
+            bool canUpgrade = car.tuningDesign < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "design");
+            cardData.designUpgradeBtn.SetEnabled(canUpgrade);
+        }
+        if (cardData.safetySlider != null)
+        {
+            cardData.safetySlider.highValue = car.tuningSafety;
+            cardData.safetySlider.value = car.currentSafety;
+            cardData.safetyValueLabel.text = car.currentSafety.ToString();
+            cardData.safetyMaxLabel.text = $"/{car.tuningSafety}";
+            bool canUpgrade = car.tuningSafety < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "safety");
+            cardData.safetyUpgradeBtn.SetEnabled(canUpgrade);
+        }
+    }
+
+    // ========== КОНКУРЕНТЫ ==========
+
+public void RefreshCompetitorsList(List<Competitor> competitors, int playerReputation)
+{
+    if (competitorsContainer == null) return;
+
+    // --- 1. Сохраняем текущие выбранные действия ---
+    foreach (var row in competitorActionRows)
+    {
+        if (row.competitor != null && row.dropdown != null)
+        {
+            selectedActions[row.competitor.companyName] = row.dropdown.index;
+        }
+    }
+
+    competitorsContainer.Clear();
+    competitorActionRows.Clear();
+
+    // --- Заголовок с репутацией ---
+    Label playerRepLabel = new Label($"Ваша репутация: {playerReputation}");
+    playerRepLabel.style.color = Color.white;
+    playerRepLabel.style.fontSize = 14;
+    playerRepLabel.style.marginBottom = 10;
+    competitorsContainer.Add(playerRepLabel);
+
+    // --- Заголовки таблицы ---
+    var header = new VisualElement();
+    header.style.flexDirection = FlexDirection.Row;
+    header.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+    header.style.paddingTop = 5;
+    header.style.paddingBottom = 5;
+    header.style.paddingLeft = 10;
+    header.style.paddingRight = 10;
+    header.style.borderBottomWidth = 1;
+    header.style.borderBottomColor = new StyleColor(Color.gray);
+
+    string[] headers = { "Компания", "Деньги", "Репутация", "Доля рынка", "Цена", "Завод", "Иссл.", "Инж.", "Действие" };
+    float actionWidth = 25f;
+    float otherWidth = (100f - actionWidth) / (headers.Length - 1);
+
+    for (int i = 0; i < headers.Length; i++)
+    {
+        Label lbl = new Label(headers[i]);
+        if (i == headers.Length - 1)
+            lbl.style.width = new Length(actionWidth, LengthUnit.Percent);
+        else
+            lbl.style.width = new Length(otherWidth, LengthUnit.Percent);
+        lbl.style.color = Color.white;
+        lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        header.Add(lbl);
+    }
+    competitorsContainer.Add(header);
+
+    List<string> actionOptions = new List<string>
+    {
+        "Выберите действие",
+        "Маркетинговая атака",
+        "Чёрный PR",
+        "Предложить союз",
+        "Украсть технологию",
+        "Переманить инженера"
+    };
+
+    foreach (var comp in competitors)
+    {
+        if (comp == null) continue;
+
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.paddingTop = 5;
+        row.style.paddingBottom = 5;
+        row.style.paddingLeft = 10;
+        row.style.paddingRight = 10;
+        row.style.borderBottomWidth = 1;
+        row.style.borderBottomColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
+
+        // Данные (первые 8 колонок)
+        string[] values = {
+            comp.companyName + (comp.isAlly ? " 🤝" : ""),
+            $"${comp.money:F0}",
+            comp.reputation.ToString(),
+            $"{(comp.marketShare * 100):F1}%",
+            $"{comp.priceMultiplier:F2}x",
+            comp.factoryLevel.ToString(),
+            comp.researchLevel.ToString(),
+            comp.engineers.ToString()
+        };
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            Label lbl = new Label(values[i]);
+            lbl.style.width = new Length(otherWidth, LengthUnit.Percent);
+            lbl.style.color = Color.white;
+            lbl.style.fontSize = 12;
+            row.Add(lbl);
+        }
+
+        // Контейнер для выпадающего списка (последняя колонка)
+        VisualElement actionContainer = new VisualElement();
+        actionContainer.style.width = new Length(actionWidth, LengthUnit.Percent);
+        actionContainer.style.justifyContent = Justify.Center;
+        actionContainer.style.alignItems = Align.Center;
+
+        DropdownField actionDropdown = new DropdownField();
+        actionDropdown.choices = actionOptions;
+        actionDropdown.index = 0;
+        actionDropdown.style.width = new Length(100, LengthUnit.Percent);
+        actionDropdown.style.height = 28;          // увеличенная высота
+        actionDropdown.style.fontSize = 14;         // увеличенный шрифт
+        actionContainer.Add(actionDropdown);
+        row.Add(actionContainer);
+
+        competitorsContainer.Add(row);
+        competitorActionRows.Add((comp, actionDropdown));
+    }
+
+    // --- 2. Восстанавливаем сохранённые индексы ---
+    foreach (var row in competitorActionRows)
+    {
+        if (row.competitor != null && row.dropdown != null)
+        {
+            string name = row.competitor.companyName;
+            if (selectedActions.TryGetValue(name, out int savedIndex))
+            {
+                if (savedIndex >= 0 && savedIndex < row.dropdown.choices.Count)
+                    row.dropdown.index = savedIndex;
+            }
+        }
+    }
+
+    if (competitors.Count == 0)
+    {
+        Label empty = new Label("Нет конкурентов");
+        empty.style.color = Color.white;
+        empty.style.alignSelf = Align.Center;
+        empty.style.marginTop = 20;
+        competitorsContainer.Add(empty);
+    }
+}
+
+    private void ExecuteAllCompetitorActions()
+{
+    int executedCount = 0;
+    // Создаём копию, чтобы избежать ошибки "Collection was modified"
+    var rowsCopy = competitorActionRows.ToList();
+    foreach (var row in rowsCopy)
+    {
+        int selectedIndex = row.dropdown.index;
+        if (selectedIndex <= 0) continue;
+
+        switch (selectedIndex)
+        {
+            case 1: competitor.PerformMarketingAttack(row.competitor); break;
+            case 2: competitor.PerformBlackPR(row.competitor); break;
+            case 3: competitor.ProposeAlliance(row.competitor); break;
+            case 4: competitor.StealTechnology(row.competitor); break;
+            case 5: competitor.PoachEngineer(row.competitor); break;
+        }
+        executedCount++;
+    }
+    if (executedCount == 0)
+        ShowNotification("Не выбрано ни одного действия для выполнения.");
+    else
+        ShowNotification($"Выполнено {executedCount} действий над конкурентами.");
+}
+
+    // ========== ТЕХНОЛОГИИ ==========
+
     public void CreateTechTree(List<Technology> technologies, float techCostMultiplier)
     {
-        if (techScrollView == null) return;
+        if (techScrollView == null)
+        {
+            Debug.LogError("techScrollView == null! Проверьте, что в UXML есть элемент с name='TechContainer'");
+            return;
+        }
         techScrollView.Clear();
+
         if (technologies == null || technologies.Count == 0)
         {
             Label emptyLabel = new Label("Нет доступных технологий");
@@ -626,132 +902,6 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void RefreshCompetitorsList(List<Competitor> competitors, int playerReputation)
-    {
-        if (competitorsContainer == null) return;
-        competitorsContainer.Clear();
-
-        Label playerRepLabel = new Label($"Ваша репутация: {playerReputation}");
-        playerRepLabel.style.color = Color.white;
-        playerRepLabel.style.fontSize = 14;
-        playerRepLabel.style.marginBottom = 10;
-        competitorsContainer.Add(playerRepLabel);
-
-        var header = new VisualElement();
-        header.style.flexDirection = FlexDirection.Row;
-        header.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
-        header.style.paddingTop = 5;
-        header.style.paddingBottom = 5;
-        header.style.paddingLeft = 10;
-        header.style.paddingRight = 10;
-        header.style.borderBottomWidth = 1;
-        header.style.borderBottomColor = new StyleColor(Color.gray);
-
-        string[] headers = { "Компания", "Деньги", "Репутация", "Доля рынка", "Цена", "Завод", "Иссл.", "Инж.", "Действие" };
-        float colWidthPercent = 100f / headers.Length;
-        foreach (var h in headers)
-        {
-            Label lbl = new Label(h);
-            lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
-            lbl.style.color = Color.white;
-            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
-            header.Add(lbl);
-        }
-        competitorsContainer.Add(header);
-
-        List<string> actionOptions = new List<string>
-        {
-            "Выберите действие",
-            "Маркетинговая атака",
-            "Чёрный PR",
-            "Предложить союз",
-            "Украсть технологию",
-            "Переманить инженера"
-        };
-
-        foreach (var comp in competitors)
-        {
-            if (comp == null) continue;
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            row.style.paddingTop = 5;
-            row.style.paddingBottom = 5;
-            row.style.paddingLeft = 10;
-            row.style.paddingRight = 10;
-            row.style.borderBottomWidth = 1;
-            row.style.borderBottomColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
-
-            string[] values = {
-                comp.companyName + (comp.isAlly ? " 🤝" : ""),
-                $"${comp.money:F0}",
-                comp.reputation.ToString(),
-                $"{(comp.marketShare * 100):F1}%",
-                $"{comp.priceMultiplier:F2}x",
-                comp.factoryLevel.ToString(),
-                comp.researchLevel.ToString(),
-                comp.engineers.ToString()
-            };
-            foreach (var val in values)
-            {
-                Label lbl = new Label(val);
-                lbl.style.width = new Length(colWidthPercent, LengthUnit.Percent);
-                lbl.style.color = Color.white;
-                lbl.style.fontSize = 12;
-                row.Add(lbl);
-            }
-
-            VisualElement actionContainer = new VisualElement();
-            actionContainer.style.flexDirection = FlexDirection.Row;
-            actionContainer.style.width = new Length(colWidthPercent, LengthUnit.Percent);
-            actionContainer.style.justifyContent = Justify.SpaceEvenly;
-            actionContainer.style.alignItems = Align.Center;
-
-            DropdownField actionDropdown = new DropdownField();
-            actionDropdown.choices = actionOptions;
-            actionDropdown.index = 0;
-            actionDropdown.style.width = new Length(100, LengthUnit.Pixel);
-            actionDropdown.style.height = 24;
-            actionDropdown.style.fontSize = 11;
-
-            Button executeBtn = new Button();
-            executeBtn.text = "Выполнить";
-            executeBtn.style.width = 60;
-            executeBtn.style.height = 24;
-            executeBtn.style.marginLeft = 4;
-
-            Competitor localComp = comp;
-            executeBtn.clicked += () =>
-            {
-                int selectedIndex = actionDropdown.index;
-                if (selectedIndex <= 0) { ShowNotification("Выберите действие!"); return; }
-                switch (selectedIndex)
-                {
-                    case 1: CarCompanyManager.Instance.CompetitorManager.PerformMarketingAttack(localComp); break;
-                    case 2: CarCompanyManager.Instance.CompetitorManager.PerformBlackPR(localComp); break;
-                    case 3: CarCompanyManager.Instance.CompetitorManager.ProposeAlliance(localComp); break;
-                    case 4: CarCompanyManager.Instance.CompetitorManager.StealTechnology(localComp); break;
-                    case 5: CarCompanyManager.Instance.CompetitorManager.PoachEngineer(localComp); break;
-                }
-                actionDropdown.index = 0;
-            };
-
-            actionContainer.Add(actionDropdown);
-            actionContainer.Add(executeBtn);
-            row.Add(actionContainer);
-            competitorsContainer.Add(row);
-        }
-
-        if (competitors.Count == 0)
-        {
-            Label empty = new Label("Нет конкурентов");
-            empty.style.color = Color.white;
-            empty.style.alignSelf = Align.Center;
-            empty.style.marginTop = 20;
-            competitorsContainer.Add(empty);
-        }
-    }
-
     public void CloseAllWindows()
     {
         CloseCarsWindow();
@@ -762,7 +912,6 @@ public class UIManager : MonoBehaviour
         if (menuContainer != null) menuContainer.style.display = DisplayStyle.None;
     }
 
-    // ---- Приватные методы окон ----
     private void OpenCarsWindow()
     {
         if (carsOverlay != null)
@@ -770,7 +919,7 @@ public class UIManager : MonoBehaviour
             menuContainer.style.display = DisplayStyle.None;
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(carsOverlay);
-            demand.UpdateDemand(); // <-- ДОБАВЛЕНО для обновления спроса при открытии окна
+            demand.UpdateDemand();
             UpdateCarCards();
         }
     }
@@ -880,45 +1029,6 @@ public class UIManager : MonoBehaviour
         }).ExecuteLater(150);
     }
 
-    private void UpdateTuningUI(CarCardData cardData)
-    {
-        CarBlueprint car = cardData.car;
-        if (car == null) return;
-
-        var paramInfos = new (Label label, Button btn, Label costLabel, string param)[]
-        {
-            (cardData.powerLabel, cardData.powerUpgradeBtn, cardData.powerCostLabel, "power"),
-            (cardData.economyLabel, cardData.economyUpgradeBtn, cardData.economyCostLabel, "economy"),
-            (cardData.designLabel, cardData.designUpgradeBtn, cardData.designCostLabel, "design"),
-            (cardData.safetyLabel, cardData.safetyUpgradeBtn, cardData.safetyCostLabel, "safety")
-        };
-
-        foreach (var p in paramInfos)
-        {
-            if (p.label != null)
-                p.label.text = tech.GetTuningLevel(car, p.param).ToString();
-            if (p.btn != null)
-            {
-                bool can = tech.CanUpgradeTuning(car, p.param);
-                p.btn.SetEnabled(can);
-                if (p.costLabel != null)
-                {
-                    int level = tech.GetTuningLevel(car, p.param);
-                    if (level < TUNING_MAX_LEVEL)
-                    {
-                        Technology techObj = tech.GetTuningTech(p.param, level + 1);
-                        p.costLabel.text = techObj != null ? $"${Mathf.RoundToInt(techObj.researchCost * economy.TechCostMultiplier)}" : "0";
-                    }
-                    else
-                    {
-                        p.costLabel.text = "MAX";
-                    }
-                }
-            }
-        }
-    }
-
-    // ---- Методы, исправленные для устранения CS0161 ----
     private Sprite LoadCarIcon(string carName)
     {
         if (string.IsNullOrEmpty(carName)) return null;
