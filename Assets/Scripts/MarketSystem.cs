@@ -20,7 +20,6 @@ public class MarketSystem : MonoBehaviour
     private Dictionary<string, float> advertisingEndTimes = new Dictionary<string, float>();
     private Dictionary<string, List<float>> demandHistory = new Dictionary<string, List<float>>();
     private const int HISTORY_LENGTH = 30;
-    private CarCompanyManager manager;
 
     private void Awake()
     {
@@ -30,8 +29,8 @@ public class MarketSystem : MonoBehaviour
 
     private void Start()
     {
-        manager = FindAnyObjectByType<CarCompanyManager>();
-        if (manager == null) Debug.LogError("MarketSystem: CarCompanyManager не найден!");
+        if (CarCompanyManager.Instance == null)
+            Debug.LogError("MarketSystem: CarCompanyManager.Instance не найден!");
     }
 
     private void Update()
@@ -134,8 +133,8 @@ public class MarketSystem : MonoBehaviour
 
     private void ShowNotification(string msg)
     {
-        if (manager != null)
-            manager.ShowNotification(msg);
+        if (CarCompanyManager.Instance != null && CarCompanyManager.Instance.UIManager != null)
+            CarCompanyManager.Instance.UIManager.ShowNotification(msg);
         else
             Debug.Log(msg);
     }

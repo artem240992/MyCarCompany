@@ -1,0 +1,109 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/MainStyles.uss?fileID=7433441132597879392&amp;guid=d64cd3bf55159af439848732d18ccb82&amp;type=3#MainStyles"/>
+    
+    <ui:VisualElement name="MainInterface" class="main-interface">
+        <ui:VisualElement name="MainPanel" class="main-panel">
+            <ui:Label text="Деньги" name="MoneyLabel"/>
+            <ui:Label text="Авто/сек:" name="IncomeLabel"/>
+            <ui:Label text="Сложность:" name="SavedDifficultyLabel" class="saved-difficulty-label"/>
+            <ui:Button text="Произвести авто" name="ProduceButton" class="produce-button"/>
+            <ui:VisualElement class="hamburger-wrapper">
+                <ui:Button text="☰" name="HamburgerButton" class="hamburger"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="MenuContainer" class="menu-container">
+                <ui:Button text="Машины" name="OpenCarsButton" class="menu-button"/>
+                <ui:Button text="Технологии" name="OpenTechButton" class="menu-button"/>
+                <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button"/>
+                <ui:Button text="Настройки" name="OpenSettingsButton" class="menu-button"/>
+                <ui:Button text="Сохранить" name="SaveButton" class="menu-button"/>
+                <ui:Button text="Загрузить" name="LoadButton" class="menu-button"/>
+                <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last"/>
+                <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Welcome -->
+    <ui:VisualElement name="WelcomeOverlay" class="overlay">
+        <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
+            <ui:Label text="Выберите сложность" class="welcome-title"/>
+            <ui:Label text="Установите уровень сложности для начала игры:" class="welcome-subtitle"/>
+            <ui:Button text="Easy" name="WelcomeEasyButton" class="difficulty-button"/>
+            <ui:Button text="Normal" name="WelcomeNormalButton" class="difficulty-button"/>
+            <ui:Button text="Hard" name="WelcomeHardButton" class="difficulty-button difficulty-button-last"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Cars -->
+    <ui:VisualElement name="CarsOverlay" class="overlay">
+        <ui:VisualElement name="CarsWindow" class="window cars-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Производство машин" class="window-title"/>
+                <ui:Button text="✕" name="CloseCarsButton" class="close-button"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="count-control">
+                <ui:Label text="Количество:" class="count-label-text"/>
+                <ui:Button text="-" name="DecreaseCountButton" class="count-button"/>
+                <ui:Label text="1" name="CountLabel" class="count-label"/>
+                <ui:Button text="+" name="IncreaseCountButton" class="count-button"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="CarsContainer" class="cars-container"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Tech -->
+    <ui:VisualElement name="TechOverlay" class="overlay">
+        <ui:VisualElement name="TechWindow" class="window tech-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Дерево технологий" class="window-title"/>
+                <ui:Button text="✕" name="CloseTechButton" class="close-button"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="TechContainer" class="tech-container"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Upgrade -->
+    <ui:VisualElement name="UpgradeOverlay" class="overlay">
+        <ui:VisualElement name="UpgradeWindow" class="window upgrade-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Улучшения завода" class="window-title"/>
+                <ui:Button text="✕" name="CloseUpgradeButton" class="close-button"/>
+            </ui:VisualElement>
+            <ui:Label text="Уровень конвейера: 0" name="ConveyorLevelLabel" class="upgrade-label"/>
+            <ui:Button text="Улучшить конвейер (10)" name="BuyConveyorButton" class="upgrade-button"/>
+            <ui:Label text="Инженеров: 0" name="EngineerCountLabel" class="upgrade-label"/>
+            <ui:Button text="Нанять инженера (50)" name="HireEngineerButton" class="upgrade-button"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Settings -->
+    <ui:VisualElement name="SettingsOverlay" class="overlay">
+        <ui:VisualElement name="SettingsWindow" class="window settings-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Настройки сложности" class="window-title"/>
+                <ui:Button text="✕" name="CloseSettingsButton" class="close-button"/>
+            </ui:VisualElement>
+            <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
+            <ui:Button text="Easy" name="EasyButton" class="difficulty-button"/>
+            <ui:Button text="Normal" name="NormalButton" class="difficulty-button"/>
+            <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Competitors -->
+    <ui:VisualElement name="CompetitorsOverlay" class="overlay">
+        <ui:VisualElement name="CompetitorsWindow" class="window competitors-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Конкуренты" class="window-title"/>
+                <ui:Button text="✕" name="CloseCompetitorsButton" class="close-button"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="CompetitorsContainer" class="competitors-container"/>
+            <ui:Button text="Обновить" name="RefreshCompetitorsButton" class="refresh-button"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Notifications & Misc -->
+    <ui:VisualElement name="NotificationContainer" class="notification-container"/>
+    <ui:Label text="" name="EventLabel" class="event-label"/>
+    <ui:Label text="" name="VersionLabel" class="version-label"/>
+</ui:UXML>

@@ -1,0 +1,239 @@
+/* === Общие === */
+.main-interface {
+    flex-grow: 1;
+}
+
+.main-panel {
+    display: flex;
+    padding: 10px;
+}
+
+.saved-difficulty-label {
+    font-size: 14px;
+    color: rgb(170, 170, 170);
+    margin-top: 5px;
+}
+
+.produce-button {
+    margin-top: 15px;
+}
+
+.hamburger-wrapper {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.hamburger {
+    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    background-color: transparent;
+    border-width: 0;
+    color: white;
+}
+
+.menu-container {
+    position: absolute;
+    right: 10px;
+    top: 70px;
+    background-color: rgb(30, 30, 30);
+    border-radius: 8px;
+    padding: 10px;
+    display: none;
+    width: 160px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.menu-button {
+    width: 100%;
+    margin-bottom: 5px;
+    background-color: transparent;
+    color: white;
+    border-width: 0;
+    text-align: left;
+}
+
+.menu-button-last {
+    margin-bottom: 0;
+}
+
+/* === Оверлеи и окна === */
+.overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.window {
+    background-color: rgb(40, 40, 40);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.welcome-window {
+    width: 350px;
+    padding: 30px;
+}
+
+.cars-window {
+    width: 600px;
+    max-height: 80%;
+}
+
+.tech-window {
+    width: 90%;
+    max-width: 1200px;
+    height: 90%;
+    max-height: 800px;
+}
+
+.upgrade-window {
+    width: 400px;
+}
+
+.settings-window {
+    width: 350px;
+    padding: 30px;
+}
+
+.competitors-window {
+    width: 700px;
+    max-height: 80%;
+}
+
+.window-header {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.window-title {
+    font-size: 20px;
+    color: white;
+}
+
+.close-button {
+    font-size: 20px;
+    background-color: transparent;
+    border-width: 0;
+    color: white;
+}
+
+/* === Welcome === */
+.welcome-title {
+    font-size: 24px;
+    color: white;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.welcome-subtitle {
+    color: rgb(204, 204, 204);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.difficulty-button {
+    width: 100%;
+    margin-bottom: 8px;
+    color: white;
+    font-size: 16px;
+}
+
+.difficulty-button-last {
+    margin-bottom: 0;
+}
+
+/* === Cars === */
+.count-control {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.count-label-text {
+    color: white;
+    margin-right: 10px;
+}
+
+.count-button {
+    width: 30px;
+}
+
+.count-label {
+    color: white;
+    font-size: 18px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.cars-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 350px;
+}
+
+/* === Tech === */
+.tech-container {
+    flex-grow: 1;
+}
+
+/* === Upgrade === */
+.upgrade-label {
+    color: white;
+    margin-bottom: 5px;
+}
+
+.upgrade-button {
+    margin-bottom: 10px;
+}
+
+/* === Settings === */
+.settings-subtitle {
+    color: rgb(204, 204, 204);
+    margin-bottom: 15px;
+}
+
+/* === Competitors === */
+.competitors-container {
+    flex-grow: 1;
+    max-height: 400px;
+}
+
+.refresh-button {
+    margin-top: 10px;
+}
+
+/* === Notifications & Misc === */
+.notification-container {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 300px;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    pointer-events: none;
+}
+
+.event-label {
+    font-size: 20px;
+    color: white;
+    align-self: center;
+    margin-top: 5px;
+}
+
+.version-label {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 12px;
+    color: black;
+}
