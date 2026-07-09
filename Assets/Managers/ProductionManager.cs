@@ -101,10 +101,16 @@ public class ProductionManager : MonoBehaviour
         if (availableCars == null || availableCars.Length == 0) { ui.ShowNotification("Нет доступных машин!"); return; }
         CarBlueprint car = availableCars[0];
         if (car == null) return;
+
+        // ---- РАСЧЁТ С УЧЁТОМ НАЛОГОВ И ИНФЛЯЦИИ ----
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
-        double profit = (modPrice - modCost) * economy.ProfitMultiplier;
-        economy.AddMoney(profit);
+        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+        double profitBeforeTax = (modPrice - modCost);
+        float taxRate = economy.GetTaxRate(car);
+        double profitAfterTax = profitBeforeTax * (1f - taxRate);
+
+        economy.AddMoney(profitAfterTax);
+        ui.ShowNotification($"Произведена машина {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
         SpawnCar(car);
     }
 
@@ -112,13 +118,16 @@ public class ProductionManager : MonoBehaviour
     {
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
         if (car == null) return;
+
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
-        double profit = (modPrice - modCost) * economy.ProfitMultiplier;
-        double totalProfit = profit * productionCount;
-        economy.AddMoney(totalProfit);
+        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+        double profitBeforeTax = (modPrice - modCost) * productionCount;
+        float taxRate = economy.GetTaxRate(car);
+        double profitAfterTax = profitBeforeTax * (1f - taxRate);
+
+        economy.AddMoney(profitAfterTax);
+        ui.ShowNotification($"Произведено {productionCount} шт. {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
         SpawnCar(car);
-        ui.ShowNotification($"Произведено {productionCount} шт. {car.GetDisplayName()}, прибыль: ${totalProfit:F0}");
     }
 
     private void SpawnCar(CarBlueprint car)
@@ -155,7 +164,7 @@ public class ProductionManager : MonoBehaviour
         currentCarInstance.transform.localRotation = Quaternion.identity;
         currentCarInstance.transform.localScale = Vector3.one;
 
-        // ---- ПРИМЕНЯЕМ ЦВЕТ И ТОНИРОВКУ ----
+        // ---- ПРИМЕНЯЕМ ЦВЕТ И ТОНИРОВКУ (уже есть) ----
         ApplyCarColor(currentCarInstance, car);
 
         CarAnimation anim = currentCarInstance.GetComponent<CarAnimation>();
@@ -167,7 +176,7 @@ public class ProductionManager : MonoBehaviour
         anim.PlayProduction();
     }
 
-    // ---- НОВЫЙ МЕТОД: применение цвета и тонировки ----
+    // ---- МЕТОД ПРИМЕНЕНИЯ ЦВЕТА И ТОНИРОВКИ (расширенный для версии 2.1.30) ----
     private void ApplyCarColor(GameObject carObject, CarBlueprint car)
     {
         if (carObject == null || car == null) return;
@@ -177,11 +186,11 @@ public class ProductionManager : MonoBehaviour
         {
             if (renderer.material == null) continue;
 
-            // Для кузова применяем выбранный цвет
+            // Клонируем материал, чтобы не менять исходный префаб
             Material mat = renderer.material;
             mat.color = car.bodyColor;
 
-            // Если включена тонировка – затемняем (имитация тонировки стёкол)
+            // Тонировка стёкол (если включена)
             if (car.hasTint && mat.shader.name.Contains("Standard"))
             {
                 Color tintColor = new Color(0.1f, 0.1f, 0.1f, 0.7f);

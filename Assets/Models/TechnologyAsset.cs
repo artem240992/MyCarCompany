@@ -11,4 +11,6 @@ public class TechnologyAsset : ScriptableObject
     public float demandModifier = 1f;
     public bool unlockCarOnResearch;
     public CarBlueprint unlockedCar;
+
+    public int availableYear = 2025; // год, с которого технология доступна без штрафа
 }

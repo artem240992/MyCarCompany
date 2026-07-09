@@ -74,11 +74,12 @@ public class CompetitorManager : MonoBehaviour
 
     private float GetDecisionInterval()
     {
-        switch (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty)
+        var diff = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+        switch (diff)
         {
-            case DifficultyLevel.Easy: return 10f;
-            case DifficultyLevel.Normal: return 7f;
-            case DifficultyLevel.Hard: return 5f;
+            case DifficultyManager.DifficultyLevel.Easy:   return 10f;
+            case DifficultyManager.DifficultyLevel.Normal: return 7f;
+            case DifficultyManager.DifficultyLevel.Hard:   return 5f;
             default: return 8f;
         }
     }

@@ -1,141 +1,93 @@
 using UnityEngine;
-using System;
 using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 
 public class SaveLoadManager : MonoBehaviour
 {
-    private string SaveFilePath => Path.Combine(Application.persistentDataPath, "autofactory_save.json");
-
-    private EconomyManager economy => CarCompanyManager.Instance.EconomyManager;
-    private TechManager tech => CarCompanyManager.Instance.TechManager;
-    private ProductionManager production => CarCompanyManager.Instance.ProductionManager;
-    private CompetitorManager competitor => CarCompanyManager.Instance.CompetitorManager;
-    private DemandManager demand => CarCompanyManager.Instance.DemandManager;
-    private DifficultyManager difficulty => CarCompanyManager.Instance.DifficultyManager;
-    private UIManager ui => CarCompanyManager.Instance.UIManager;
+    // ---- ПУТЬ К ФАЙЛУ СОХРАНЕНИЯ ----
+    private string savePath => Application.persistentDataPath + "/save.json";
 
     public void Initialize() { }
 
-    public bool HasSaveFile() => File.Exists(SaveFilePath);
+    public bool HasSaveFile() => File.Exists(savePath);
 
     public void SaveGame()
     {
-        try
-        {
-            SaveData data = new SaveData();
-            economy.FillSaveData(data);
-            tech.FillSaveData(data);
-            data.productionCount = production.ProductionCount;
-            data.currentDifficulty = (int)difficulty.CurrentDifficulty;
+        if (CarCompanyManager.Instance == null) return;
 
-            data.carDemands = new List<CarDemandData>();
-            List<CarBlueprint> allCars = GetAllPossibleCars();
-            foreach (CarBlueprint car in allCars)
-                if (car != null)
-                    data.carDemands.Add(new CarDemandData { carName = car.carName, demandMultiplier = car.demandMultiplier });
+        SaveData data = new SaveData();
 
-            // ---- НОВОЕ: сохраняем созданные машины ----
-            data.createdCars = tech.GetCreatedCarsData();
+        CarCompanyManager.Instance.EconomyManager.FillSaveData(data);
+        CarCompanyManager.Instance.TechManager.FillSaveData(data);
 
-            string json = JsonUtility.ToJson(data, true);
-            File.WriteAllText(SaveFilePath, json);
-            ui.ShowNotification("Игра сохранена!");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Ошибка сохранения: " + e.Message);
-            ui.ShowNotification("Ошибка сохранения!");
-        }
+        if (GameTimeManager.Instance != null)
+            GameTimeManager.Instance.FillSaveData(data);
+
+        var ui = CarCompanyManager.Instance.UIManager;
+        if (ui != null)
+            data.difficulty = (int)ui.GetCurrentDifficulty();
+
+        string json = JsonUtility.ToJson(data, true);
+        File.WriteAllText(savePath, json);
+        Debug.Log($"Игра сохранена в {savePath}");
     }
 
     public void LoadGame()
     {
-        if (!HasSaveFile())
+        if (!File.Exists(savePath))
         {
-            ui.ShowNotification("Нет сохранений!");
+            Debug.LogWarning("Файл сохранения не найден");
             return;
         }
-        try
+
+        string json = File.ReadAllText(savePath);
+        SaveData data = JsonUtility.FromJson<SaveData>(json);
+        if (data == null)
         {
-            string json = File.ReadAllText(SaveFilePath);
-            SaveData data = JsonUtility.FromJson<SaveData>(json);
-            if (data == null) { ui.ShowNotification("Ошибка загрузки: файл повреждён!"); return; }
-
-            economy.LoadFromSave(data);
-            tech.LoadFromSave(data);
-            
-            // ---- НОВОЕ: загружаем созданные машины после загрузки технологий ----
-            if (data.createdCars != null && data.createdCars.Count > 0)
-            {
-                tech.LoadCreatedCars(data.createdCars);
-            }
-
-            production.SetProductionCount(data.productionCount);
-            difficulty.SetDifficulty((DifficultyLevel)data.currentDifficulty, false);
-
-            List<CarBlueprint> allCars = GetAllPossibleCars();
-            foreach (CarDemandData d in data.carDemands)
-            {
-                CarBlueprint car = allCars.FirstOrDefault(c => c != null && c.carName == d.carName);
-                if (car != null) car.demandMultiplier = d.demandMultiplier;
-            }
-
-            ui.UpdateSavedDifficultyLabel();
-            ui.UpdateUpgradeUI();
-            ui.UpdateMoneyLabels();
-            ui.CreateCarCards(tech.AvailableCars);
-            ui.CreateTechTree(tech.Technologies.ToList(), economy.TechCostMultiplier);
-            ui.RefreshTechButtons();
-            ui.CloseAllWindows();
-            ui.ShowNotification("Игра загружена!");
+            Debug.LogError("Ошибка десериализации сохранения");
+            return;
         }
-        catch (Exception e)
-        {
-            Debug.LogError("Ошибка загрузки: " + e.Message);
-            ui.ShowNotification("Ошибка загрузки!");
-        }
+
+        // Загрузка экономики
+        CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
+
+        // Загрузка технологий и машин
+        CarCompanyManager.Instance.TechManager.LoadFromSave(data);
+
+        // Загрузка даты (только месяц и год)
+        if (GameTimeManager.Instance != null)
+            GameTimeManager.Instance.LoadFromSave(data.currentMonth, data.currentYear);
+
+        // Загрузка сложности
+        var ui = CarCompanyManager.Instance.UIManager;
+        if (ui != null && data.difficulty >= 0 && data.difficulty <= 2)
+            ui.SetDifficulty((UIManager.Difficulty)data.difficulty);
+
+        // Обновление UI
+        ui.UpdateMoneyLabels();
+        ui.UpdateReputationLabel();
+        ui.UpdateDateTimeDisplay();
+        ui.UpdateSavedDifficultyLabel();
+        ui.UpdateUpgradeUI();
+
+        Debug.Log($"Игра загружена из {savePath}");
     }
 
-    // ---- ИСПРАВЛЕННЫЙ МЕТОД NEWGAME (без перезагрузки сцены) ----
     public void NewGame()
     {
-        // Удаляем файл сохранения
-        if (File.Exists(SaveFilePath)) File.Delete(SaveFilePath);
+        if (File.Exists(savePath))
+            File.Delete(savePath);
 
-        // Сбрасываем состояние всех менеджеров (кроме сложности)
-        economy.ResetState();
-        tech.ResetTechs();
-        production.SetProductionCount(1);
-        competitor.ResetCompetitors();
-        
-        // ---- НЕ МЕНЯЕМ СЛОЖНОСТЬ ----
-        // Оставляем текущую сложность, установленную в настройках
+        CarCompanyManager.Instance.EconomyManager.ResetState();
+        CarCompanyManager.Instance.TechManager.ResetTechs();
 
-        // Обновляем UI
-        ui.UpdateMoneyLabels();
-        ui.UpdateUpgradeUI();
-        ui.UpdateSavedDifficultyLabel();
-        ui.CreateCarCards(tech.AvailableCars);
-        ui.CreateTechTree(tech.Technologies.ToList(), economy.TechCostMultiplier);
-        ui.RefreshTechButtons();
-        ui.CloseAllWindows();
-        
-        // Показываем окно приветствия с выбором сложности (опционально)
+        if (GameTimeManager.Instance != null)
+            GameTimeManager.Instance.LoadFromSave(1, 2025);
+
+        var ui = CarCompanyManager.Instance.UIManager;
         ui.ShowWelcomeScreen();
-        
-        ui.ShowNotification("Новая игра начата!");
-    }
+        ui.UpdateMoneyLabels();
+        ui.UpdateDateTimeDisplay();
 
-    private List<CarBlueprint> GetAllPossibleCars()
-    {
-        var all = new List<CarBlueprint>();
-        all.AddRange(tech.AvailableCars);
-        foreach (var t in tech.Technologies)
-            if (t != null && t.unlockedCar != null && !all.Contains(t.unlockedCar))
-                all.Add(t.unlockedCar);
-        return all;
+        Debug.Log("Новая игра начата");
     }
 }

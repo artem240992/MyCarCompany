@@ -1,29 +1,38 @@
 using System;
 using System.Collections.Generic;
 
-[System.Serializable]
+[Serializable]
 public class SaveData
 {
+    // ---- Экономика ----
     public double money;
-    public double passiveIncome;
     public int conveyorLevel;
     public int engineerCount;
-    public string[] researchedTechNames;
-    public int productionCount;
-    public int currentDifficulty;
-    public List<CarDemandData> carDemands = new List<CarDemandData>();
-    public List<CarLevelData> carLevels = new List<CarLevelData>();
-    public List<CarBlueprintSaveData> createdCars = new List<CarBlueprintSaveData>();
+    public int reputation;
+    public double passiveIncome;
+    public float basePriceMultiplier;
+    // ---- НОВОЕ ПОЛЕ ----
+    public int lastTaxYear; // год последнего списания налога
+
+    // ---- Дата игры ----
+    // public int currentDay;
+    public int currentMonth;
+    public int currentYear;
+
+    // ---- Сложность ----
+    public int difficulty; // 0 = Easy, 1 = Normal, 2 = Hard
+
+    // ---- Технологии ----
+    public string[] researchedTechNames; // для обратной совместимости (устарело)
+    public List<TechnologySaveData> technologyData;
+
+
+    // ---- Машины ----
+    public List<CarLevelData> carLevels;
+    public List<CarBlueprintSaveData> createdCarsData; // созданные улучшенные версии
 }
 
-[System.Serializable]
-public class CarDemandData
-{
-    public string carName;
-    public float demandMultiplier;
-}
-
-[System.Serializable]
+[Serializable]
 public class CarLevelData
 {
     public string carName;
@@ -32,15 +41,13 @@ public class CarLevelData
     public int currentEconomy;
     public int currentDesign;
     public int currentSafety;
-
-    // ---- НОВЫЕ ПОЛЯ ДЛЯ ЦВЕТА И ТОНИРОВКИ ----
     public float bodyColorR;
     public float bodyColorG;
     public float bodyColorB;
     public bool hasTint;
 }
 
-[System.Serializable]
+[Serializable]
 public class CarBlueprintSaveData
 {
     public string carName;
@@ -55,9 +62,17 @@ public class CarBlueprintSaveData
     public int currentDesign;
     public int currentSafety;
     public float demandMultiplier;
-    // ---- Также добавим цвет и тонировку для созданных машин ----
     public float bodyColorR;
     public float bodyColorG;
     public float bodyColorB;
     public bool hasTint;
+}
+
+[Serializable]
+public class TechnologySaveData
+{
+    public string techName;
+    public bool isResearched;
+    public int availableYear;
+    public int availableMonth;
 }

@@ -21,7 +21,7 @@ public class SettingsManager : MonoBehaviour
     private const string RESOLUTION_KEY = "Settings_Resolution";
     private const string FULLSCREEN_KEY = "Settings_Fullscreen";
 
-    // ---- ИЗМЕНИТЕ НА ИМЯ ВАШЕЙ СЦЕНЫ ГЛАВНОГО МЕНЮ ----
+    // ---- ИМЯ СЦЕНЫ ГЛАВНОГО МЕНЮ ----
     private const string MAIN_MENU_SCENE = "SampleScene"; // или "MainMenu"
 
     private void Start()
@@ -44,7 +44,6 @@ public class SettingsManager : MonoBehaviour
         difficultyDropdown = root.Q<DropdownField>("DifficultyDropdown");
         currentDifficultyLabel = root.Q<Label>("CurrentDifficultyLabel");
 
-        // ---- ОТЛАДКА ----
         Debug.Log($"SettingsManager: SaveButton found = {saveButton != null}");
         Debug.Log($"SettingsManager: BackButton found = {backButton != null}");
 
@@ -59,7 +58,6 @@ public class SettingsManager : MonoBehaviour
 
         LoadSettings();
 
-        // ---- ПОДПИСКИ ----
         audioSlider.RegisterValueChangedCallback(evt => OnAudioChanged(evt.newValue));
         qualityDropdown.RegisterValueChangedCallback(evt => OnQualityChanged(evt.newValue));
         resolutionDropdown.RegisterValueChangedCallback(evt => OnResolutionChanged(evt.newValue));
@@ -72,38 +70,36 @@ public class SettingsManager : MonoBehaviour
 
     private void LoadSettings()
     {
-        // Аудио
         float audio = PlayerPrefs.GetFloat(AUDIO_KEY, 1f);
         audioSlider.value = audio;
         ApplyAudio(audio);
 
-        // Качество
         int quality = PlayerPrefs.GetInt(QUALITY_KEY, QualitySettings.GetQualityLevel());
         qualityDropdown.index = Mathf.Clamp(quality, 0, qualityDropdown.choices.Count - 1);
         ApplyQuality(quality);
 
-        // Разрешение
         string resolution = PlayerPrefs.GetString(RESOLUTION_KEY, "1920x1080");
         int resIndex = resolutionDropdown.choices.IndexOf(resolution);
         if (resIndex == -1) resIndex = 2;
         resolutionDropdown.index = resIndex;
         ApplyResolution(resolution);
 
-        // Полноэкранный
         bool fullscreen = PlayerPrefs.GetInt(FULLSCREEN_KEY, 1) == 1;
         fullscreenToggle.value = fullscreen;
         ApplyFullscreen(fullscreen);
 
-        // Сложность
+        // ---- ЗАГРУЗКА СЛОЖНОСТИ ----
         if (CarCompanyManager.Instance != null && CarCompanyManager.Instance.DifficultyManager != null)
         {
-            DifficultyLevel current = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+            var diff = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+            // Приводим к нашему enum через int (значения совпадают: 0,1,2)
+            DifficultyLevel current = (DifficultyLevel)(int)diff;
             difficultyDropdown.index = (int)current;
             UpdateDifficultyLabel(current);
         }
         else
         {
-            difficultyDropdown.index = 1;
+            difficultyDropdown.index = 1; // Normal
             UpdateDifficultyLabel(DifficultyLevel.Normal);
         }
     }
@@ -146,16 +142,19 @@ public class SettingsManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    // ---- ИСПРАВЛЕННЫЙ МЕТОД OnDifficultyChanged ----
     private void OnDifficultyChanged(string value)
     {
         int index = difficultyDropdown.choices.IndexOf(value);
         if (index < 0) return;
 
+        // Преобразуем в наш локальный enum
         DifficultyLevel newLevel = (DifficultyLevel)index;
 
         if (CarCompanyManager.Instance != null && CarCompanyManager.Instance.DifficultyManager != null)
         {
-            CarCompanyManager.Instance.DifficultyManager.SetDifficulty(newLevel, true);
+            // Приводим к DifficultyManager.DifficultyLevel через int
+            CarCompanyManager.Instance.DifficultyManager.SetDifficulty((DifficultyManager.DifficultyLevel)index);
             if (CarCompanyManager.Instance.SaveLoadManager != null)
                 CarCompanyManager.Instance.SaveLoadManager.SaveGame();
             UpdateDifficultyLabel(newLevel);
@@ -170,10 +169,8 @@ public class SettingsManager : MonoBehaviour
     private void OnSaveButtonClicked()
     {
         Debug.Log("Save button clicked!");
-
         if (CarCompanyManager.Instance != null && CarCompanyManager.Instance.SaveLoadManager != null)
             CarCompanyManager.Instance.SaveLoadManager.SaveGame();
-
         ShowNotification("Настройки сохранены!");
         GoToMainMenu();
     }
@@ -187,11 +184,8 @@ public class SettingsManager : MonoBehaviour
     private void GoToMainMenu()
     {
         Debug.Log($"Пытаемся загрузить сцену: {MAIN_MENU_SCENE}");
-
         if (Application.CanStreamedLevelBeLoaded(MAIN_MENU_SCENE))
-        {
             SceneManager.LoadScene(MAIN_MENU_SCENE);
-        }
         else
         {
             Debug.LogWarning($"Сцена '{MAIN_MENU_SCENE}' не найдена. Загружаем сцену с индексом 0.");
