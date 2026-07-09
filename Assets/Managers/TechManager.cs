@@ -555,6 +555,9 @@ public class TechManager : MonoBehaviour
                     car.currentEconomy = lvl.currentEconomy;
                     car.currentDesign = lvl.currentDesign;
                     car.currentSafety = lvl.currentSafety;
+                        // ---- ВОССТАНАВЛИВАЕМ ЦВЕТА ----
+                    car.bodyColor = new Color(lvl.bodyColorR, lvl.bodyColorG, lvl.bodyColorB);
+                    car.hasTint = lvl.hasTint;
                 }
             }
         }
@@ -568,27 +571,32 @@ public class TechManager : MonoBehaviour
     }
 
     public void FillSaveData(SaveData data)
-    {
-        List<string> researched = new List<string>();
-        if (technologies != null)
-            foreach (var tech in technologies)
-                if (tech != null && tech.isResearched) researched.Add(tech.techName);
-        data.researchedTechNames = researched.ToArray();
+{
+    List<string> researched = new List<string>();
+    if (technologies != null)
+        foreach (var tech in technologies)
+            if (tech != null && tech.isResearched) researched.Add(tech.techName);
+    data.researchedTechNames = researched.ToArray();
 
-        data.carLevels = new List<CarLevelData>();
-        List<CarBlueprint> allCars = GetAllPossibleCars();
-        foreach (CarBlueprint car in allCars)
-            if (car != null)
-                data.carLevels.Add(new CarLevelData 
-                { 
-                    carName = car.carName, 
-                    currentLevel = car.currentLevel,
-                    currentPower = car.currentPower,
-                    currentEconomy = car.currentEconomy,
-                    currentDesign = car.currentDesign,
-                    currentSafety = car.currentSafety
-                });
-    }
+    data.carLevels = new List<CarLevelData>();
+    List<CarBlueprint> allCars = GetAllPossibleCars();
+    foreach (CarBlueprint car in allCars)
+        if (car != null)
+            data.carLevels.Add(new CarLevelData 
+            { 
+                carName = car.carName, 
+                currentLevel = car.currentLevel,
+                currentPower = car.currentPower,
+                currentEconomy = car.currentEconomy,
+                currentDesign = car.currentDesign,
+                currentSafety = car.currentSafety,
+                // ---- СОХРАНЯЕМ ЦВЕТ И ТОНИРОВКУ ----
+                bodyColorR = car.bodyColor.r,
+                bodyColorG = car.bodyColor.g,
+                bodyColorB = car.bodyColor.b,
+                hasTint = car.hasTint
+            });
+}
 
     // ---- Сохранение/загрузка созданных машин (с ценой) ----
     public List<CarBlueprintSaveData> GetCreatedCarsData()
@@ -642,6 +650,11 @@ public class TechManager : MonoBehaviour
             newCar.currentDesign = data.currentDesign;
             newCar.currentSafety = data.currentSafety;
             newCar.demandMultiplier = data.demandMultiplier;
+
+            // ---- ВОССТАНАВЛИВАЕМ ЦВЕТ И ТОНИРОВКУ ----
+            newCar.bodyColor = new Color(data.bodyColorR, data.bodyColorG, data.bodyColorB);
+            newCar.hasTint = data.hasTint;
+            
             createdCars.Add(newCar);
             var list = availableCars.ToList();
             list.Add(newCar);

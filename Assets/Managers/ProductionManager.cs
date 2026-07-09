@@ -11,14 +11,12 @@ public class ProductionManager : MonoBehaviour
     private bool isProductionInProgress = false;
     private GameObject currentCarInstance;
 
-    // Ссылки на другие менеджеры
     private EconomyManager economy => CarCompanyManager.Instance.EconomyManager;
     private UIManager ui => CarCompanyManager.Instance.UIManager;
     private TechManager tech => CarCompanyManager.Instance.TechManager;
 
     public void Initialize(GameObject carDisplayPrefab, Transform start, Transform end)
     {
-        // Создаём контейнер, если null
         if (carDisplayPrefab == null)
         {
             GameObject container = new GameObject("CarDisplay");
@@ -59,7 +57,6 @@ public class ProductionManager : MonoBehaviour
         UpdateButtons();
     }
 
-    // ---- Управление количеством ----
     public void DecreaseCount()
     {
         if (productionCount > 1) productionCount--;
@@ -97,7 +94,6 @@ public class ProductionManager : MonoBehaviour
         UpdateButtons();
     }
 
-    // ---- Производство (цена учитывает рыночный спрос) ----
     public void ProduceBasicCar()
     {
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
@@ -105,10 +101,8 @@ public class ProductionManager : MonoBehaviour
         if (availableCars == null || availableCars.Length == 0) { ui.ShowNotification("Нет доступных машин!"); return; }
         CarBlueprint car = availableCars[0];
         if (car == null) return;
-
-        // GetModifiedPrice уже включает модификаторы технологий, тюнинга и рыночного спроса
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
         double profit = (modPrice - modCost) * economy.ProfitMultiplier;
         economy.AddMoney(profit);
         SpawnCar(car);
@@ -118,14 +112,13 @@ public class ProductionManager : MonoBehaviour
     {
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
         if (car == null) return;
-
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+        int modCost = car.GetModifiedProductionCost(economy.TotalCostModifier);
         double profit = (modPrice - modCost) * economy.ProfitMultiplier;
         double totalProfit = profit * productionCount;
         economy.AddMoney(totalProfit);
         SpawnCar(car);
-        ui.ShowNotification($"Произведено {productionCount} шт. {car.carName}, прибыль: ${totalProfit:F0}");
+        ui.ShowNotification($"Произведено {productionCount} шт. {car.GetDisplayName()}, прибыль: ${totalProfit:F0}");
     }
 
     private void SpawnCar(CarBlueprint car)
@@ -162,6 +155,9 @@ public class ProductionManager : MonoBehaviour
         currentCarInstance.transform.localRotation = Quaternion.identity;
         currentCarInstance.transform.localScale = Vector3.one;
 
+        // ---- ПРИМЕНЯЕМ ЦВЕТ И ТОНИРОВКУ ----
+        ApplyCarColor(currentCarInstance, car);
+
         CarAnimation anim = currentCarInstance.GetComponent<CarAnimation>();
         if (anim == null) anim = currentCarInstance.AddComponent<CarAnimation>();
         anim.startPoint = startPoint;
@@ -171,7 +167,29 @@ public class ProductionManager : MonoBehaviour
         anim.PlayProduction();
     }
 
-    // ---- Для сохранения/загрузки ----
+    // ---- НОВЫЙ МЕТОД: применение цвета и тонировки ----
+    private void ApplyCarColor(GameObject carObject, CarBlueprint car)
+    {
+        if (carObject == null || car == null) return;
+
+        var renderers = carObject.GetComponentsInChildren<Renderer>();
+        foreach (var renderer in renderers)
+        {
+            if (renderer.material == null) continue;
+
+            // Для кузова применяем выбранный цвет
+            Material mat = renderer.material;
+            mat.color = car.bodyColor;
+
+            // Если включена тонировка – затемняем (имитация тонировки стёкол)
+            if (car.hasTint && mat.shader.name.Contains("Standard"))
+            {
+                Color tintColor = new Color(0.1f, 0.1f, 0.1f, 0.7f);
+                mat.color = Color.Lerp(mat.color, tintColor, 0.5f);
+            }
+        }
+    }
+
     public int ProductionCount => productionCount;
 
     public void SetProductionCount(int count)

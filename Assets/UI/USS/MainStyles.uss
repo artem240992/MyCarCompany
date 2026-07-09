@@ -257,3 +257,108 @@
     flex-direction: column;
     align-items: stretch;
 }
+
+/* Стиль для метки сложности – тёмный фон и яркий текст */
+.difficulty-display {
+    background-color: #2a2a2a;
+    color: #ffcc00;
+    padding: 4px 10px;
+    border-radius: 6px;
+    -unity-font-style: bold;
+    font-size: 14px;
+}
+
+/* Верхняя панель */
+.top-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.top-left,
+.top-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+}
+
+.top-label {
+    font-size: 16px;
+    color: white;
+    margin-right: 10px;
+}
+
+/* Кнопка производства – теперь под панелью */
+.produce-button {
+    width: 100%;
+    height: 40px;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+/* Верхняя панель - используем flex, чтобы распределить элементы */
+.top-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between; /* раздвигаем блоки по краям */
+    padding: 8px 16px;
+    background-color: rgba(0, 0, 0, 0.6); /* как в игре */
+    border-bottom-width: 2px;
+    border-bottom-color: #555;
+}
+
+/* Каждый ресурсный блок */
+.resource-block {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(50, 50, 50, 0.8);
+    padding: 8px 18px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: #777;
+    margin: 4px 0;
+    /* Даём блокам возможность расширяться, но не слишком */
+    flex-shrink: 0;
+}
+
+/* Для денег можно задать отдельный отступ, чтобы они были дальше от авто */
+.money-block {
+    margin-right: 30px; /* дополнительное расстояние */
+}
+
+/* Иконка ресурса */
+.resource-icon {
+    font-size: 32px;
+    margin-right: 10px;
+    -unity-text-align: middle-center;
+}
+
+/* Информационная часть (название + значение) */
+.resource-info {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.resource-label {
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+}
+
+.resource-value {
+    font-size: 28px;
+    color: #ffd700; /* золото для денег */
+    -unity-font-style: bold;
+    margin-top: -4px; /* чтобы прижать к лейблу */
+}
+
+/* Для авто меняем цвет цифр */
+.auto-block .resource-value {
+    color: #7ec8e3; /* голубоватый */
+}
