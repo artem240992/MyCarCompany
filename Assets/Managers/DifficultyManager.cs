@@ -1,150 +1,138 @@
 using UnityEngine;
 using System.Collections;
-using System.Linq;
 
 public class DifficultyManager : MonoBehaviour
 {
+    public enum DifficultyLevel { Easy, Normal, Hard }
+
     private DifficultyLevel currentDifficulty = DifficultyLevel.Normal;
-    private float currentEventMultiplier = 1f;
-    private string currentEventText = "";
     private Coroutine eventCoroutine;
+
+    public DifficultyLevel CurrentDifficulty => currentDifficulty;
+
+    public float CurrentEventMultiplier
+    {
+        get
+        {
+            switch (currentDifficulty)
+            {
+                case DifficultyLevel.Easy:   return 1.2f;
+                case DifficultyLevel.Normal: return 1f;
+                case DifficultyLevel.Hard:   return 0.8f;
+                default: return 1f;
+            }
+        }
+    }
+
+    // ---- НОВЫЙ МЕТОД ----
+    public float GetYearlyTaxRate()
+    {
+        switch (currentDifficulty)
+        {
+            case DifficultyLevel.Easy:   return 0.25f;
+            case DifficultyLevel.Normal: return 0.35f;
+            case DifficultyLevel.Hard:   return 0.50f;
+            default: return 0.35f;
+        }
+    }
 
     private EconomyManager economy => CarCompanyManager.Instance.EconomyManager;
     private UIManager ui => CarCompanyManager.Instance.UIManager;
-    private DemandManager demand => CarCompanyManager.Instance.DemandManager;
-
-    public DifficultyLevel CurrentDifficulty => currentDifficulty;
-    public float CurrentEventMultiplier => currentEventMultiplier;
 
     public void Initialize()
     {
-        SetDifficulty(DifficultyLevel.Normal, false);
+        int saved = PlayerPrefs.GetInt("Difficulty", 1);
+        currentDifficulty = (DifficultyLevel)saved;
+        ApplyDifficultySettings();
+        StartEconomicEventsIfHard();
     }
 
-    public void SetDifficulty(DifficultyLevel level, bool resetGame = true)
+    public void SetDifficulty(DifficultyLevel newDifficulty)
     {
-        currentDifficulty = level;
-        ApplyDifficulty(level);
-        ui.UpdateSavedDifficultyLabel();
-        if (resetGame)
-        {
-            ResetGameState();
-        }
-        CarCompanyManager.Instance.SaveLoadManager.SaveGame();
+        currentDifficulty = newDifficulty;
+        ApplyDifficultySettings();
+        PlayerPrefs.SetInt("Difficulty", (int)currentDifficulty);
+        PlayerPrefs.Save();
+        StartEconomicEventsIfHard();
     }
 
-    private void ApplyDifficulty(DifficultyLevel level)
+    private void ApplyDifficultySettings()
     {
-        switch (level)
+        switch (currentDifficulty)
         {
             case DifficultyLevel.Easy:
-                economy.StartMoney = 200f;
-                economy.CostMultiplier = 0.8f;
+                economy.StartMoney = 1500f;
                 economy.ProfitMultiplier = 1.2f;
-                economy.TechCostMultiplier = 1f;
-                StopEconomicEvents();
+                economy.DifficultyTechCostMultiplier = 1f;
                 break;
             case DifficultyLevel.Normal:
-                economy.StartMoney = 100f;
-                economy.CostMultiplier = 1f;
+                economy.StartMoney = 1000f;
                 economy.ProfitMultiplier = 1f;
-                economy.TechCostMultiplier = 1f;
-                StopEconomicEvents();
+                economy.DifficultyTechCostMultiplier = 1f;
                 break;
             case DifficultyLevel.Hard:
-                economy.StartMoney = 50f;
-                economy.CostMultiplier = 1.5f;
+                economy.StartMoney = 500f;
                 economy.ProfitMultiplier = 0.8f;
-                economy.TechCostMultiplier = 5f;
-                StartEconomicEvents();
+                economy.DifficultyTechCostMultiplier = 1.35f;
                 break;
         }
-    }
-
-    private void ResetGameState()
-    {
-        economy.ResetState();
-        CarCompanyManager.Instance.TechManager.ResetTechs();
-        CarCompanyManager.Instance.DemandManager.ResetPenalties();
-        CarCompanyManager.Instance.ProductionManager.SetProductionCount(1);
-        CarCompanyManager.Instance.CompetitorManager.ResetCompetitors();
-        var allCars = CarCompanyManager.Instance.TechManager.AvailableCars;
-        foreach (var car in allCars) if (car != null) car.demandMultiplier = 1f;
-        currentEventMultiplier = 1f;
-        currentEventText = "";
-        economy.TemporaryPriceModifier = 1f; // сброс цены
-        ui.UpdateEventUI(currentEventText, currentEventMultiplier);
-        ui.UpdateUpgradeUI();
+        economy.TemporaryPriceModifier = 1f;
+        economy.RecalculateModifiers(null);
         ui.UpdateMoneyLabels();
-        ui.CreateCarCards(CarCompanyManager.Instance.TechManager.AvailableCars);
-        ui.CreateTechTree(CarCompanyManager.Instance.TechManager.Technologies.ToList(), economy.TechCostMultiplier);
-        ui.CloseAllWindows();
-        ui.ShowNotification($"Сложность изменена на {currentDifficulty}");
+        ui.UpdateSavedDifficultyLabel();
+        ui.UpdateCarCards();
     }
 
-    public void StartEconomicEvents()
-    {
-        if (eventCoroutine != null) StopCoroutine(eventCoroutine);
-        eventCoroutine = StartCoroutine(EconomicEvents());
-    }
-
-    public void StopEconomicEvents()
+    public void StartEconomicEventsIfHard()
     {
         if (eventCoroutine != null)
         {
             StopCoroutine(eventCoroutine);
             eventCoroutine = null;
         }
-        currentEventMultiplier = 1f;
-        currentEventText = "";
-        economy.TemporaryPriceModifier = 1f; // сбрасываем цену
-        ui.UpdateEventUI(currentEventText, currentEventMultiplier);
-        demand.UpdateDemand();
-        ui.UpdateMoneyLabels();
-        ui.UpdateCarCards();
-    }
 
-    public void StartEconomicEventsIfHard()
-    {
         if (currentDifficulty == DifficultyLevel.Hard)
-            StartEconomicEvents();
+        {
+            eventCoroutine = StartCoroutine(EventLoop());
+            Debug.Log("События для Hard запущены.");
+        }
+        else
+        {
+            Debug.Log("События для Hard остановлены.");
+        }
     }
 
-    private IEnumerator EconomicEvents()
+    private IEnumerator EventLoop()
     {
         while (true)
         {
-            yield return new WaitForSeconds(15f);
-
-            float multiplier = Random.Range(0.5f, 2.0f);
-            multiplier = Mathf.Round(multiplier * 10f) / 10f;
-
-            string text;
-            float priceMod = 1f;
-            if (multiplier < 0.8f)
-            {
-                text = $"⚠️ Кризис! Спрос упал на {(1f - multiplier) * 100:F0}%, цена -10%";
-                priceMod = 0.9f;
-            }
-            else if (multiplier > 1.2f)
-            {
-                text = $"🚀 Бум! Спрос вырос на {(multiplier - 1f) * 100:F0}%, цена +10%";
-                priceMod = 1.1f;
-            }
-            else
-            {
-                text = $"📊 Спрос стабилен ({multiplier:F1}x)";
-                priceMod = 1f;
-            }
-
-            // Применяем изменения
-            currentEventMultiplier = multiplier;
-            currentEventText = text;
-            economy.TemporaryPriceModifier = priceMod; // меняем цену
-            ui.UpdateEventUI(currentEventText, currentEventMultiplier);
-            demand.UpdateDemand();          // обновляем спрос
-            ui.UpdateMoneyLabels();          // обновляем отображение денег (цена изменилась)
-            ui.UpdateCarCards();             // обновляем карточки машин (прибыль, цена, спрос)
+            yield return new WaitForSeconds(Random.Range(20f, 60f));
+            TriggerRandomEvent();
         }
+    }
+
+    private void TriggerRandomEvent()
+    {
+        int eventType = Random.Range(0, 3);
+        string message = "";
+        switch (eventType)
+        {
+            case 0:
+                economy.TemporaryPriceModifier = 0.8f;
+                message = "Кризис! Цены упали на 20%";
+                break;
+            case 1:
+                economy.TemporaryPriceModifier = 1.2f;
+                message = "Экономический бум! Цены выросли на 20%";
+                break;
+            case 2:
+                economy.TemporaryPriceModifier = 1f;
+                message = "Рынок стабилизировался";
+                break;
+        }
+        economy.RecalculateModifiers(null);
+        ui.UpdateMoneyLabels();
+        ui.UpdateCarCards();
+        ui.ShowNotification(message);
     }
 }

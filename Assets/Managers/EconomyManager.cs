@@ -1,222 +1,253 @@
 using UnityEngine;
+using System;
 using System.Collections;
 
 public class EconomyManager : MonoBehaviour
 {
-    // ---- События ----
-    public System.Action OnMoneyChanged;
+    public double Money = 100;
+    public double PassiveIncome = 0;
+    public int ConveyorLevel = 0;
+    public int EngineerCount = 0;
+    public int Reputation = 50;
 
-    // ---- Данные ----
-    private double money = 100;
-    private double passiveIncome = 0;
-    private int conveyorLevel = 0;
-    private int engineerCount = 0;
-    private float totalPriceModifier = 1f;
-    private float totalDemandModifier = 1f;
-    private float totalCostModifier = 1f;
-    private int reputation = 50;
+    public float CostMultiplier = 1f;
+    public float TotalPriceModifier = 1f;
+    public float TechCostMultiplier = 1f;
+    public float TotalDemandModifier = 1f;
 
-    // ---- Временный модификатор цены (для событий Hard) ----
-    private float temporaryPriceModifier = 1f;
-    public float TemporaryPriceModifier
+    public float StartMoney = 100;
+    public float ProfitMultiplier = 1f;
+    public float TemporaryPriceModifier = 1f;
+
+    public float inflationRate = 0.0005f; // теперь за месяц
+    public float basePriceMultiplier = 1f;
+
+    public float DifficultyTechCostMultiplier = 1f;
+
+    private int lastTaxYear;
+
+    public event Action OnMoneyChanged;
+
+    public void Initialize(float startMoney, float profitMultiplier)
     {
-        get => temporaryPriceModifier;
-        set
-        {
-            temporaryPriceModifier = value;
-            // Пересчитываем модификаторы, чтобы обновить цены
-            RecalculateModifiers(CarCompanyManager.Instance.TechManager.Technologies);
-            CarCompanyManager.Instance.UIManager.UpdateMoneyLabels();
-            CarCompanyManager.Instance.UIManager.UpdateCarCards();
-        }
-    }
-
-    // ---- Множители (устанавливаются DifficultyManager) ----
-    public float CostMultiplier { get; set; } = 1f;
-    public float ProfitMultiplier { get; set; } = 1f;
-    public float TechCostMultiplier { get; set; } = 1f;
-    public float StartMoney { get; set; } = 100f;
-
-    // ---- Свойства ----
-    public double Money => money;
-    public double PassiveIncome => passiveIncome;
-    public int ConveyorLevel => conveyorLevel;
-    public int EngineerCount => engineerCount;
-    public float TotalPriceModifier => totalPriceModifier;
-    public float TotalDemandModifier => totalDemandModifier;
-    public float TotalCostModifier => totalCostModifier;
-    public int Reputation => reputation;
-
-    public void Initialize()
-    {
-        // Ничего особенного
-    }
-
-    // ---- Методы изменения денег ----
-    public void AddMoney(double amount)
-    {
-        money += amount;
+        Money = startMoney;
+        StartMoney = startMoney;
+        ProfitMultiplier = profitMultiplier;
+        Reputation = 50;
+        ConveyorLevel = 0;
+        EngineerCount = 0;
+        PassiveIncome = 0;
+        basePriceMultiplier = 1f;
+        TemporaryPriceModifier = 1f;
+        DifficultyTechCostMultiplier = 1f;
+        if (GameTimeManager.Instance != null)
+            lastTaxYear = GameTimeManager.Instance.currentYear;
+        else
+            lastTaxYear = 2025;
+        UpdatePassiveIncome();
         OnMoneyChanged?.Invoke();
     }
 
     public bool SpendMoney(double amount)
     {
-        if (money < amount) return false;
-        money -= amount;
+        if (Money < amount) return false;
+        Money -= amount;
         OnMoneyChanged?.Invoke();
         return true;
     }
 
+    public void AddMoney(double amount)
+    {
+        Money += amount;
+        OnMoneyChanged?.Invoke();
+    }
+
+    public void AddReputation(int amount)
+    {
+        Reputation = Mathf.Max(0, Reputation + amount);
+    }
+
+    public void LoseEngineer()
+    {
+        EngineerCount = Mathf.Max(0, EngineerCount - 1);
+        UpdatePassiveIncome();
+    }
+
+    public void AddEngineer()
+    {
+        EngineerCount++;
+        UpdatePassiveIncome();
+    }
+
     public void AddPassiveIncome(double amount)
     {
-        passiveIncome += amount;
+        PassiveIncome += amount;
     }
 
-    public void SetPassiveIncome(double value)
+    private void UpdatePassiveIncome()
     {
-        passiveIncome = value;
+        PassiveIncome = (ConveyorLevel * 0.5f) + (EngineerCount * 0.3f);
     }
 
-    // ---- Улучшения ----
     public void BuyConveyorUpgrade()
     {
-        int cost = Mathf.RoundToInt((10 + conveyorLevel * 5) * CostMultiplier);
+        int cost = Mathf.RoundToInt((10 + ConveyorLevel * 5) * CostMultiplier * basePriceMultiplier);
         if (SpendMoney(cost))
         {
-            conveyorLevel++;
-            passiveIncome += 0.5;
-            OnMoneyChanged?.Invoke();
-            CarCompanyManager.Instance.UIManager.UpdateUpgradeUI();
-            CarCompanyManager.Instance.UIManager.ShowNotification($"Конвейер улучшен до {conveyorLevel} уровня!");
+            ConveyorLevel++;
+            UpdatePassiveIncome();
+            CarCompanyManager.Instance.UIManager?.UpdateUpgradeUI();
+            CarCompanyManager.Instance.UIManager?.ShowNotification($"Конвейер улучшен до уровня {ConveyorLevel}");
         }
         else
         {
-            double missing = cost - money;
-            CarCompanyManager.Instance.UIManager.ShowNotification($"Не хватает денег! Нужно ещё ${missing:F0}");
+            CarCompanyManager.Instance.UIManager?.ShowNotification($"Не хватает денег для улучшения конвейера (нужно ${cost})");
         }
     }
 
     public void HireEngineer()
     {
-        int cost = Mathf.RoundToInt((50 + engineerCount * 20) * CostMultiplier);
+        int cost = Mathf.RoundToInt((50 + EngineerCount * 20) * CostMultiplier * basePriceMultiplier);
         if (SpendMoney(cost))
         {
-            engineerCount++;
-            passiveIncome += 2;
-            OnMoneyChanged?.Invoke();
-            CarCompanyManager.Instance.UIManager.UpdateUpgradeUI();
-            CarCompanyManager.Instance.UIManager.ShowNotification($"Нанят инженер! Всего: {engineerCount}");
+            EngineerCount++;
+            UpdatePassiveIncome();
+            CarCompanyManager.Instance.UIManager?.UpdateUpgradeUI();
+            CarCompanyManager.Instance.UIManager?.ShowNotification($"Нанят инженер (всего: {EngineerCount})");
         }
         else
         {
-            double missing = cost - money;
-            CarCompanyManager.Instance.UIManager.ShowNotification($"Не хватает денег! Нужно ещё ${missing:F0}");
+            CarCompanyManager.Instance.UIManager?.ShowNotification($"Не хватает денег для найма инженера (нужно ${cost})");
         }
     }
 
-    // ---- Репутация ----
-    public void AddReputation(int value)
-    {
-        reputation = Mathf.Max(0, reputation + value);
-    }
-
-    public void SetReputation(int value)
-    {
-        reputation = Mathf.Max(0, value);
-    }
-
-    // ---- Модификаторы (теперь учитывают временный модификатор) ----
     public void RecalculateModifiers(Technology[] technologies)
     {
-        totalPriceModifier = 1f;
-        totalDemandModifier = 1f;
-        totalCostModifier = 1f;
+        float priceMod = 1f;
+        float costMod = 1f;
+        float techCostMod = 1f;
+        TotalPriceModifier = priceMod * basePriceMultiplier * TemporaryPriceModifier;
+        CostMultiplier = costMod * basePriceMultiplier * TemporaryPriceModifier;
+        TechCostMultiplier = techCostMod * basePriceMultiplier * TemporaryPriceModifier * DifficultyTechCostMultiplier;
+        TotalDemandModifier = 1f;
+    }
 
-        if (technologies != null)
+    public float GetSeasonalDemandModifier()
+    {
+        if (GameTimeManager.Instance == null) return 1f;
+        int month = GameTimeManager.Instance.currentMonth;
+        // 12-месячный цикл: январь = 1 -> sin(0), пик в середине года
+        float angle = ((month - 1) / 12f) * Mathf.PI * 2f;
+        return 0.8f + 0.4f * (0.5f + 0.5f * Mathf.Sin(angle));
+    }
+
+    public float GetTaxRate(CarBlueprint car)
+    {
+        float baseTax = 0f;
+        var difficulty = CarCompanyManager.Instance.UIManager?.GetCurrentDifficulty() ?? UIManager.Difficulty.Normal;
+        switch (difficulty)
         {
-            foreach (var tech in technologies)
-            {
-                if (tech != null && tech.isResearched)
-                {
-                    totalPriceModifier *= tech.priceModifier;
-                    totalDemandModifier *= tech.demandModifier;
-                    if (tech.techName == "Гибридный привод")
-                        totalCostModifier *= 0.9f;
-                }
-            }
+            case UIManager.Difficulty.Easy:   baseTax = 0.05f; break;
+            case UIManager.Difficulty.Normal: baseTax = 0.10f; break;
+            case UIManager.Difficulty.Hard:   baseTax = 0.15f; break;
         }
-
-        // Применяем временный модификатор (бум/кризис)
-        totalPriceModifier *= temporaryPriceModifier;
-
-        totalPriceModifier = Mathf.Clamp(totalPriceModifier, 0.5f, 5f);
-        totalDemandModifier = Mathf.Clamp(totalDemandModifier, 0.5f, 5f);
-        totalCostModifier = Mathf.Clamp(totalCostModifier, 0.5f, 2f);
-    }
-
-    // ---- Пассивный доход (корутина) ----
-    public IEnumerator PassiveIncomeLoop()
-    {
-        float demandTimer = 0f;
-        float demandUpdateInterval = CarCompanyManager.Instance.DemandManager.DemandUpdateInterval;
-        while (true)
-        {
-            yield return new WaitForSeconds(1f);
-            money += passiveIncome;
-            OnMoneyChanged?.Invoke();
-            demandTimer += 1f;
-            if (demandTimer >= demandUpdateInterval)
-            {
-                demandTimer = 0f;
-                CarCompanyManager.Instance.DemandManager.UpdateDemand();
-            }
-        }
-    }
-
-    // ---- Сброс состояния (для новой игры) ----
-    public void ResetState()
-    {
-        money = StartMoney;
-        passiveIncome = 0;
-        conveyorLevel = 0;
-        engineerCount = 0;
-        reputation = 50;
-        temporaryPriceModifier = 1f; // <-- сбрасываем временный модификатор
-        OnMoneyChanged?.Invoke();
-    }
-
-    // ---- Методы для сохранения/загрузки ----
-    public void LoadFromSave(SaveData data)
-    {
-        money = data.money;
-        passiveIncome = data.passiveIncome;
-        conveyorLevel = data.conveyorLevel;
-        engineerCount = data.engineerCount;
-        temporaryPriceModifier = 1f; // при загрузке всегда сбрасываем
-        OnMoneyChanged?.Invoke();
+        float levelBonus = car.currentLevel * 0.1f;
+        int totalTuning = car.currentPower + car.currentEconomy + car.currentDesign + car.currentSafety;
+        float tuningBonus = totalTuning * 0.02f;
+        return Mathf.Min(baseTax + levelBonus + tuningBonus, 0.5f);
     }
 
     public void FillSaveData(SaveData data)
     {
-        data.money = money;
-        data.passiveIncome = passiveIncome;
-        data.conveyorLevel = conveyorLevel;
-        data.engineerCount = engineerCount;
+        data.money = Money;
+        data.conveyorLevel = ConveyorLevel;
+        data.engineerCount = EngineerCount;
+        data.reputation = Reputation;
+        data.passiveIncome = PassiveIncome;
+        data.basePriceMultiplier = basePriceMultiplier;
+        data.lastTaxYear = lastTaxYear;
     }
-    public void AddEngineer()
-{
-    engineerCount++;
-    passiveIncome += 2;
-    OnMoneyChanged?.Invoke();
-}
 
-public void LoseEngineer()
-{
-    if (engineerCount > 0)
+    public void LoadFromSave(SaveData data)
     {
-        engineerCount--;
-        passiveIncome -= 2;
+        Money = data.money;
+        ConveyorLevel = data.conveyorLevel;
+        EngineerCount = data.engineerCount;
+        Reputation = data.reputation;
+        PassiveIncome = data.passiveIncome;
+        basePriceMultiplier = data.basePriceMultiplier;
+        lastTaxYear = data.lastTaxYear;
         OnMoneyChanged?.Invoke();
     }
-}
+
+    public void ResetState()
+    {
+        Money = StartMoney;
+        ConveyorLevel = 0;
+        EngineerCount = 0;
+        Reputation = 50;
+        PassiveIncome = 0;
+        basePriceMultiplier = 1f;
+        TemporaryPriceModifier = 1f;
+        DifficultyTechCostMultiplier = 1f;
+        if (GameTimeManager.Instance != null)
+            lastTaxYear = GameTimeManager.Instance.currentYear;
+        OnMoneyChanged?.Invoke();
+    }
+
+    public IEnumerator PassiveIncomeLoop()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(1f);
+            if (PassiveIncome > 0)
+            {
+                Money += PassiveIncome;
+                OnMoneyChanged?.Invoke();
+            }
+        }
+    }
+
+    private void Awake()
+    {
+        if (GameTimeManager.Instance != null)
+            GameTimeManager.Instance.OnMonthChanged += OnMonthChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (GameTimeManager.Instance != null)
+            GameTimeManager.Instance.OnMonthChanged -= OnMonthChanged;
+    }
+
+    // ---- ОБРАБОТЧИК СМЕНЫ МЕСЯЦА ----
+    private void OnMonthChanged()
+    {
+        // Инфляция
+        basePriceMultiplier *= (1f + inflationRate);
+        RecalculateModifiers(null);
+
+        // ---- ГОДОВОЙ НАЛОГ (в январе) ----
+        if (GameTimeManager.Instance != null)
+        {
+            int month = GameTimeManager.Instance.currentMonth;
+            int year = GameTimeManager.Instance.currentYear;
+
+            if (month == 1 && year > lastTaxYear)
+            {
+                float taxRate = CarCompanyManager.Instance.DifficultyManager.GetYearlyTaxRate();
+                double taxAmount = Money * taxRate;
+                Money -= taxAmount;
+                if (Money < 0) Money = 0;
+                lastTaxYear = year;
+
+                CarCompanyManager.Instance.UIManager?.ShowNotification(
+                    $"Годовой налог: ${taxAmount:F0} ({(taxRate * 100):F0}%) списано."
+                );
+                OnMoneyChanged?.Invoke();
+            }
+        }
+
+        CarCompanyManager.Instance.UIManager?.UpdateDateTimeDisplay();
+    }
 }

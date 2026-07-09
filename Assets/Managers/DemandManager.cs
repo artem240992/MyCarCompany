@@ -61,11 +61,12 @@ public class DemandManager : MonoBehaviour
             if (car == null) continue;
 
             float min, max;
+            // ---- ИСПРАВЛЕНО: используем полное имя DifficultyManager.DifficultyLevel ----
             switch (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty)
             {
-                case DifficultyLevel.Easy: min = 0.9f; max = 1.1f; break;
-                case DifficultyLevel.Normal: min = 0.7f; max = 1.3f; break;
-                case DifficultyLevel.Hard: min = 0.5f; max = 1.8f; break;
+                case DifficultyManager.DifficultyLevel.Easy:   min = 0.9f; max = 1.1f; break;
+                case DifficultyManager.DifficultyLevel.Normal: min = 0.7f; max = 1.3f; break;
+                case DifficultyManager.DifficultyLevel.Hard:   min = 0.5f; max = 1.8f; break;
                 default: min = 0.8f; max = 1.2f; break;
             }
             float baseDemand = Random.Range(min, max);
@@ -86,13 +87,13 @@ public class DemandManager : MonoBehaviour
             foreach (var comp in competitor.Competitors)
                 if (comp != null) competitorTechDemandModifier *= (1f - comp.researchLevel * 0.02f);
 
-            // ---- РЕПУТАЦИЯ ТЕПЕРЬ УЧИТЫВАЕТСЯ ----
+            // ---- РЕПУТАЦИЯ И СОБЫТИЯ ----
             float baseWithTech = baseDemand
                 * CarCompanyManager.Instance.DifficultyManager.CurrentEventMultiplier
                 * competitorFactor
                 * playerTechDemandModifier
                 * competitorTechDemandModifier
-                * reputationModifier;   // <-- добавлено
+                * reputationModifier;
 
             // Тюнинг
             float tuningDemandModifier = car.GetTuningDemandModifier();
@@ -102,13 +103,13 @@ public class DemandManager : MonoBehaviour
             if (demandPenalties.TryGetValue(car.carName, out float p))
                 penalty = p;
 
-            // Итоговый спрос (с учётом сезонности, рекламы и т.д.)
+            // Итоговый спрос
             float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, baseWithTech * tuningDemandModifier * penalty);
             car.demandMultiplier = finalDemand;
         }
 
-        ui.UpdateCarCards();   // обновляем карточки (цена меняется)
-        ui.UpdateMoneyLabels(); // для обновления отображения дохода (если нужно)
+        ui.UpdateCarCards();
+        ui.UpdateMoneyLabels();
     }
 
     private List<CarBlueprint> GetAllPossibleCars()

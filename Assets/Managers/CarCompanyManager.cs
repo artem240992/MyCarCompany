@@ -22,7 +22,7 @@ public class CarCompanyManager : MonoBehaviour
     [SerializeField] private string carUpgradeTechName = "Улучшить авто";
 
     [Header("Дополнительные технологии (ассеты)")]
-    [SerializeField] private TechnologyAsset[] additionalTechnologies; // <-- НОВОЕ
+    [SerializeField] private TechnologyAsset[] additionalTechnologies;
 
     public UIManager UIManager { get; private set; }
     public EconomyManager EconomyManager { get; private set; }
@@ -36,7 +36,7 @@ public class CarCompanyManager : MonoBehaviour
     public CarBlueprint[] StartCars => startCars;
     public string BulkProductionTechName => bulkProductionTechName;
     public string CarUpgradeTechName => carUpgradeTechName;
-    public TechnologyAsset[] AdditionalTechnologies => additionalTechnologies; // <-- НОВОЕ
+    public TechnologyAsset[] AdditionalTechnologies => additionalTechnologies;
 
     private void Awake()
     {
@@ -47,6 +47,13 @@ public class CarCompanyManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // ---- СОЗДАЁМ GameTimeManager, ЕСЛИ ОТСУТСТВУЕТ ----
+        if (GameTimeManager.Instance == null)
+        {
+            gameObject.AddComponent<GameTimeManager>();
+            Debug.Log("GameTimeManager создан автоматически.");
+        }
 
         UIManager = GetComponent<UIManager>() ?? gameObject.AddComponent<UIManager>();
         EconomyManager = GetComponent<EconomyManager>() ?? gameObject.AddComponent<EconomyManager>();
@@ -61,7 +68,11 @@ public class CarCompanyManager : MonoBehaviour
     private void Start()
     {
         UIManager.Initialize(uiDoc);
-        EconomyManager.Initialize();
+
+        float startMoney = 1000f;
+        float profitMultiplier = 1f;
+        EconomyManager.Initialize(startMoney, profitMultiplier);
+
         ProductionManager.Initialize(carDisplayPrefab, startPoint, endPoint);
         TechManager.Initialize(startCars);
         CompetitorManager.Initialize();

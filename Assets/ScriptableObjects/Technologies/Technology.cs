@@ -10,6 +10,14 @@ public class Technology
     public string[] requiredTechNames;
     public CarBlueprint unlockedCar;
 
+    public int availableYear = 2025;
+    public int availableMonth = 1;
+
+    public bool IsAvailable(int currentYear, int currentMonth)
+    {
+        return currentYear > availableYear || (currentYear == availableYear && currentMonth >= availableMonth);
+    }
+
     [Tooltip("Открывать ли машину при изучении технологии")]
     public bool unlockCarOnResearch = true;
 

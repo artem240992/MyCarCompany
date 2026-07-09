@@ -1,42 +1,41 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/MainStyles.uss?fileID=7433441132597879392&amp;guid=d64cd3bf55159af439848732d18ccb82&amp;type=3#MainStyles"/>
-    
+    <Style src="project://database/Assets/UI/USS/MainStyles.uss?fileID=7433441132597879392&amp;guid=d64cd3bf55159af439848732d18ccb82&amp;type=3#MainStyles"/>
     <ui:VisualElement name="MainInterface" class="main-interface">
         <ui:VisualElement name="MainPanel" class="main-panel">
-            
-            <!-- ===== ВЕРХНЯЯ ГОРИЗОНТАЛЬНАЯ ПАНЕЛЬ ===== -->
-<ui:VisualElement class="top-bar">
-    <!-- Блок ДЕНЕГ -->
-    <ui:VisualElement class="resource-block money-block">
-        <ui:Label text="💰" class="resource-icon" />
-        <ui:VisualElement class="resource-info">
-            <!-- <ui:Label text="Деньги" class="resource-label" /> -->
-            <ui:Label text="380" name="MoneyLabel" class="resource-value" />
-        </ui:VisualElement>
-    </ui:VisualElement>
-
-    <!-- Блок АВТОМОБИЛЕЙ (доход) -->
-    <ui:VisualElement class="resource-block auto-block">
-        <ui:Label text="🚗" class="resource-icon" />
-        <ui:VisualElement class="resource-info">
-            <!-- <ui:Label text="Авто / сек" class="resource-label" /> -->
-            <ui:Label text="0,0" name="IncomeLabel" class="resource-value" />
-        </ui:VisualElement>
-    </ui:VisualElement>
-
-    <!-- Правая группа: сложность + гамбургер (оставляем как было) -->
-    <ui:VisualElement class="top-right">
-        <ui:Label text="Сложность:" name="SavedDifficultyLabel" class="difficulty-display top-label" />
-        <ui:VisualElement class="hamburger-wrapper">
-            <ui:Button text="☰" name="HamburgerButton" class="hamburger" />
-        </ui:VisualElement>
-    </ui:VisualElement>
-</ui:VisualElement>
-            
-            <!-- ===== КНОПКА ПРОИЗВОДСТВА (под верхней панелью) ===== -->
+            <ui:VisualElement class="top-bar">
+                <!-- Деньги -->
+                <ui:VisualElement class="resource-block money-block">
+                    <ui:Label text="💰" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="380" name="MoneyLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <!-- Рейтинг -->
+                <ui:VisualElement class="resource-block reputation-block">
+                    <ui:Label text="⭐" class="resource-icon" />
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="50" name="ReputationLabel" class="resource-value" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <!-- Автомобили/сек -->
+                <ui:VisualElement class="resource-block auto-block">
+                    <ui:Label text="🚗" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="0,0" name="IncomeLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <!-- Правая группа: сложность, дата, сезон, гамбургер -->
+                <ui:VisualElement class="top-right">
+                    <ui:Label text="Сложность:" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
+                    <ui:Label text="Дата: 01/2025" name="DateLabel" class="date-display top-label" />
+                    <!-- НОВЫЙ ЭЛЕМЕНТ: сезонный коэффициент -->
+                    <ui:Label text="Сезон: 1.00x" name="SeasonLabel" class="season-display top-label" />
+                    <ui:VisualElement class="hamburger-wrapper">
+                        <ui:Button text="☰" name="HamburgerButton" class="hamburger"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
             <ui:Button text="Произвести авто" name="ProduceButton" class="produce-button"/>
-            
-            <!-- ===== ВЫПАДАЮЩЕЕ МЕНЮ (абсолютное) ===== -->
             <ui:VisualElement name="MenuContainer" class="menu-container">
                 <ui:Button text="Машины" name="OpenCarsButton" class="menu-button"/>
                 <ui:Button text="Технологии" name="OpenTechButton" class="menu-button"/>
@@ -47,11 +46,8 @@
                 <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last"/>
                 <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button"/>
             </ui:VisualElement>
-            
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Welcome (без изменений) -->
     <ui:VisualElement name="WelcomeOverlay" class="overlay">
         <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
             <ui:Label text="Выберите сложность" class="welcome-title"/>
@@ -61,8 +57,6 @@
             <ui:Button text="Hard" name="WelcomeHardButton" class="difficulty-button difficulty-button-last"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Cars (без изменений) -->
     <ui:VisualElement name="CarsOverlay" class="overlay">
         <ui:VisualElement name="CarsWindow" style="width: 90%; max-width: 900px; height: 90%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 15px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -78,8 +72,6 @@
             <ui:ScrollView name="CarsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Tech (без изменений) -->
     <ui:VisualElement name="TechOverlay" class="overlay">
         <ui:VisualElement name="TechWindow" class="window tech-window">
             <ui:VisualElement class="window-header">
@@ -89,8 +81,6 @@
             <ui:ScrollView name="TechContainer" class="tech-container"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Upgrade (без изменений) -->
     <ui:VisualElement name="UpgradeOverlay" class="overlay">
         <ui:VisualElement name="UpgradeWindow" class="window upgrade-window">
             <ui:VisualElement class="window-header">
@@ -103,8 +93,6 @@
             <ui:Button text="Нанять инженера (50)" name="HireEngineerButton" class="upgrade-button"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Settings (без изменений) -->
     <ui:VisualElement name="SettingsOverlay" class="overlay">
         <ui:VisualElement name="SettingsWindow" class="window settings-window">
             <ui:VisualElement class="window-header">
@@ -117,8 +105,6 @@
             <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Competitors (без изменений) -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
         <ui:VisualElement name="CompetitorsWindow" style="width: 90%; max-width: 1200px; height: 85%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -129,8 +115,6 @@
             <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0;"/>
         </ui:VisualElement>
     </ui:VisualElement>
-
-    <!-- Notifications & Misc (без изменений) -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>
     <ui:Label text="" name="EventLabel" class="event-label"/>
     <ui:Label text="" name="VersionLabel" class="version-label"/>
