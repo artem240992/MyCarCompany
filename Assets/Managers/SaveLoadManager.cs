@@ -3,7 +3,6 @@ using System.IO;
 
 public class SaveLoadManager : MonoBehaviour
 {
-    // ---- ПУТЬ К ФАЙЛУ СОХРАНЕНИЯ ----
     private string savePath => Application.persistentDataPath + "/save.json";
 
     public void Initialize() { }
@@ -21,6 +20,10 @@ public class SaveLoadManager : MonoBehaviour
 
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.FillSaveData(data);
+
+        // ---- СОХРАНЯЕМ НОВЫЕ ДАННЫЕ ----
+        CarCompanyManager.Instance.ActionLogManager.FillSaveData(data);
+        CarCompanyManager.Instance.AchievementManager.FillSaveData(data);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null)
@@ -46,23 +49,21 @@ public class SaveLoadManager : MonoBehaviour
             Debug.LogError("Ошибка десериализации сохранения");
             return;
         }
-
-        // Загрузка экономики
+        CarCompanyManager.Instance.CompetitorManager.Initialize();
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
-
-        // Загрузка технологий и машин
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);
 
-        // Загрузка даты (только месяц и год)
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.LoadFromSave(data.currentMonth, data.currentYear);
 
-        // Загрузка сложности
+        // ---- ЗАГРУЖАЕМ НОВЫЕ ДАННЫЕ ----
+        CarCompanyManager.Instance.ActionLogManager.LoadFromSave(data);
+        CarCompanyManager.Instance.AchievementManager.LoadFromSave(data);
+
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null && data.difficulty >= 0 && data.difficulty <= 2)
             ui.SetDifficulty((UIManager.Difficulty)data.difficulty);
 
-        // Обновление UI
         ui.UpdateMoneyLabels();
         ui.UpdateReputationLabel();
         ui.UpdateDateTimeDisplay();
@@ -82,6 +83,10 @@ public class SaveLoadManager : MonoBehaviour
 
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.LoadFromSave(1, 2025);
+
+        // ---- СБРАСЫВАЕМ НОВЫЕ ДАННЫЕ ----
+        CarCompanyManager.Instance.ActionLogManager.ClearLogs();
+        CarCompanyManager.Instance.AchievementManager.ResetProgress();
 
         var ui = CarCompanyManager.Instance.UIManager;
         ui.ShowWelcomeScreen();

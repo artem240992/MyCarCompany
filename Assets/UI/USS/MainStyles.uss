@@ -8,49 +8,149 @@
     padding: 10px;
 }
 
-.saved-difficulty-label {
-    font-size: 14px;
-    color: rgb(170, 170, 170);
-    margin-top: 5px;
+/* === Верхняя панель (исправлено) === */
+.top-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
-.produce-button {
-    margin-top: 15px;
+/* Блоки ресурсов — компактные */
+.resource-block {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(50, 50, 50, 0.7);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: #555;
+    flex-shrink: 0;
+    min-width: 60px;
+    margin: 2px 4px;
+}
+
+.resource-icon {
+    font-size: 20px;
+    margin-right: 6px;
+    -unity-text-align: middle-center;
+}
+
+.resource-info {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.resource-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+    white-space: nowrap;
+}
+
+/* Цвета для разных блоков */
+.auto-block .resource-value {
+    color: #7ec8e3;
+}
+
+.reputation-block .resource-value {
+    color: #FFD700;
+}
+
+/* Правая группа */
+.top-right {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.top-label {
+    font-size: 12px;
+    color: #ccc;
+    white-space: nowrap;
+}
+
+.difficulty-display {
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+.date-display {
+    color: #88ccff;
+}
+
+.season-display {
+    color: #88ff88;
+}
+
+.inflation-display {
+    color: #ff8888;
 }
 
 .hamburger-wrapper {
-    flex-direction: row;
-    justify-content: flex-end;
-    margin-top: 10px;
+    margin-left: 2px;
 }
 
 .hamburger {
-    font-size: 28px;
-    width: 44px;
-    height: 44px;
+    font-size: 22px;
     background-color: transparent;
     border-width: 0;
     color: white;
+    padding: 0;
+    width: 32px;
+    height: 32px;
 }
 
+/* === Кнопка производства === */
+.produce-button {
+    width: 100%;
+    height: 36px;
+    font-size: 14px;
+    margin-bottom: 8px;
+    background-color: #2a6a2a;
+    color: white;
+    border-radius: 6px;
+    border-width: 0;
+}
+
+.produce-button:hover {
+    background-color: #3a8a3a;
+}
+
+/* === Меню === */
 .menu-container {
     position: absolute;
     right: 10px;
     top: 70px;
     background-color: rgb(30, 30, 30);
     border-radius: 8px;
-    padding: 10px;
+    padding: 8px;
     display: none;
-    width: 160px;
+    width: 150px;
 }
 
 .menu-button {
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     background-color: transparent;
     color: white;
     border-width: 0;
--unity-text-align: upper-left;
+    -unity-text-align: upper-left;
+    font-size: 14px;
+    padding: 4px 8px;
+}
+
+.menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .menu-button-last {
@@ -64,7 +164,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.4);
     display: none;
     align-items: center;
     justify-content: center;
@@ -82,8 +182,14 @@
 }
 
 .cars-window {
-    width: 600px;
-    max-height: 80%;
+    width: 90%;
+    max-width: 900px;
+    height: 90%;
+    max-height: 800px;
+    background-color: rgb(40, 40, 40);
+    padding: 15px;
+    border-radius: 10px;
+    flex-direction: column;
 }
 
 .tech-window {
@@ -103,8 +209,14 @@
 }
 
 .competitors-window {
-    width: 700px;
-    max-height: 80%;
+    width: 90%;
+    max-width: 1200px;
+    height: 85%;
+    max-height: 800px;
+    background-color: rgb(40, 40, 40);
+    padding: 20px;
+    border-radius: 10px;
+    flex-direction: column;
 }
 
 .window-header {
@@ -179,6 +291,15 @@
     max-height: 350px;
 }
 
+.car-card {
+    background-color: rgba(64, 64, 64, 255);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    flex-direction: column;
+    align-items: stretch;
+}
+
 /* === Tech === */
 .tech-container {
     flex-grow: 1;
@@ -206,8 +327,74 @@
     max-height: 400px;
 }
 
+.tab-button {
+    background-color: transparent;
+    color: #aaa;
+    border-width: 0;
+    border-bottom-width: 2px;
+    border-bottom-color: transparent;
+    font-size: 14px;
+    padding: 6px 12px;
+}
+
+.tab-button:hover {
+    color: white;
+}
+
+.tab-button.active {
+    color: white;
+    border-bottom-color: #ffcc00;
+}
+
 .refresh-button {
     margin-top: 10px;
+}
+
+/* === Достижения === */
+.achievement-card {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    align-items: center;
+    flex-direction: column;
+}
+
+.achievement-card-unlocked {
+    background-color: rgba(20, 50, 20, 0.9);
+}
+
+.achievement-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 8px;
+}
+
+.achievement-title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: white;
+}
+
+.achievement-title-unlocked {
+    color: green;
+}
+
+.achievement-description {
+    font-size: 12px;
+    color: #ccc;
+    text-align: center;
+}
+
+.achievement-progress {
+    font-size: 12px;
+    color: #ffd700;
+}
+
+.achievement-unlocked {
+    font-size: 14px;
+    color: green;
+    -unity-font-style: bold;
 }
 
 /* === Notifications & Misc === */
@@ -232,134 +419,5 @@
     right: 10px;
     bottom: 10px;
     font-size: 12px;
-    color: black;
-}
-
-.cars-window {
-    width: 90%;
-    max-width: 900px;
-    height: 90%;
-    max-height: 800px;
-    background-color: rgb(40, 40, 40);
-    padding: 15px;
-    border-radius: 10px;
-    flex-direction: column;
-}
-
-.car-card {
-    background-color: rgba(64, 64, 64, 255);
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 6px;
-    flex-direction: column;
-    align-items: stretch;
-}
-
-/* Стиль для метки сложности – тёмный фон и яркий текст */
-.difficulty-display {
-    background-color: #2a2a2a;
-    color: #ffcc00;
-    padding: 4px 10px;
-    border-radius: 6px;
-    -unity-font-style: bold;
-    font-size: 14px;
-}
-
-/* Верхняя панель */
-.top-bar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 10px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.top-left,
-.top-right {
-    flex-direction: row;
-    align-items: center;
-    margin-right: 15px
-}
-
-.top-label {
-    font-size: 16px;
-    color: white;
-    margin-right: 10px;
-}
-
-/* Кнопка производства – теперь под панелью */
-.produce-button {
-    width: 100%;
-    height: 40px;
-    font-size: 16px;
-    margin-bottom: 10px;
-}
-
-/* Верхняя панель - используем flex, чтобы распределить элементы */
-.top-bar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between; /* раздвигаем блоки по краям */
-    padding: 8px 16px;
-    background-color: rgba(0, 0, 0, 0.6); /* как в игре */
-    border-bottom-width: 2px;
-    border-bottom-color: #555;
-}
-
-/* Каждый ресурсный блок */
-.resource-block {
-    flex-direction: row;
-    align-items: center;
-    background-color: rgba(50, 50, 50, 0.8);
-    padding: 8px 18px;
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: #777;
-    margin: 4px 0;
-    /* Даём блокам возможность расширяться, но не слишком */
-    flex-shrink: 0;
-}
-
-/* Для денег можно задать отдельный отступ, чтобы они были дальше от авто */
-.money-block {
-    margin-right: 30px; /* дополнительное расстояние */
-}
-
-/* Иконка ресурса */
-.resource-icon {
-    font-size: 32px;
-    margin-right: 10px;
-    -unity-text-align: middle-center;
-}
-
-/* Информационная часть (название + значение) */
-.resource-info {
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.resource-label {
-    font-size: 12px;
-    color: #aaa;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-    -unity-font-style: bold;
-}
-
-.resource-value {
-    font-size: 28px;
-    color: #ffd700; /* золото для денег */
-    -unity-font-style: bold;
-    margin-top: -4px; /* чтобы прижать к лейблу */
-}
-
-/* Для авто меняем цвет цифр */
-.auto-block .resource-value {
-    color: #7ec8e3; /* голубоватый */
-}
-
-.reputation-block .resource-value {
-    color: #FFD700;
+    color: #666;
 }

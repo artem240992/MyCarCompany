@@ -11,25 +11,28 @@ public class SaveData
     public int reputation;
     public double passiveIncome;
     public float basePriceMultiplier;
-    // ---- НОВОЕ ПОЛЕ ----
-    public int lastTaxYear; // год последнего списания налога
 
-    // ---- Дата игры ----
-    // public int currentDay;
+    // ---- Время ----
     public int currentMonth;
     public int currentYear;
-
-    // ---- Сложность ----
-    public int difficulty; // 0 = Easy, 1 = Normal, 2 = Hard
+    public int lastTaxYear;
 
     // ---- Технологии ----
-    public string[] researchedTechNames; // для обратной совместимости (устарело)
+    public string[] researchedTechNames; // для обратной совместимости
     public List<TechnologySaveData> technologyData;
-
 
     // ---- Машины ----
     public List<CarLevelData> carLevels;
-    public List<CarBlueprintSaveData> createdCarsData; // созданные улучшенные версии
+    public List<CarBlueprintSaveData> createdCarsData;
+
+    // ---- Логи действий конкурентов ----
+    public List<ActionLogEntry> actionLogs;
+
+    // ---- Достижения ----
+    public List<AchievementProgress> achievementProgress;
+
+    // ---- Сложность ----
+    public int difficulty; // 0=Easy, 1=Normal, 2=Hard
 }
 
 [Serializable]
