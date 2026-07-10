@@ -21,13 +21,15 @@ public class SaveLoadManager : MonoBehaviour
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.FillSaveData(data);
 
-        // ---- СОХРАНЯЕМ НОВЫЕ ДАННЫЕ ----
         CarCompanyManager.Instance.ActionLogManager.FillSaveData(data);
         CarCompanyManager.Instance.AchievementManager.FillSaveData(data);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null)
             data.difficulty = (int)ui.GetCurrentDifficulty();
+
+        // ---- Сохраняем прогресс обучения ----
+        data.tutorialProgress = TutorialManager.Instance?.CurrentStep ?? -1;
 
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(savePath, json);
@@ -49,6 +51,7 @@ public class SaveLoadManager : MonoBehaviour
             Debug.LogError("Ошибка десериализации сохранения");
             return;
         }
+
         CarCompanyManager.Instance.CompetitorManager.Initialize();
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);
@@ -56,9 +59,11 @@ public class SaveLoadManager : MonoBehaviour
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.LoadFromSave(data.currentMonth, data.currentYear);
 
-        // ---- ЗАГРУЖАЕМ НОВЫЕ ДАННЫЕ ----
         CarCompanyManager.Instance.ActionLogManager.LoadFromSave(data);
         CarCompanyManager.Instance.AchievementManager.LoadFromSave(data);
+
+        // ---- Загружаем прогресс обучения ----
+        TutorialManager.Instance?.LoadProgress(data.tutorialProgress);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null && data.difficulty >= 0 && data.difficulty <= 2)
@@ -84,9 +89,11 @@ public class SaveLoadManager : MonoBehaviour
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.LoadFromSave(1, 2025);
 
-        // ---- СБРАСЫВАЕМ НОВЫЕ ДАННЫЕ ----
         CarCompanyManager.Instance.ActionLogManager.ClearLogs();
         CarCompanyManager.Instance.AchievementManager.ResetProgress();
+
+        // ---- Сбрасываем обучение ----
+        TutorialManager.Instance?.ResetProgress();
 
         var ui = CarCompanyManager.Instance.UIManager;
         ui.ShowWelcomeScreen();

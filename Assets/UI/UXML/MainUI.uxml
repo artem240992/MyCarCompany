@@ -3,33 +3,29 @@
     <ui:VisualElement name="MainInterface" class="main-interface">
         <ui:VisualElement name="MainPanel" class="main-panel">
             <ui:VisualElement class="top-bar">
-                <!-- Деньги -->
                 <ui:VisualElement class="resource-block money-block">
                     <ui:Label text="💰" class="resource-icon"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="380" name="MoneyLabel" class="resource-value"/>
+                        <ui:Label text="" name="MoneyLabel" class="resource-value"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <!-- Рейтинг -->
                 <ui:VisualElement class="resource-block reputation-block">
                     <ui:Label text="⭐" class="resource-icon" />
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="50" name="ReputationLabel" class="resource-value" />
+                        <ui:Label text="" name="ReputationLabel" class="resource-value" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <!-- Автомобили/сек -->
                 <ui:VisualElement class="resource-block auto-block">
                     <ui:Label text="🚗" class="resource-icon"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="0,0" name="IncomeLabel" class="resource-value"/>
+                        <ui:Label text="" name="IncomeLabel" class="resource-value"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <!-- Правая группа: сложность, дата, сезон, инфляция, гамбургер -->
                 <ui:VisualElement class="top-right">
-                    <ui:Label text="Сложность:" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
-                    <ui:Label text="Дата: 01/2025" name="DateLabel" class="date-display top-label" />
-                    <ui:Label text="Сезон: 1.00x" name="SeasonLabel" class="season-display top-label" />
-                    <ui:Label text="Инфляция: 0.0%" name="InflationLabel" class="inflation-display top-label" />
+                    <ui:Label text="" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
+                    <ui:Label text="" name="DateLabel" class="date-display top-label" />
+                    <ui:Label text="" name="SeasonLabel" class="season-display top-label" />
+                    <ui:Label text="" name="InflationLabel" class="inflation-display top-label" />
                     <ui:VisualElement class="hamburger-wrapper">
                         <ui:Button text="☰" name="HamburgerButton" class="hamburger"/>
                     </ui:VisualElement>
@@ -69,9 +65,9 @@
                 <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
             </ui:VisualElement>
             <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px; flex-shrink: 0;">
-                <ui:Label text="Количество:" style="color: white; margin-right: 10px; font-size: 14px;"/>
+                <ui:Label text="" style="color: white; margin-right: 10px; font-size: 14px;"/>
                 <ui:Button text="-" name="DecreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
-                <ui:Label text="1" name="CountLabel" style="color: white; font-size: 18px; min-width: 30px; text-align: center;"/>
+                <ui:Label text="" name="CountLabel" style="color: white; font-size: 18px; min-width: 30px; text-align: center;"/>
                 <ui:Button text="+" name="IncreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
             </ui:VisualElement>
             <ui:ScrollView name="CarsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
@@ -80,12 +76,14 @@
 
     <!-- Tech -->
     <ui:VisualElement name="TechOverlay" class="overlay">
-        <ui:VisualElement name="TechWindow" class="window tech-window">
-            <ui:VisualElement class="window-header">
-                <ui:Label text="Дерево технологий" class="window-title"/>
-                <ui:Button text="✕" name="CloseTechButton" class="close-button"/>
+        <ui:VisualElement name="TechWindow" style="width: 95%; max-width: 1200px; height: 80%; max-height: 700px; min-height: 300px; background-color: rgb(40, 40, 40); padding: 8px 16px 12px 16px; border-radius: 10px; flex-direction: column; align-self: center;">
+            <!-- Шапка: заголовок по центру, крестик справа -->
+            <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 4px; flex-shrink: 0;">
+                <ui:Label text="Дерево технологий" style="font-size: 18px; color: white; flex-grow: 1; -unity-text-align: middle-center;"/>
+                <ui:Button text="✕" name="CloseTechButton" style="font-size: 18px; background-color: transparent; border-width: 0; color: white; padding: 0; margin-left: 8px; flex-shrink: 0; width: 28px; height: 28px;"/>
             </ui:VisualElement>
-            <ui:ScrollView name="TechContainer" class="tech-container"/>
+            <!-- ScrollView – технологии прижаты к верху -->
+            <ui:ScrollView name="TechContainer" vertical-scroller-visibility="Auto" style="flex-grow: 1; flex-shrink: 1; min-height: 80px; margin-top: 0;"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -96,10 +94,10 @@
                 <ui:Label text="Улучшения завода" class="window-title"/>
                 <ui:Button text="✕" name="CloseUpgradeButton" class="close-button"/>
             </ui:VisualElement>
-            <ui:Label text="Уровень конвейера: 0" name="ConveyorLevelLabel" class="upgrade-label"/>
-            <ui:Button text="Улучшить конвейер (10)" name="BuyConveyorButton" class="upgrade-button"/>
-            <ui:Label text="Инженеров: 0" name="EngineerCountLabel" class="upgrade-label"/>
-            <ui:Button text="Нанять инженера (50)" name="HireEngineerButton" class="upgrade-button"/>
+            <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label"/>
+            <ui:Button text="" name="BuyConveyorButton" class="upgrade-button"/>
+            <ui:Label text="" name="EngineerCountLabel" class="upgrade-label"/>
+            <ui:Button text="" name="HireEngineerButton" class="upgrade-button"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -117,7 +115,7 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- Competitors (с вкладками) -->
+    <!-- Competitors -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
         <ui:VisualElement name="CompetitorsWindow" style="width: 90%; max-width: 1200px; height: 85%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -130,7 +128,6 @@
             </ui:VisualElement>
             <ui:VisualElement name="CompetitorsContent" style="flex-grow: 1; min-height: 200px;" />
             <ui:VisualElement name="ActionLogContent" style="flex-grow: 1; min-height: 200px; display: none;" />
-            <!-- ДОБАВЛЕНА КНОПКА ОБНОВИТЬ -->
             <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0; align-self: center; width: 120px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
@@ -143,6 +140,18 @@
                 <ui:Button text="✕" name="CloseAchievementsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
             </ui:VisualElement>
             <ui:ScrollView name="AchievementsContainer" style="flex-grow: 1; padding: 10px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Tutorial Overlay -->
+    <ui:VisualElement name="TutorialOverlayPanel" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center;">
+        <ui:VisualElement style="background-color: rgba(40,40,40,0.95); padding: 24px; border-radius: 16px; max-width: 500px; min-width: 300px; flex-direction: column; align-items: stretch;">
+            <ui:Label name="TutorialTitle" style="font-size: 22px; color: #ffd700; -unity-font-style: bold; margin-bottom: 12px; -unity-text-align: middle-center;" text=""/>
+            <ui:Label name="TutorialDescription" style="font-size: 16px; color: #eee; white-space: normal; margin-bottom: 20px; -unity-text-align: middle-center; padding: 0 8px;" text=""/>
+            <ui:VisualElement style="flex-direction: row; justify-content: center; gap: 16px; margin-top: 8px;">
+                <ui:Button name="TutorialSkipButton" text="Пропустить" style="background-color: #555; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" />
+                <ui:Button name="TutorialNextButton" text="Далее" style="background-color: #4CAF50; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 

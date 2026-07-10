@@ -4,6 +4,9 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
+    // ---- Обучение ----
+    public int tutorialProgress; // -1 = не начато, -2 = завершено, 0..N-1 = текущий шаг
+    
     // ---- Экономика ----
     public double money;
     public int conveyorLevel;

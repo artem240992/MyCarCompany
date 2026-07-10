@@ -230,10 +230,10 @@ public class UIManager : MonoBehaviour
         SubscribeButton("NormalButton", () => { SetDifficulty(Difficulty.Normal); CloseSettingsWindow(); });
         SubscribeButton("HardButton", () => { SetDifficulty(Difficulty.Hard); CloseSettingsWindow(); });
 
-        SubscribeButton("WelcomeEasyButton", () => { SetDifficulty(Difficulty.Easy); CloseWelcomeScreen(); });
-        SubscribeButton("WelcomeNormalButton", () => { SetDifficulty(Difficulty.Normal); CloseWelcomeScreen(); });
-        SubscribeButton("WelcomeHardButton", () => { SetDifficulty(Difficulty.Hard); CloseWelcomeScreen(); });
-
+        SubscribeButton("WelcomeEasyButton", () => OnDifficultySelected(Difficulty.Easy));
+        SubscribeButton("WelcomeNormalButton", () => OnDifficultySelected(Difficulty.Normal));
+        SubscribeButton("WelcomeHardButton", () => OnDifficultySelected(Difficulty.Hard));
+        
         if (competitorsTabButton != null)
             competitorsTabButton.clicked += () => SwitchCompetitorTab(true);
         if (actionLogTabButton != null)
@@ -1309,7 +1309,10 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        const float nodeWidth = 280, nodeHeight = 130, horizontalGap = 120, verticalGap = 80;
+        const float nodeWidth = 220;
+        const float nodeHeight = 100;
+        const float horizontalGap = 100;
+        const float verticalGap = 70;
 
         Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
         foreach (var tech in technologies) if (tech != null) techLevels[tech] = CalculateTechLevel(tech, technologies);
@@ -1321,11 +1324,12 @@ public class UIManager : MonoBehaviour
         foreach (var kvp in techLevels) levelGroups[kvp.Value].Add(kvp.Key);
 
         int totalWidth = (maxLevel + 1) * (int)(nodeWidth + horizontalGap) + 50;
-        int totalHeight = Mathf.Max(800, technologies.Count * (int)(nodeHeight + verticalGap) + 100);
+        int totalHeight = Mathf.Max(300, technologies.Count * (int)(nodeHeight + verticalGap) + 50);
+
         techGraphRoot = new VisualElement();
         techGraphRoot.style.width = new Length(totalWidth, LengthUnit.Pixel);
-        techGraphRoot.style.height = new Length(totalHeight, LengthUnit.Pixel);
         techGraphRoot.style.position = Position.Relative;
+        techGraphRoot.style.overflow = Overflow.Visible; // чтобы узлы не обрезались
         techScrollView.Add(techGraphRoot);
 
         Dictionary<Technology, TechNode> nodeMap = new Dictionary<Technology, TechNode>();
@@ -1372,21 +1376,32 @@ public class UIManager : MonoBehaviour
                 if (tech == null || !nodeMap.ContainsKey(tech)) continue;
                 TechNode node = nodeMap[tech];
                 float x = level * (nodeWidth + horizontalGap) + 20;
-                float totalNodeHeight = count * (nodeHeight + verticalGap) - verticalGap;
-                float y = (i * (nodeHeight + verticalGap)) + (containerHeight - totalNodeHeight) / 2;
-                if (y < 0) y = 10;
+                float y = i * (nodeHeight + verticalGap) + 5;
                 node.position = new Vector2(x, y);
                 node.element.style.position = Position.Absolute;
                 node.element.style.left = x;
                 node.element.style.top = y;
+                techGraphRoot.Add(node.element);
             }
         }
 
+        // Вычисляем реальную высоту
+        float calculatedMaxY = 0;
+        foreach (var node in techNodes)
+        {
+            if (node == null) continue;
+            float bottom = node.position.y + nodeHeight;
+            if (bottom > calculatedMaxY) calculatedMaxY = bottom;
+        }
+        float calculatedHeight = Mathf.Max(calculatedMaxY + 20, 100);
+        techGraphRoot.style.height = new Length(calculatedHeight, LengthUnit.Pixel);
+
+        // ---- Слой для линий (теперь не перехватывает клики) ----
         VisualElement lineLayer = new VisualElement();
         lineLayer.style.position = Position.Absolute;
         lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
+        lineLayer.pickingMode = PickingMode.Ignore; // <-- ОСНОВНОЕ ИСПРАВЛЕНИЕ
         techGraphRoot.Add(lineLayer);
-        foreach (var node in techNodes) if (node != null && node.element != null) techGraphRoot.Add(node.element);
 
         lineLayer.generateVisualContent += (meshGenerationContext) =>
         {
@@ -1734,5 +1749,29 @@ public class UIManager : MonoBehaviour
     {
         if (reputationLabel != null && economy != null)
             reputationLabel.text = economy.Reputation.ToString();
+    }
+    
+    private void OnDifficultySelected(Difficulty diff)
+    {
+        Debug.Log($"OnDifficultySelected: {diff}");
+        SetDifficulty(diff);
+        CloseWelcomeScreen();
+
+        bool hasSave = CarCompanyManager.Instance.SaveLoadManager.HasSaveFile();
+        int tutorialCompleted = PlayerPrefs.GetInt("TutorialCompleted", 0);
+        Debug.Log($"hasSave={hasSave}, tutorialCompleted={tutorialCompleted}");
+
+        if (!hasSave && tutorialCompleted == 0)
+        {
+            Debug.Log("Запускаем туториал");
+            if (TutorialManager.Instance != null)
+                TutorialManager.Instance.StartTutorial();
+            else
+                Debug.LogError("TutorialManager.Instance == null!");
+        }
+        else
+        {
+            Debug.Log("Туториал не запущен");
+        }
     }
 }
