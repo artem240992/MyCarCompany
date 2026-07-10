@@ -24,12 +24,12 @@
                         <ui:Label text="0,0" name="IncomeLabel" class="resource-value"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <!-- Правая группа: сложность, дата, сезон, гамбургер -->
+                <!-- Правая группа: сложность, дата, сезон, инфляция, гамбургер -->
                 <ui:VisualElement class="top-right">
                     <ui:Label text="Сложность:" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
                     <ui:Label text="Дата: 01/2025" name="DateLabel" class="date-display top-label" />
-                    <!-- НОВЫЙ ЭЛЕМЕНТ: сезонный коэффициент -->
                     <ui:Label text="Сезон: 1.00x" name="SeasonLabel" class="season-display top-label" />
+                    <ui:Label text="Инфляция: 0.0%" name="InflationLabel" class="inflation-display top-label" />
                     <ui:VisualElement class="hamburger-wrapper">
                         <ui:Button text="☰" name="HamburgerButton" class="hamburger"/>
                     </ui:VisualElement>
@@ -44,10 +44,13 @@
                 <ui:Button text="Сохранить" name="SaveButton" class="menu-button"/>
                 <ui:Button text="Загрузить" name="LoadButton" class="menu-button"/>
                 <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last"/>
+                <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button"/>
                 <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Welcome -->
     <ui:VisualElement name="WelcomeOverlay" class="overlay">
         <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
             <ui:Label text="Выберите сложность" class="welcome-title"/>
@@ -57,6 +60,8 @@
             <ui:Button text="Hard" name="WelcomeHardButton" class="difficulty-button difficulty-button-last"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Cars -->
     <ui:VisualElement name="CarsOverlay" class="overlay">
         <ui:VisualElement name="CarsWindow" style="width: 90%; max-width: 900px; height: 90%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 15px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -72,6 +77,8 @@
             <ui:ScrollView name="CarsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Tech -->
     <ui:VisualElement name="TechOverlay" class="overlay">
         <ui:VisualElement name="TechWindow" class="window tech-window">
             <ui:VisualElement class="window-header">
@@ -81,6 +88,8 @@
             <ui:ScrollView name="TechContainer" class="tech-container"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Upgrade -->
     <ui:VisualElement name="UpgradeOverlay" class="overlay">
         <ui:VisualElement name="UpgradeWindow" class="window upgrade-window">
             <ui:VisualElement class="window-header">
@@ -93,6 +102,8 @@
             <ui:Button text="Нанять инженера (50)" name="HireEngineerButton" class="upgrade-button"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Settings -->
     <ui:VisualElement name="SettingsOverlay" class="overlay">
         <ui:VisualElement name="SettingsWindow" class="window settings-window">
             <ui:VisualElement class="window-header">
@@ -105,16 +116,37 @@
             <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Competitors (с вкладками) -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
         <ui:VisualElement name="CompetitorsWindow" style="width: 90%; max-width: 1200px; height: 85%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
                 <ui:Label text="Конкуренты" style="font-size: 20px; color: white;"/>
                 <ui:Button text="✕" name="CloseCompetitorsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
             </ui:VisualElement>
-            <ui:ScrollView name="CompetitorsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
-            <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0;"/>
+            <ui:VisualElement style="flex-direction: row; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Button text="Список конкурентов" name="CompetitorsTabButton" class="tab-button" style="flex-grow: 1;"/>
+                <ui:Button text="Журнал действий" name="ActionLogTabButton" class="tab-button" style="flex-grow: 1;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="CompetitorsContent" style="flex-grow: 1; min-height: 200px;" />
+            <ui:VisualElement name="ActionLogContent" style="flex-grow: 1; min-height: 200px; display: none;" />
+            <!-- ДОБАВЛЕНА КНОПКА ОБНОВИТЬ -->
+            <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0; align-self: center; width: 120px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- ДОСТИЖЕНИЯ -->
+    <ui:VisualElement name="AchievementsOverlay" class="overlay">
+        <ui:VisualElement name="AchievementsWindow" style="width: 80%; max-width: 800px; height: 80%; max-height: 700px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="Достижения" style="font-size: 20px; color: white;"/>
+                <ui:Button text="✕" name="CloseAchievementsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="AchievementsContainer" style="flex-grow: 1; padding: 10px;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>
     <ui:Label text="" name="EventLabel" class="event-label"/>
     <ui:Label text="" name="VersionLabel" class="version-label"/>

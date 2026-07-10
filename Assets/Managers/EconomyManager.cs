@@ -57,10 +57,13 @@ public class EconomyManager : MonoBehaviour
     }
 
     public void AddMoney(double amount)
-    {
-        Money += amount;
-        OnMoneyChanged?.Invoke();
-    }
+{
+    Money += amount;
+    OnMoneyChanged?.Invoke();
+    var achManager = CarCompanyManager.Instance.AchievementManager;
+    if (achManager != null)
+        achManager.UpdateProgress("money", (int)Money);
+}
 
     public void AddReputation(int amount)
     {

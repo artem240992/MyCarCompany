@@ -10,12 +10,12 @@ public class CompetitorManager : MonoBehaviour
 
     private string[] competitorNames = { "АвтоСтар", "ТехноТранс", "ЭкоДрайв", "СпортМотор", "ГородскойАвто" };
 
-    // Ссылки
     private EconomyManager economy => CarCompanyManager.Instance.EconomyManager;
     private UIManager ui => CarCompanyManager.Instance.UIManager;
     private TechManager tech => CarCompanyManager.Instance.TechManager;
     private DemandManager demand => CarCompanyManager.Instance.DemandManager;
     private ProductionManager production => CarCompanyManager.Instance.ProductionManager;
+    private ActionLogManager logManager => CarCompanyManager.Instance.ActionLogManager;
 
     public List<Competitor> Competitors => competitors;
 
@@ -28,7 +28,8 @@ public class CompetitorManager : MonoBehaviour
     private void InitCompetitors()
     {
         competitors.Clear();
-        int count = 3 + (int)CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+        int difficulty = (int)CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+        int count = 3 + difficulty;
         for (int i = 0; i < count && i < competitorNames.Length; i++)
         {
             Competitor comp = new Competitor();
@@ -53,7 +54,6 @@ public class CompetitorManager : MonoBehaviour
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
     }
 
-    // ---- AI ----
     public void StartCompetitorAI()
     {
         if (competitorCoroutine != null) StopCoroutine(competitorCoroutine);
@@ -84,11 +84,17 @@ public class CompetitorManager : MonoBehaviour
         }
     }
 
-    // ---- Полная логика AI конкурента ----
+    // ---- Полная логика AI конкурента (с логированием) ----
     private void RunCompetitorDecision(Competitor comp)
     {
         if (comp == null) return;
-        float decision = Random.value;
+
+        // Определяем множитель агрессивности для Hard
+        float aggressionMod = 1f;
+        if (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty == DifficultyManager.DifficultyLevel.Hard)
+            aggressionMod = 1.5f;
+
+        float decision = Random.value * aggressionMod;
 
         // 1. Если у конкурента мало денег – поднимает цены
         if (comp.money < 200 && decision < 0.4f)
@@ -147,7 +153,7 @@ public class CompetitorManager : MonoBehaviour
 
         // 5. Маркетинговая атака на игрока
         float actionChance = Random.value;
-        if (!comp.isAlly && comp.money > 150 && actionChance < 0.15f)
+        if (!comp.isAlly && comp.money > 150 && actionChance < 0.15f * aggressionMod)
         {
             float attackSuccess = Random.value;
             float attackChance = 0.2f + (comp.marketingPower * 0.03f);
@@ -155,19 +161,23 @@ public class CompetitorManager : MonoBehaviour
             {
                 int repLoss = Random.Range(5, 15);
                 economy.AddReputation(-repLoss);
-                // Штрафуем спрос на случайную машину игрока
                 var playerCars = tech.AvailableCars;
                 if (playerCars.Length > 0)
                 {
                     string carName = playerCars[Random.Range(0, playerCars.Length)].carName;
-                    float penalty = Random.Range(0.7f, 0.9f); // -10..-30%
+                    float penalty = Random.Range(0.7f, 0.9f);
                     float duration = Random.Range(8f, 15f);
                     demand.ApplyDemandPenalty(carName, penalty, duration);
-                    ui.ShowNotification($"{comp.companyName} атакует! Спрос на {carName} упал на {(1f - penalty) * 100:F0}% на {duration:F0} сек.");
+                    string desc = $"Спрос на {carName} упал на {(1f - penalty) * 100:F0}% на {duration:F0} сек.";
+                    ui.ShowNotification($"{comp.companyName} атакует! {desc} Репутация -{repLoss}");
+                    // ---- ЛОГИРУЕМ ----
+                    logManager.AddLog(comp.companyName, "Маркетинговая атака", true, desc);
                 }
                 else
                 {
-                    ui.ShowNotification($"{comp.companyName} провёл маркетинговую атаку! Ваша репутация -{repLoss}");
+                    string desc = $"Репутация -{repLoss}";
+                    ui.ShowNotification($"{comp.companyName} провёл маркетинговую атаку! {desc}");
+                    logManager.AddLog(comp.companyName, "Маркетинговая атака", true, desc);
                 }
             }
             comp.money -= 80;
@@ -175,7 +185,7 @@ public class CompetitorManager : MonoBehaviour
         }
 
         // 6. Чёрный PR
-        if (!comp.isAlly && comp.money > 300 && actionChance < 0.08f)
+        if (!comp.isAlly && comp.money > 300 && actionChance < 0.08f * aggressionMod)
         {
             float prSuccess = Random.value;
             float prChance = 0.1f + (comp.marketingPower * 0.02f);
@@ -183,19 +193,22 @@ public class CompetitorManager : MonoBehaviour
             {
                 int repLoss = Random.Range(15, 30);
                 economy.AddReputation(-repLoss);
-                // Штрафуем спрос на случайную машину (сильнее)
                 var playerCars = tech.AvailableCars;
                 if (playerCars.Length > 0)
                 {
                     string carName = playerCars[Random.Range(0, playerCars.Length)].carName;
-                    float penalty = Random.Range(0.6f, 0.8f); // -20..-40%
+                    float penalty = Random.Range(0.6f, 0.8f);
                     float duration = Random.Range(10f, 18f);
                     demand.ApplyDemandPenalty(carName, penalty, duration);
-                    ui.ShowNotification($"{comp.companyName} запустил чёрный PR! Спрос на {carName} упал на {(1f - penalty) * 100:F0}% на {duration:F0} сек. Репутация -{repLoss}");
+                    string desc = $"Спрос на {carName} упал на {(1f - penalty) * 100:F0}% на {duration:F0} сек.";
+                    ui.ShowNotification($"{comp.companyName} запустил чёрный PR! {desc} Репутация -{repLoss}");
+                    logManager.AddLog(comp.companyName, "Чёрный PR", true, desc);
                 }
                 else
                 {
-                    ui.ShowNotification($"{comp.companyName} запустил чёрный PR! Ваша репутация -{repLoss}");
+                    string desc = $"Репутация -{repLoss}";
+                    ui.ShowNotification($"{comp.companyName} запустил чёрный PR! {desc}");
+                    logManager.AddLog(comp.companyName, "Чёрный PR", true, desc);
                 }
             }
             comp.money -= 150;
@@ -203,7 +216,7 @@ public class CompetitorManager : MonoBehaviour
         }
 
         // 7. Кража технологии у игрока
-        if (!comp.isAlly && comp.researchLevel > 2 && comp.money > 200 && actionChance < 0.10f)
+        if (!comp.isAlly && comp.researchLevel > 2 && comp.money > 200 && actionChance < 0.10f * aggressionMod)
         {
             List<string> playerTechs = new List<string>();
             foreach (var t in tech.Technologies)
@@ -218,7 +231,9 @@ public class CompetitorManager : MonoBehaviour
                     if (!comp.researchedTechs.Contains(stolenTech))
                         comp.researchedTechs.Add(stolenTech);
                     comp.researchLevel++;
+                    string desc = $"Украдена технология {stolenTech}";
                     ui.ShowNotification($"{comp.companyName} украл технологию {stolenTech}!");
+                    logManager.AddLog(comp.companyName, "Кража технологии", true, desc);
                 }
                 comp.money -= 100;
                 return;
@@ -226,28 +241,24 @@ public class CompetitorManager : MonoBehaviour
         }
 
         // 8. Переманивание инженера у игрока
-        if (!comp.isAlly && comp.money > 100 && economy.EngineerCount > 0 && actionChance < 0.12f)
+        if (!comp.isAlly && comp.money > 100 && economy.EngineerCount > 0 && actionChance < 0.12f * aggressionMod)
         {
             float poachSuccess = Random.value;
             float poachChance = 0.15f + (comp.marketingPower * 0.02f);
             if (poachSuccess < poachChance)
             {
-                // Уменьшаем инженеров у игрока
-                // Придётся использовать рефлексию или добавить метод в EconomyManager
-                // Добавим метод LoseEngineer в EconomyManager (см. ниже)
-                // Пока просто вызовем через рефлексию, но лучше добавить публичный метод
-                // Временно используем прямой доступ к полю (если нет метода)
-                // Вместо этого вызовем новый метод
-                CarCompanyManager.Instance.EconomyManager.LoseEngineer(); // нужно добавить
+                economy.LoseEngineer();
                 comp.engineers++;
+                string desc = $"Переманен 1 инженер";
                 ui.ShowNotification($"{comp.companyName} переманил одного из ваших инженеров!");
+                logManager.AddLog(comp.companyName, "Переманивание инженера", true, desc);
             }
             comp.money -= 50;
             return;
         }
     }
 
-    // ---- Действия игрока ----
+    // ---- Действия игрока (оставляем без изменений, они не логируются в журнал конкурентов) ----
     public void PerformMarketingAttack(Competitor target)
     {
         if (target == null || target.isAlly) { ui.ShowNotification("Нельзя атаковать союзника!"); return; }
@@ -312,7 +323,7 @@ public class CompetitorManager : MonoBehaviour
         if (Random.value < chance)
         {
             target.isAlly = true;
-            economy.AddPassiveIncome(economy.PassiveIncome * 0.2f); // +20% к доходу
+            economy.AddPassiveIncome(economy.PassiveIncome * 0.2f);
             target.money *= 1.1f;
             ui.ShowNotification($"Союз с {target.companyName} заключён! Доход увеличен на 20%.");
         }
@@ -325,7 +336,7 @@ public class CompetitorManager : MonoBehaviour
     {
         if (target == null || !target.isAlly) { ui.ShowNotification("Нет союза для разрыва."); return; }
         target.isAlly = false;
-        economy.AddPassiveIncome(-economy.PassiveIncome * 0.2f); // убираем бонус
+        economy.AddPassiveIncome(-economy.PassiveIncome * 0.2f);
         ui.ShowNotification($"Союз с {target.companyName} разорван.");
         ui.UpdateMoneyLabels();
         RefreshCompetitorsList();
@@ -383,9 +394,7 @@ public class CompetitorManager : MonoBehaviour
         if (success < chance)
         {
             target.engineers--;
-            // Добавляем инженера игроку
-            // Нужен метод в EconomyManager, например, AddEngineer()
-            economy.AddEngineer(); // добавим
+            economy.AddEngineer();
             ui.ShowNotification($"Инженер переманен у {target.companyName}! Теперь у вас {economy.EngineerCount} инженеров.");
         }
         else
@@ -402,13 +411,11 @@ public class CompetitorManager : MonoBehaviour
         RefreshCompetitorsList();
     }
 
-    // ---- Обновление списка ----
     public void RefreshCompetitorsList()
     {
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
     }
 
-    // ---- Сброс ----
     public void ResetCompetitors()
     {
         foreach (var comp in competitors)

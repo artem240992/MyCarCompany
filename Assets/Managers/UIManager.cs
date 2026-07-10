@@ -20,9 +20,10 @@ public class UIManager : MonoBehaviour
     // ---- Лейблы для дополнительной информации ----
     private Label dateLabel;
     private Label inflationLabel;
-    private Label reputationLabel;   // лейбл для рейтинга
+    private Label reputationLabel;
     private Label seasonLabel;
 
+    // ---- Окна и элементы ----
     private VisualElement carsOverlay;
     private VisualElement carsContainer;
     private VisualElement techOverlay;
@@ -30,8 +31,18 @@ public class UIManager : MonoBehaviour
     private VisualElement upgradeOverlay;
     private VisualElement settingsOverlay;
     private VisualElement competitorsOverlay;
-    private VisualElement competitorsContainer;
+    private VisualElement competitorsContent;
     private VisualElement welcomeOverlay;
+
+    // ---- Достижения ----
+    private VisualElement achievementsOverlay;
+    private ScrollView achievementsContainer;
+    private Button closeAchievementsButton;
+
+    // ---- Вкладки конкурентов ----
+    private Button competitorsTabButton;
+    private Button actionLogTabButton;
+    private VisualElement actionLogContent;
 
     private Button hamburgerButton;
     private VisualElement menuContainer;
@@ -88,6 +99,7 @@ public class UIManager : MonoBehaviour
         public Button[] colorButtons;
         public Toggle tintToggle;
         public Label taxRateLabel;
+        public Label modifierLabel;
     }
 
     private string[] tuningParamNames = { "power", "economy", "design", "safety" };
@@ -147,10 +159,18 @@ public class UIManager : MonoBehaviour
         savedDifficultyLabel = root.Q<Label>("SavedDifficultyLabel");
         eventLabel = root.Q<Label>("EventLabel");
 
-        // ---- Получаем лейблы из UXML ----
         dateLabel = root.Q<Label>("DateLabel");
         inflationLabel = root.Q<Label>("InflationLabel");
         seasonLabel = root.Q<Label>("SeasonLabel");
+
+        achievementsOverlay = root.Q<VisualElement>("AchievementsOverlay");
+        achievementsContainer = root.Q<ScrollView>("AchievementsContainer");
+        closeAchievementsButton = root.Q<Button>("CloseAchievementsButton");
+
+        competitorsTabButton = root.Q<Button>("CompetitorsTabButton");
+        actionLogTabButton = root.Q<Button>("ActionLogTabButton");
+        competitorsContent = root.Q<VisualElement>("CompetitorsContent");
+        actionLogContent = root.Q<VisualElement>("ActionLogContent");
 
         hamburgerButton = root.Q<Button>("HamburgerButton");
         menuContainer = root.Q<VisualElement>("MenuContainer");
@@ -161,7 +181,6 @@ public class UIManager : MonoBehaviour
         upgradeOverlay = root.Q<VisualElement>("UpgradeOverlay");
         settingsOverlay = root.Q<VisualElement>("SettingsOverlay");
         competitorsOverlay = root.Q<VisualElement>("CompetitorsOverlay");
-        competitorsContainer = root.Q<VisualElement>("CompetitorsContainer");
         welcomeOverlay = root.Q<VisualElement>("WelcomeOverlay");
         countLabel = root.Q<Label>("CountLabel");
         decreaseCountBtn = root.Q<Button>("DecreaseCountButton");
@@ -171,6 +190,13 @@ public class UIManager : MonoBehaviour
         engineerCountLabel = root.Q<Label>("EngineerCountLabel");
         buyConveyorButton = root.Q<Button>("BuyConveyorButton");
         hireEngineerButton = root.Q<Button>("HireEngineerButton");
+
+        if (achievementsOverlay != null)
+            achievementsOverlay.style.display = DisplayStyle.None;
+        if (actionLogContent != null)
+            actionLogContent.style.display = DisplayStyle.None;
+        if (competitorsContent != null)
+            competitorsContent.style.display = DisplayStyle.Flex;
 
         if (savedDifficultyLabel != null)
             savedDifficultyLabel.AddToClassList("difficulty-display");
@@ -183,6 +209,7 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenUpgradeButton", OpenUpgradeWindow);
         SubscribeButton("OpenSettingsButton", OpenSettingsWindow);
         SubscribeButton("OpenCompetitorsButton", OpenCompetitorsWindow);
+        SubscribeButton("OpenAchievementsButton", OpenAchievementsWindow);
         SubscribeButton("CloseCarsButton", CloseCarsWindow);
         SubscribeButton("CloseTechButton", CloseTechWindow);
         SubscribeButton("CloseUpgradeButton", CloseUpgradeWindow);
@@ -207,6 +234,14 @@ public class UIManager : MonoBehaviour
         SubscribeButton("WelcomeNormalButton", () => { SetDifficulty(Difficulty.Normal); CloseWelcomeScreen(); });
         SubscribeButton("WelcomeHardButton", () => { SetDifficulty(Difficulty.Hard); CloseWelcomeScreen(); });
 
+        if (competitorsTabButton != null)
+            competitorsTabButton.clicked += () => SwitchCompetitorTab(true);
+        if (actionLogTabButton != null)
+            actionLogTabButton.clicked += () => SwitchCompetitorTab(false);
+
+        if (closeAchievementsButton != null)
+            closeAchievementsButton.clicked += CloseAchievementsWindow;
+
         if (buyConveyorButton != null) buyConveyorButton.clicked += economy.BuyConveyorUpgrade;
         if (hireEngineerButton != null) hireEngineerButton.clicked += economy.HireEngineer;
         if (decreaseCountBtn != null) decreaseCountBtn.clicked += production.DecreaseCount;
@@ -221,7 +256,6 @@ public class UIManager : MonoBehaviour
         currentDifficulty = (Difficulty)saved;
         UpdateDifficultyDisplay();
 
-        // ---- Подписка на смену дня ----
         if (GameTimeManager.Instance != null)
         {
             GameTimeManager.Instance.OnMonthChanged += UpdateDateTimeDisplay;
@@ -238,6 +272,244 @@ public class UIManager : MonoBehaviour
         var btn = root.Q<Button>(name);
         if (btn != null) btn.clicked += () => action?.Invoke();
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
+    }
+
+    private void SwitchCompetitorTab(bool showCompetitors)
+    {
+        if (competitorsContent != null)
+            competitorsContent.style.display = showCompetitors ? DisplayStyle.Flex : DisplayStyle.None;
+        if (actionLogContent != null)
+            actionLogContent.style.display = showCompetitors ? DisplayStyle.None : DisplayStyle.Flex;
+
+        if (showCompetitors)
+        {
+            competitor.RefreshCompetitorsList();
+        }
+        else
+        {
+            RefreshActionLogs();
+        }
+    }
+
+    private void OpenAchievementsWindow()
+    {
+        HideAllOverlays();
+        if (achievementsOverlay != null)
+        {
+            achievementsOverlay.style.display = DisplayStyle.Flex;
+            AnimateWindowOpen(achievementsOverlay);
+            RefreshAchievements();
+        }
+    }
+
+    private void CloseAchievementsWindow()
+    {
+        if (achievementsOverlay != null)
+            AnimateWindowClose(achievementsOverlay, () => achievementsOverlay.style.display = DisplayStyle.None);
+    }
+
+    private void RefreshAchievements()
+    {
+        if (achievementsContainer == null) return;
+        achievementsContainer.Clear();
+
+        var manager = CarCompanyManager.Instance.AchievementManager;
+        if (manager == null)
+        {
+            achievementsContainer.Add(new Label("Менеджер достижений не найден."));
+            return;
+        }
+
+        var allAchievements = manager.GetAllAchievements();
+        if (allAchievements == null || allAchievements.Length == 0)
+        {
+            achievementsContainer.Add(new Label("Нет доступных достижений."));
+            return;
+        }
+
+        foreach (var ach in allAchievements)
+        {
+            var progress = manager.GetProgress(ach.achievementId);
+            if (progress == null) continue;
+
+            VisualElement card = new VisualElement();
+            card.style.backgroundColor = progress.isUnlocked
+                ? new StyleColor(new Color(0.15f, 0.35f, 0.15f, 0.9f))
+                : new StyleColor(new Color(0.25f, 0.25f, 0.25f, 0.9f));
+            card.style.paddingTop = 12;
+            card.style.paddingBottom = 12;
+            card.style.paddingLeft = 8;
+            card.style.paddingRight = 8;
+            card.style.marginBottom = 8;
+            card.style.borderTopLeftRadius = 8;
+            card.style.borderTopRightRadius = 8;
+            card.style.borderBottomLeftRadius = 8;
+            card.style.borderBottomRightRadius = 8;
+            card.style.alignItems = Align.Center;
+            card.style.flexDirection = FlexDirection.Column;
+
+            if (ach.hiddenUntilUnlocked && !progress.isUnlocked)
+            {
+                VisualElement placeholder = new VisualElement();
+                placeholder.style.width = 64;
+                placeholder.style.height = 64;
+                placeholder.style.backgroundColor = new StyleColor(Color.gray);
+                placeholder.style.borderTopLeftRadius = 8;
+                placeholder.style.borderTopRightRadius = 8;
+                placeholder.style.borderBottomLeftRadius = 8;
+                placeholder.style.borderBottomRightRadius = 8;
+                card.Add(placeholder);
+
+                Label secretLabel = new Label("???");
+                secretLabel.style.fontSize = 18;
+                secretLabel.style.color = Color.white;
+                secretLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                secretLabel.style.marginTop = 8;
+                card.Add(secretLabel);
+
+                Label secretDesc = new Label("Секретное достижение");
+                secretDesc.style.fontSize = 12;
+                secretDesc.style.color = new Color(0.7f, 0.7f, 0.7f);
+                secretDesc.style.marginTop = 4;
+                card.Add(secretDesc);
+            }
+            else
+            {
+                if (ach.icon != null)
+                {
+                    Image icon = new Image();
+                    icon.sprite = ach.icon;
+                    icon.style.width = 64;
+                    icon.style.height = 64;
+                    icon.style.marginBottom = 8;
+                    card.Add(icon);
+                }
+                else
+                {
+                    VisualElement placeholder = new VisualElement();
+                    placeholder.style.width = 64;
+                    placeholder.style.height = 64;
+                    placeholder.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+                    placeholder.style.borderTopLeftRadius = 8;
+                    placeholder.style.borderTopRightRadius = 8;
+                    placeholder.style.borderBottomLeftRadius = 8;
+                    placeholder.style.borderBottomRightRadius = 8;
+                    placeholder.style.marginBottom = 8;
+                    card.Add(placeholder);
+                }
+
+                Label titleLabel = new Label(ach.title);
+                titleLabel.style.fontSize = 16;
+                titleLabel.style.color = progress.isUnlocked ? Color.green : Color.white;
+                titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                titleLabel.style.marginBottom = 2;
+                titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                card.Add(titleLabel);
+
+                Label descLabel = new Label(ach.description);
+                descLabel.style.fontSize = 12;
+                descLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+                descLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                descLabel.style.marginBottom = 6;
+                card.Add(descLabel);
+
+                if (!progress.isUnlocked)
+                {
+                    Label progressLabel = new Label($"Прогресс: {progress.currentValue} / {ach.targetValue}");
+                    progressLabel.style.fontSize = 12;
+                    progressLabel.style.color = new Color(0.9f, 0.9f, 0.2f);
+                    progressLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    card.Add(progressLabel);
+                }
+                else
+                {
+                    Label unlockedLabel = new Label("✅ Получено!");
+                    unlockedLabel.style.fontSize = 14;
+                    unlockedLabel.style.color = Color.green;
+                    unlockedLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                    unlockedLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    card.Add(unlockedLabel);
+                }
+            }
+
+            achievementsContainer.Add(card);
+        }
+    }
+
+    private void RefreshActionLogs()
+    {
+        if (actionLogContent == null) return;
+        actionLogContent.Clear();
+
+        var logManager = CarCompanyManager.Instance.ActionLogManager;
+        if (logManager == null)
+        {
+            actionLogContent.Add(new Label("Менеджер логов не найден."));
+            return;
+        }
+
+        var logs = logManager.GetLogsForCurrentYear();
+        if (logs.Count == 0)
+        {
+            actionLogContent.Add(new Label("За текущий год не было действий конкурентов."));
+            return;
+        }
+
+        var headerRow = new VisualElement();
+        headerRow.style.flexDirection = FlexDirection.Row;
+        headerRow.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+        headerRow.style.paddingTop = 4;
+        headerRow.style.paddingBottom = 4;
+        headerRow.style.paddingLeft = 4;
+        headerRow.style.paddingRight = 4;
+        headerRow.style.marginBottom = 4;
+        headerRow.style.borderBottomWidth = 1;
+        headerRow.style.borderBottomColor = new StyleColor(Color.gray);
+
+        string[] headers = { "Месяц", "Компания", "Действие", "Результат" };
+        float[] widths = { 50, 100, 120, 1f };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            Label lbl = new Label(headers[i]);
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            if (i < headers.Length - 1)
+                lbl.style.width = widths[i];
+            else
+                lbl.style.flexGrow = 1;
+            headerRow.Add(lbl);
+        }
+        actionLogContent.Add(headerRow);
+
+        foreach (var entry in logs)
+        {
+            VisualElement row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.marginBottom = 2;
+            row.style.paddingTop = 4;
+            row.style.paddingBottom = 4;
+            row.style.paddingLeft = 4;
+            row.style.paddingRight = 4;
+            row.style.backgroundColor = entry.success ? new StyleColor(new Color(0.2f, 0.3f, 0.2f)) : new StyleColor(new Color(0.3f, 0.2f, 0.2f));
+
+            Label dateLabel = new Label($"{entry.gameMonth:D2}/{entry.gameYear}");
+            dateLabel.style.width = 50;
+            row.Add(dateLabel);
+
+            Label compLabel = new Label(entry.competitorName);
+            compLabel.style.width = 100;
+            row.Add(compLabel);
+
+            Label actionLabel = new Label(entry.actionType);
+            actionLabel.style.width = 120;
+            row.Add(actionLabel);
+
+            Label resultLabel = new Label(entry.resultDescription);
+            resultLabel.style.flexGrow = 1;
+            row.Add(resultLabel);
+
+            actionLogContent.Add(row);
+        }
     }
 
     public void ShowWelcomeScreen()
@@ -329,7 +601,6 @@ public class UIManager : MonoBehaviour
         }).ExecuteLater(3000);
     }
 
-    // ---- ОБНОВЛЕНИЕ ДАТЫ, ИНФЛЯЦИИ, СЕЗОНА ----
     public void UpdateDateTimeDisplay()
     {
         if (dateLabel != null && GameTimeManager.Instance != null)
@@ -340,42 +611,38 @@ public class UIManager : MonoBehaviour
 
         if (seasonLabel != null && economy != null)
             seasonLabel.text = $"Сезон: {economy.GetSeasonalDemandModifier():F2}x";
-        // ---- ОБНОВЛЯЕМ КНОПКИ ТЕХНОЛОГИЙ (чтобы пересчитать цену и дату) ----
+
         RefreshTechButtons();
         UpdateReputationLabel();
     }
 
-
-
-    /// <summary>
-/// Возвращает строку с информацией о цене технологии, штрафе и дате доступности без штрафа.
-/// </summary>
- private string GetTechPriceInfo(Technology tech)
-{
-    if (tech == null) return "";
-    if (tech.isResearched) return " (Изучено)";
-
-    int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
-    int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
-    bool available = tech.IsAvailable(currentYear, currentMonth);
-
-    int baseCost = Mathf.RoundToInt(tech.researchCost * economy.TechCostMultiplier);
-    int actualCost = baseCost;
-    string penaltyInfo = "";
-
-    if (!available)
+    private string GetTechPriceInfo(Technology tech)
     {
-        actualCost = Mathf.RoundToInt(baseCost * 2f);
-        string dateStr = $"{tech.availableMonth:D2}/{tech.availableYear}";
-        penaltyInfo = $"\n(Штраф +100%, доступно без штрафа: {dateStr})";
-    }
-    else
-    {
-        penaltyInfo = "\n(без штрафа)";
+        if (tech == null) return "";
+        if (tech.isResearched) return " (Изучено)";
+
+        int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
+        int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
+        bool available = tech.IsAvailable(currentYear, currentMonth);
+
+        int baseCost = Mathf.RoundToInt(tech.researchCost * economy.TechCostMultiplier);
+        int actualCost = baseCost;
+        string penaltyInfo = "";
+
+        if (!available)
+        {
+            actualCost = Mathf.RoundToInt(baseCost * 2f);
+            string dateStr = $"{tech.availableMonth:D2}/{tech.availableYear}";
+            penaltyInfo = $"\n(Штраф +100%, доступно без штрафа: {dateStr})";
+        }
+        else
+        {
+            penaltyInfo = "\n(без штрафа)";
+        }
+
+        return $"\nЦена: ${actualCost} (базовая ${baseCost}){penaltyInfo}";
     }
 
-    return $"\nЦена: ${actualCost} (базовая ${baseCost}){penaltyInfo}";
-}
     // ============================== КАРТОЧКИ МАШИН ==============================
 
     public void CreateCarCards(CarBlueprint[] availableCars)
@@ -384,9 +651,17 @@ public class UIManager : MonoBehaviour
         carsContainer.Clear();
         carCards.Clear();
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
+
         foreach (CarBlueprint car in availableCars)
         {
             if (car == null) continue;
+
+            bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
+            bool canUpgrade = !hasHigherLevel
+                              && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
+                                  && car.currentLevel < car.levelPrefabs.Length - 1)
+                              && upgradeUnlocked;
+
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
             card.style.backgroundColor = new StyleColor(new Color(0.25f, 0.25f, 0.25f));
@@ -429,6 +704,7 @@ public class UIManager : MonoBehaviour
             VisualElement textContainer = new VisualElement();
             textContainer.style.flexDirection = FlexDirection.Column;
             textContainer.style.flexGrow = 1;
+
             Label nameLabel = new Label(car.GetDisplayName());
             nameLabel.style.fontSize = 15;
             nameLabel.style.color = Color.white;
@@ -449,17 +725,24 @@ public class UIManager : MonoBehaviour
             Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
             demandLabel.style.fontSize = 11;
             demandLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+
             Label levelLabel = new Label($"Уровень: {car.currentLevel + 1}");
             levelLabel.style.fontSize = 11;
             levelLabel.style.color = new Color(0.6f, 0.8f, 1f);
+
             Label trendLabel = new Label("тренд: ...");
             trendLabel.style.fontSize = 10;
             trendLabel.style.color = Color.gray;
 
-            // ---- Налог ----
             Label taxRateLabel = new Label($"Налог: {economy.GetTaxRate(car):P0}");
             taxRateLabel.style.fontSize = 10;
             taxRateLabel.style.color = new Color(0.9f, 0.5f, 0.2f);
+
+            Label modifierLabel = new Label();
+            modifierLabel.style.fontSize = 10;
+            modifierLabel.style.color = new Color(1f, 0.8f, 0.2f);
+            modifierLabel.style.marginTop = 2;
+            modifierLabel.style.display = DisplayStyle.None;
 
             textContainer.Add(nameLabel);
             textContainer.Add(detailsLabel);
@@ -468,22 +751,22 @@ public class UIManager : MonoBehaviour
             textContainer.Add(levelLabel);
             textContainer.Add(trendLabel);
             textContainer.Add(taxRateLabel);
+            textContainer.Add(modifierLabel);
             topRow.Add(textContainer);
 
             Button upgradeButton = new Button();
-            upgradeButton.text = "Улучшить";
+            upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             upgradeButton.style.width = 70;
             upgradeButton.style.height = 26;
             upgradeButton.style.marginLeft = 8;
             upgradeButton.style.alignSelf = Align.Center;
-            bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
             upgradeButton.SetEnabled(canUpgrade);
             CarBlueprint localCar = car;
             upgradeButton.clicked += () => tech.UpgradeCar(localCar);
             topRow.Add(upgradeButton);
+
             card.Add(topRow);
 
-            // ---- ТЮНИНГ ----
             VisualElement tuningPanel = new VisualElement();
             tuningPanel.style.flexDirection = FlexDirection.Column;
             tuningPanel.style.marginTop = 3;
@@ -507,6 +790,7 @@ public class UIManager : MonoBehaviour
             cardData.levelLabel = levelLabel;
             cardData.upgradeButton = upgradeButton;
             cardData.taxRateLabel = taxRateLabel;
+            cardData.modifierLabel = modifierLabel;
 
             for (int i = 0; i < tuningParamNames.Length; i++)
             {
@@ -601,7 +885,6 @@ public class UIManager : MonoBehaviour
 
             card.Add(tuningPanel);
 
-            // ---- ПАНЕЛЬ ВЫБОРА ЦВЕТА ----
             VisualElement colorPanel = new VisualElement();
             colorPanel.style.flexDirection = FlexDirection.Row;
             colorPanel.style.alignItems = Align.Center;
@@ -653,7 +936,6 @@ public class UIManager : MonoBehaviour
 
             card.Add(colorPanel);
 
-            // ---- ГРАФИК ----
             VisualElement graphContainer = new VisualElement();
             graphContainer.style.width = new Length(100, LengthUnit.Percent);
             graphContainer.style.height = new Length(40, LengthUnit.Pixel);
@@ -667,8 +949,8 @@ public class UIManager : MonoBehaviour
             card.RegisterCallback<ClickEvent>(evt => production.ProduceSpecificCar(localCarForProduction));
             carsContainer.Add(card);
         }
-        UpdateCarCards();
 
+        UpdateCarCards();
         foreach (var cardData in carCards)
         {
             int selectedIndex = Array.IndexOf(carColors, cardData.car.bodyColor);
@@ -679,6 +961,7 @@ public class UIManager : MonoBehaviour
     public void UpdateCarCards()
     {
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
+
         foreach (var cardData in carCards)
         {
             if (cardData.car == null) continue;
@@ -692,11 +975,12 @@ public class UIManager : MonoBehaviour
                 cardData.profitLabel.text = $"Прибыль: {profit:F0}";
                 cardData.profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             }
-            float demand = car.demandMultiplier;
+
+            float demandValue = car.demandMultiplier;
             if (cardData.demandLabel != null)
             {
-                cardData.demandLabel.text = $"Спрос: {demand:F1}x";
-                cardData.demandLabel.style.color = demand > 1.2f ? Color.green : (demand < 0.8f ? Color.red : Color.yellow);
+                cardData.demandLabel.text = $"Спрос: {demandValue:F1}x";
+                cardData.demandLabel.style.color = demandValue > 1.2f ? Color.green : (demandValue < 0.8f ? Color.red : Color.yellow);
             }
 
             if (cardData.levelLabel != null)
@@ -711,12 +995,16 @@ public class UIManager : MonoBehaviour
 
             if (cardData.upgradeButton != null)
             {
-                bool canUpgrade = (car.levelPrefabs != null && car.levelPrefabs.Length > 0 && car.currentLevel < car.levelPrefabs.Length - 1) && upgradeUnlocked;
+                bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
+                bool canUpgrade = !hasHigherLevel
+                                  && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
+                                      && car.currentLevel < car.levelPrefabs.Length - 1)
+                                  && upgradeUnlocked;
+
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             }
 
-            // ---- Налог ----
             if (cardData.taxRateLabel != null)
                 cardData.taxRateLabel.text = $"Налог: {economy.GetTaxRate(car):P0}";
 
@@ -732,6 +1020,41 @@ public class UIManager : MonoBehaviour
             {
                 int selectedIndex = Array.IndexOf(carColors, car.bodyColor);
                 UpdateColorButtons(cardData, selectedIndex);
+            }
+
+            // ---- ОБНОВЛЕНИЕ МОДИФИКАТОРОВ (исправлено) ----
+            if (cardData.modifierLabel != null)
+            {
+                string modText = "";
+                bool hasMod = false;
+
+                // Штраф от конкурентов (через DemandManager)
+                float penalty = 0f; // инициализация обязательна
+                if (demand.demandPenalties != null && demand.demandPenalties.TryGetValue(car.carName, out penalty))
+                {
+                    modText += $"⚔️ Спрос -{(1f - penalty) * 100:F0}% ";
+                    hasMod = true;
+                }
+
+                // Ценовой модификатор от событий
+                if (economy.TemporaryPriceModifier != 1f)
+                {
+                    float change = (economy.TemporaryPriceModifier - 1f) * 100f;
+                    string sign = change > 0 ? "+" : "";
+                    modText += $"📊 Цена {sign}{change:F0}% ";
+                    hasMod = true;
+                }
+
+                if (hasMod)
+                {
+                    cardData.modifierLabel.text = modText;
+                    cardData.modifierLabel.style.display = DisplayStyle.Flex;
+                }
+                else
+                {
+                    cardData.modifierLabel.text = "";
+                    cardData.modifierLabel.style.display = DisplayStyle.None;
+                }
             }
         }
     }
@@ -806,7 +1129,11 @@ public class UIManager : MonoBehaviour
 
     public void RefreshCompetitorsList(List<Competitor> competitors, int playerReputation)
     {
-        if (competitorsContainer == null) return;
+        if (competitorsContent == null)
+        {
+            Debug.LogWarning("RefreshCompetitorsList: competitorsContent is null");
+            return;
+        }
 
         foreach (var row in competitorActionRows)
         {
@@ -816,14 +1143,24 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        competitorsContainer.Clear();
+        competitorsContent.Clear();
         competitorActionRows.Clear();
 
         Label playerRepLabel = new Label($"Ваша репутация: {playerReputation}");
         playerRepLabel.style.color = Color.white;
         playerRepLabel.style.fontSize = 14;
         playerRepLabel.style.marginBottom = 10;
-        competitorsContainer.Add(playerRepLabel);
+        competitorsContent.Add(playerRepLabel);
+
+        if (competitors == null || competitors.Count == 0)
+        {
+            Label empty = new Label("Нет конкурентов");
+            empty.style.color = Color.white;
+            empty.style.alignSelf = Align.Center;
+            empty.style.marginTop = 20;
+            competitorsContent.Add(empty);
+            return;
+        }
 
         var header = new VisualElement();
         header.style.flexDirection = FlexDirection.Row;
@@ -850,7 +1187,7 @@ public class UIManager : MonoBehaviour
             lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
             header.Add(lbl);
         }
-        competitorsContainer.Add(header);
+        competitorsContent.Add(header);
 
         List<string> actionOptions = new List<string>
         {
@@ -910,7 +1247,7 @@ public class UIManager : MonoBehaviour
             actionContainer.Add(actionDropdown);
             row.Add(actionContainer);
 
-            competitorsContainer.Add(row);
+            competitorsContent.Add(row);
             competitorActionRows.Add((comp, actionDropdown));
         }
 
@@ -925,15 +1262,6 @@ public class UIManager : MonoBehaviour
                         row.dropdown.index = savedIndex;
                 }
             }
-        }
-
-        if (competitors.Count == 0)
-        {
-            Label empty = new Label("Нет конкурентов");
-            empty.style.color = Color.white;
-            empty.style.alignSelf = Align.Center;
-            empty.style.marginTop = 20;
-            competitorsContainer.Add(empty);
         }
     }
 
@@ -965,127 +1293,126 @@ public class UIManager : MonoBehaviour
     // ========== ТЕХНОЛОГИИ ==========
 
     public void CreateTechTree(List<Technology> technologies, float techCostMultiplier)
-{
-    if (techScrollView == null)
     {
-        Debug.LogError("techScrollView == null! Проверьте, что в UXML есть элемент с name='TechContainer'");
-        return;
-    }
-    techScrollView.Clear();
-
-    if (technologies == null || technologies.Count == 0)
-    {
-        Label emptyLabel = new Label("Нет доступных технологий");
-        emptyLabel.style.color = Color.white;
-        techScrollView.Add(emptyLabel);
-        return;
-    }
-
-    // ---- ОБЪЯВЛЯЕМ КОНСТАНТЫ ПЕРЕД ИХ ИСПОЛЬЗОВАНИЕМ ----
-    const float nodeWidth = 280, nodeHeight = 130, horizontalGap = 120, verticalGap = 80;
-
-    Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
-    foreach (var tech in technologies) if (tech != null) techLevels[tech] = CalculateTechLevel(tech, technologies);
-    if (techLevels.Count == 0) return;
-
-    int maxLevel = techLevels.Values.Max();
-    Dictionary<int, List<Technology>> levelGroups = new Dictionary<int, List<Technology>>();
-    for (int i = 0; i <= maxLevel; i++) levelGroups[i] = new List<Technology>();
-    foreach (var kvp in techLevels) levelGroups[kvp.Value].Add(kvp.Key);
-
-    int totalWidth = (maxLevel + 1) * (int)(nodeWidth + horizontalGap) + 50;
-    int totalHeight = Mathf.Max(800, technologies.Count * (int)(nodeHeight + verticalGap) + 100);
-    techGraphRoot = new VisualElement();
-    techGraphRoot.style.width = new Length(totalWidth, LengthUnit.Pixel);
-    techGraphRoot.style.height = new Length(totalHeight, LengthUnit.Pixel);
-    techGraphRoot.style.position = Position.Relative;
-    techScrollView.Add(techGraphRoot);
-
-    Dictionary<Technology, TechNode> nodeMap = new Dictionary<Technology, TechNode>();
-    List<TechNode> techNodes = new List<TechNode>();
-
-    foreach (var tech in technologies)
-    {
-        if (tech == null) continue;
-        TechNode node = new TechNode();
-        node.tech = tech;
-        node.element = CreateTechNodeElement(tech, techCostMultiplier);
-        nodeMap[tech] = node;
-        techNodes.Add(node);
-    }
-
-    foreach (var tech in technologies)
-    {
-        if (tech == null) continue;
-        TechNode childNode = nodeMap[tech];
-        if (tech.requiredTechNames != null)
+        if (techScrollView == null)
         {
-            foreach (string parentName in tech.requiredTechNames)
+            Debug.LogError("techScrollView == null! Проверьте, что в UXML есть элемент с name='TechContainer'");
+            return;
+        }
+        techScrollView.Clear();
+
+        if (technologies == null || technologies.Count == 0)
+        {
+            Label emptyLabel = new Label("Нет доступных технологий");
+            emptyLabel.style.color = Color.white;
+            techScrollView.Add(emptyLabel);
+            return;
+        }
+
+        const float nodeWidth = 280, nodeHeight = 130, horizontalGap = 120, verticalGap = 80;
+
+        Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
+        foreach (var tech in technologies) if (tech != null) techLevels[tech] = CalculateTechLevel(tech, technologies);
+        if (techLevels.Count == 0) return;
+
+        int maxLevel = techLevels.Values.Max();
+        Dictionary<int, List<Technology>> levelGroups = new Dictionary<int, List<Technology>>();
+        for (int i = 0; i <= maxLevel; i++) levelGroups[i] = new List<Technology>();
+        foreach (var kvp in techLevels) levelGroups[kvp.Value].Add(kvp.Key);
+
+        int totalWidth = (maxLevel + 1) * (int)(nodeWidth + horizontalGap) + 50;
+        int totalHeight = Mathf.Max(800, technologies.Count * (int)(nodeHeight + verticalGap) + 100);
+        techGraphRoot = new VisualElement();
+        techGraphRoot.style.width = new Length(totalWidth, LengthUnit.Pixel);
+        techGraphRoot.style.height = new Length(totalHeight, LengthUnit.Pixel);
+        techGraphRoot.style.position = Position.Relative;
+        techScrollView.Add(techGraphRoot);
+
+        Dictionary<Technology, TechNode> nodeMap = new Dictionary<Technology, TechNode>();
+        List<TechNode> techNodes = new List<TechNode>();
+
+        foreach (var tech in technologies)
+        {
+            if (tech == null) continue;
+            TechNode node = new TechNode();
+            node.tech = tech;
+            node.element = CreateTechNodeElement(tech, techCostMultiplier);
+            nodeMap[tech] = node;
+            techNodes.Add(node);
+        }
+
+        foreach (var tech in technologies)
+        {
+            if (tech == null) continue;
+            TechNode childNode = nodeMap[tech];
+            if (tech.requiredTechNames != null)
             {
-                Technology parentTech = technologies.FirstOrDefault(t => t != null && t.techName == parentName);
-                if (parentTech != null && nodeMap.ContainsKey(parentTech))
+                foreach (string parentName in tech.requiredTechNames)
                 {
-                    TechNode parentNode = nodeMap[parentTech];
-                    childNode.parents.Add(parentNode);
-                    parentNode.children.Add(childNode);
+                    Technology parentTech = technologies.FirstOrDefault(t => t != null && t.techName == parentName);
+                    if (parentTech != null && nodeMap.ContainsKey(parentTech))
+                    {
+                        TechNode parentNode = nodeMap[parentTech];
+                        childNode.parents.Add(parentNode);
+                        parentNode.children.Add(childNode);
+                    }
                 }
             }
         }
-    }
 
-    float containerHeight = totalHeight;
-    foreach (var kvp in levelGroups)
-    {
-        int level = kvp.Key;
-        var techList = kvp.Value;
-        int count = techList.Count;
-        for (int i = 0; i < count; i++)
+        float containerHeight = totalHeight;
+        foreach (var kvp in levelGroups)
         {
-            Technology tech = techList[i];
-            if (tech == null || !nodeMap.ContainsKey(tech)) continue;
-            TechNode node = nodeMap[tech];
-            float x = level * (nodeWidth + horizontalGap) + 20;
-            float totalNodeHeight = count * (nodeHeight + verticalGap) - verticalGap;
-            float y = (i * (nodeHeight + verticalGap)) + (containerHeight - totalNodeHeight) / 2;
-            if (y < 0) y = 10;
-            node.position = new Vector2(x, y);
-            node.element.style.position = Position.Absolute;
-            node.element.style.left = x;
-            node.element.style.top = y;
-        }
-    }
-
-    VisualElement lineLayer = new VisualElement();
-    lineLayer.style.position = Position.Absolute;
-    lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
-    techGraphRoot.Add(lineLayer);
-    foreach (var node in techNodes) if (node != null && node.element != null) techGraphRoot.Add(node.element);
-
-    lineLayer.generateVisualContent += (meshGenerationContext) =>
-    {
-        var rect = lineLayer.contentRect;
-        if (rect.width < 1 || rect.height < 1) return;
-        var painter = meshGenerationContext.painter2D;
-        painter.lineWidth = 3;
-        painter.strokeColor = Color.white;
-        foreach (var node in techNodes)
-        {
-            if (node == null) continue;
-            foreach (var child in node.children)
+            int level = kvp.Key;
+            var techList = kvp.Value;
+            int count = techList.Count;
+            for (int i = 0; i < count; i++)
             {
-                if (child == null) continue;
-                Vector2 start = node.position + new Vector2(nodeWidth, nodeHeight / 2);
-                Vector2 end = child.position + new Vector2(0, nodeHeight / 2);
-                painter.BeginPath();
-                painter.MoveTo(start);
-                painter.LineTo(end);
-                painter.Stroke();
+                Technology tech = techList[i];
+                if (tech == null || !nodeMap.ContainsKey(tech)) continue;
+                TechNode node = nodeMap[tech];
+                float x = level * (nodeWidth + horizontalGap) + 20;
+                float totalNodeHeight = count * (nodeHeight + verticalGap) - verticalGap;
+                float y = (i * (nodeHeight + verticalGap)) + (containerHeight - totalNodeHeight) / 2;
+                if (y < 0) y = 10;
+                node.position = new Vector2(x, y);
+                node.element.style.position = Position.Absolute;
+                node.element.style.left = x;
+                node.element.style.top = y;
             }
         }
-    };
-    techGraphRoot.RegisterCallback<GeometryChangedEvent>(evt => lineLayer.MarkDirtyRepaint());
-    RefreshTechButtons();
-}
+
+        VisualElement lineLayer = new VisualElement();
+        lineLayer.style.position = Position.Absolute;
+        lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
+        techGraphRoot.Add(lineLayer);
+        foreach (var node in techNodes) if (node != null && node.element != null) techGraphRoot.Add(node.element);
+
+        lineLayer.generateVisualContent += (meshGenerationContext) =>
+        {
+            var rect = lineLayer.contentRect;
+            if (rect.width < 1 || rect.height < 1) return;
+            var painter = meshGenerationContext.painter2D;
+            painter.lineWidth = 3;
+            painter.strokeColor = Color.white;
+            foreach (var node in techNodes)
+            {
+                if (node == null) continue;
+                foreach (var child in node.children)
+                {
+                    if (child == null) continue;
+                    Vector2 start = node.position + new Vector2(nodeWidth, nodeHeight / 2);
+                    Vector2 end = child.position + new Vector2(0, nodeHeight / 2);
+                    painter.BeginPath();
+                    painter.MoveTo(start);
+                    painter.LineTo(end);
+                    painter.Stroke();
+                }
+            }
+        };
+        techGraphRoot.RegisterCallback<GeometryChangedEvent>(evt => lineLayer.MarkDirtyRepaint());
+        RefreshTechButtons();
+    }
 
     public void RefreshTechButtons()
     {
@@ -1102,16 +1429,19 @@ public class UIManager : MonoBehaviour
 
     public void CloseAllWindows()
     {
+        HideAllOverlays();
+        if (menuContainer != null) menuContainer.style.display = DisplayStyle.None;
         CloseCarsWindow();
         CloseTechWindow();
         CloseUpgradeWindow();
         CloseSettingsWindow();
         CloseCompetitorsWindow();
-        if (menuContainer != null) menuContainer.style.display = DisplayStyle.None;
+        CloseAchievementsWindow();
     }
 
     private void OpenCarsWindow()
     {
+        HideAllOverlays();
         if (carsOverlay != null)
         {
             menuContainer.style.display = DisplayStyle.None;
@@ -1130,6 +1460,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenTechWindow()
     {
+        HideAllOverlays();
         if (techOverlay != null)
         {
             menuContainer.style.display = DisplayStyle.None;
@@ -1147,6 +1478,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenUpgradeWindow()
     {
+        HideAllOverlays();
         if (upgradeOverlay != null)
         {
             menuContainer.style.display = DisplayStyle.None;
@@ -1164,6 +1496,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenSettingsWindow()
     {
+        HideAllOverlays();
         if (settingsOverlay != null)
         {
             menuContainer.style.display = DisplayStyle.None;
@@ -1180,12 +1513,14 @@ public class UIManager : MonoBehaviour
 
     private void OpenCompetitorsWindow()
     {
+        HideAllOverlays();
         if (competitorsOverlay != null)
         {
             menuContainer.style.display = DisplayStyle.None;
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(competitorsOverlay);
             competitor.RefreshCompetitorsList();
+            SwitchCompetitorTab(true);
         }
     }
 
@@ -1203,6 +1538,7 @@ public class UIManager : MonoBehaviour
         if (settingsOverlay != null) settingsOverlay.style.display = DisplayStyle.None;
         if (competitorsOverlay != null) competitorsOverlay.style.display = DisplayStyle.None;
         if (welcomeOverlay != null) welcomeOverlay.style.display = DisplayStyle.None;
+        if (achievementsOverlay != null) achievementsOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -1256,95 +1592,95 @@ public class UIManager : MonoBehaviour
     }
 
     private VisualElement CreateTechNodeElement(Technology tech, float techCostMultiplier)
-{
-    VisualElement node = new VisualElement();
-    node.style.width = 280;
-    node.style.height = 130;
-    node.style.backgroundColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
-    node.style.borderTopLeftRadius = 8;
-    node.style.borderTopRightRadius = 8;
-    node.style.borderBottomLeftRadius = 8;
-    node.style.borderBottomRightRadius = 8;
-    node.style.paddingTop = 5;
-    node.style.paddingBottom = 5;
-    node.style.paddingLeft = 5;
-    node.style.paddingRight = 5;
-    node.style.alignItems = Align.Center;
-    node.style.justifyContent = Justify.Center;
-
-    Button btn = new Button();
-    btn.style.width = new Length(100, LengthUnit.Percent);
-    btn.style.height = new Length(100, LengthUnit.Percent);
-    btn.style.whiteSpace = WhiteSpace.Normal;
-    btn.style.unityTextAlign = TextAnchor.MiddleCenter;
-    btn.style.fontSize = 11;
-    btn.userData = tech;
-
-    UpdateTechButtonState(btn, tech);
-
-    btn.clicked += () =>
     {
-        CarCompanyManager.Instance.TechManager.ResearchTechnology(tech);
-    };
+        VisualElement node = new VisualElement();
+        node.style.width = 280;
+        node.style.height = 130;
+        node.style.backgroundColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
+        node.style.borderTopLeftRadius = 8;
+        node.style.borderTopRightRadius = 8;
+        node.style.borderBottomLeftRadius = 8;
+        node.style.borderBottomRightRadius = 8;
+        node.style.paddingTop = 5;
+        node.style.paddingBottom = 5;
+        node.style.paddingLeft = 5;
+        node.style.paddingRight = 5;
+        node.style.alignItems = Align.Center;
+        node.style.justifyContent = Justify.Center;
 
-    node.Add(btn);
-    node.userData = tech;
-    return node;
-}
+        Button btn = new Button();
+        btn.style.width = new Length(100, LengthUnit.Percent);
+        btn.style.height = new Length(100, LengthUnit.Percent);
+        btn.style.whiteSpace = WhiteSpace.Normal;
+        btn.style.unityTextAlign = TextAnchor.MiddleCenter;
+        btn.style.fontSize = 11;
+        btn.userData = tech;
 
-private void UpdateTechButtonState(Button button, Technology tech)
-{
-    if (button == null || tech == null) return;
+        UpdateTechButtonState(btn, tech);
 
-    string baseText = $"{tech.techName}\n{tech.description}";
+        btn.clicked += () =>
+        {
+            CarCompanyManager.Instance.TechManager.ResearchTechnology(tech);
+        };
 
-    if (tech.isResearched)
-    {
-        button.text = $"{tech.techName} (Изучено)";
-        button.SetEnabled(false);
-        button.style.backgroundColor = new StyleColor(Color.gray);
-        button.style.unityFontStyleAndWeight = FontStyle.Normal;
-        return;
+        node.Add(btn);
+        node.userData = tech;
+        return node;
     }
 
-    bool requirementsMet = true;
-    if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
+    private void UpdateTechButtonState(Button button, Technology tech)
     {
-        foreach (string requiredName in tech.requiredTechNames)
+        if (button == null || tech == null) return;
+
+        string baseText = $"{tech.techName}\n{tech.description}";
+
+        if (tech.isResearched)
         {
-            Technology requiredTech = CarCompanyManager.Instance.TechManager.GetTechnologyByName(requiredName);
-            if (requiredTech == null || !requiredTech.isResearched)
+            button.text = $"{tech.techName} (Изучено)";
+            button.SetEnabled(false);
+            button.style.backgroundColor = new StyleColor(Color.gray);
+            button.style.unityFontStyleAndWeight = FontStyle.Normal;
+            return;
+        }
+
+        bool requirementsMet = true;
+        if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
+        {
+            foreach (string requiredName in tech.requiredTechNames)
             {
-                requirementsMet = false;
-                break;
+                Technology requiredTech = CarCompanyManager.Instance.TechManager.GetTechnologyByName(requiredName);
+                if (requiredTech == null || !requiredTech.isResearched)
+                {
+                    requirementsMet = false;
+                    break;
+                }
             }
         }
-    }
 
-    string priceInfo = GetTechPriceInfo(tech);
+        string priceInfo = GetTechPriceInfo(tech);
 
-    if (!requirementsMet)
-    {
-        button.SetEnabled(false);
-        button.style.backgroundColor = new StyleColor(Color.red);
-        button.text = $"{baseText}\n(Требования не выполнены){priceInfo}";
-        button.style.unityFontStyleAndWeight = FontStyle.Bold;
-    }
-    else
-    {
-        button.SetEnabled(true);
-        button.style.backgroundColor = new StyleColor(Color.green);
-        button.text = $"{baseText}{priceInfo}";
-        button.style.unityFontStyleAndWeight = FontStyle.Bold;
-    }
+        if (!requirementsMet)
+        {
+            button.SetEnabled(false);
+            button.style.backgroundColor = new StyleColor(Color.red);
+            button.text = $"{baseText}\n(Требования не выполнены){priceInfo}";
+            button.style.unityFontStyleAndWeight = FontStyle.Bold;
+        }
+        else
+        {
+            button.SetEnabled(true);
+            button.style.backgroundColor = new StyleColor(Color.green);
+            button.text = $"{baseText}{priceInfo}";
+            button.style.unityFontStyleAndWeight = FontStyle.Bold;
+        }
 
-    int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
-    int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
-    if (requirementsMet && !tech.IsAvailable(currentYear, currentMonth))
-    {
-        button.style.backgroundColor = new StyleColor(new Color(1f, 0.5f, 0f));
+        int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
+        int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
+        if (requirementsMet && !tech.IsAvailable(currentYear, currentMonth))
+        {
+            button.style.backgroundColor = new StyleColor(new Color(1f, 0.5f, 0f));
+        }
     }
-}
 
     private class TechNode
     {
@@ -1394,7 +1730,6 @@ private void UpdateTechButtonState(Button button, Technology tech)
             GameTimeManager.Instance.OnMonthChanged -= UpdateDateTimeDisplay;
     }
 
-    /// <summary>Обновляет отображение рейтинга (репутации)</summary>
     public void UpdateReputationLabel()
     {
         if (reputationLabel != null && economy != null)

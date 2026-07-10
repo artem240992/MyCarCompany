@@ -13,7 +13,7 @@ public class DemandManager : MonoBehaviour
     private UIManager ui => CarCompanyManager.Instance.UIManager;
 
     // ---- Штрафы от конкурентов (временные) ----
-    private Dictionary<string, float> demandPenalties = new Dictionary<string, float>();
+    public Dictionary<string, float> demandPenalties = new Dictionary<string, float>(); // теперь публичное
     private Dictionary<string, Coroutine> penaltyCoroutines = new Dictionary<string, Coroutine>();
 
     public void Initialize() { }
@@ -61,7 +61,6 @@ public class DemandManager : MonoBehaviour
             if (car == null) continue;
 
             float min, max;
-            // ---- ИСПРАВЛЕНО: используем полное имя DifficultyManager.DifficultyLevel ----
             switch (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty)
             {
                 case DifficultyManager.DifficultyLevel.Easy:   min = 0.9f; max = 1.1f; break;
