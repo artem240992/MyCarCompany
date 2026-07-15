@@ -24,7 +24,7 @@ public class CarCompanyManager : MonoBehaviour
     [Header("Дополнительные технологии (ассеты)")]
     [SerializeField] private TechnologyAsset[] additionalTechnologies;
 
-    // ---- Существующие менеджеры ----
+    // ---- Менеджеры ----
     public UIManager UIManager { get; private set; }
     public EconomyManager EconomyManager { get; private set; }
     public ProductionManager ProductionManager { get; private set; }
@@ -33,8 +33,6 @@ public class CarCompanyManager : MonoBehaviour
     public DemandManager DemandManager { get; private set; }
     public SaveLoadManager SaveLoadManager { get; private set; }
     public DifficultyManager DifficultyManager { get; private set; }
-
-    // ---- НОВЫЕ МЕНЕДЖЕРЫ ----
     public ActionLogManager ActionLogManager { get; private set; }
     public AchievementManager AchievementManager { get; private set; }
 
@@ -57,7 +55,11 @@ public class CarCompanyManager : MonoBehaviour
         if (GameTimeManager.Instance == null)
             gameObject.AddComponent<GameTimeManager>();
 
-        // ---- Инициализация ВСЕХ менеджеров ----
+        // ---- СОЗДАЁМ TUTORIALMANAGER (до Awake других объектов) ----
+        if (TutorialManager.Instance == null)
+            gameObject.AddComponent<TutorialManager>();
+
+        // ---- Инициализация менеджеров ----
         UIManager = GetComponent<UIManager>() ?? gameObject.AddComponent<UIManager>();
         EconomyManager = GetComponent<EconomyManager>() ?? gameObject.AddComponent<EconomyManager>();
         ProductionManager = GetComponent<ProductionManager>() ?? gameObject.AddComponent<ProductionManager>();
@@ -66,8 +68,6 @@ public class CarCompanyManager : MonoBehaviour
         DemandManager = GetComponent<DemandManager>() ?? gameObject.AddComponent<DemandManager>();
         SaveLoadManager = GetComponent<SaveLoadManager>() ?? gameObject.AddComponent<SaveLoadManager>();
         DifficultyManager = GetComponent<DifficultyManager>() ?? gameObject.AddComponent<DifficultyManager>();
-
-        // ---- НОВЫЕ МЕНЕДЖЕРЫ ----
         ActionLogManager = GetComponent<ActionLogManager>() ?? gameObject.AddComponent<ActionLogManager>();
         AchievementManager = GetComponent<AchievementManager>() ?? gameObject.AddComponent<AchievementManager>();
     }
@@ -87,12 +87,15 @@ public class CarCompanyManager : MonoBehaviour
         SaveLoadManager.Initialize();
         DifficultyManager.Initialize();
 
-        // ---- Инициализация AchievementManager ----
         AchievementManager.Initialize();
 
         EconomyManager.OnMoneyChanged += UIManager.UpdateMoneyLabels;
         EconomyManager.OnMoneyChanged += ProductionManager.UpdateButtons;
 
+        if (TutorialManager.Instance == null)
+            Debug.LogError("TutorialManager не создан!");
+
+        // ---- Основная логика загрузки / новой игры ----
         if (SaveLoadManager.HasSaveFile())
         {
             SaveLoadManager.LoadGame();
@@ -100,6 +103,13 @@ public class CarCompanyManager : MonoBehaviour
         }
         else
         {
+            // ---- Новая игра: сбрасываем флаг завершения туториала ----
+            if (PlayerPrefs.HasKey("TutorialCompleted"))
+            {
+                PlayerPrefs.DeleteKey("TutorialCompleted");
+                PlayerPrefs.Save();
+                Debug.Log("Ключ TutorialCompleted удалён для новой игры");
+            }
             UIManager.ShowWelcomeScreen();
         }
 

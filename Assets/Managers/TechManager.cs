@@ -80,7 +80,6 @@ public class TechManager : MonoBehaviour
                 tech.demandModifier = 1f;
                 tech.unlockCarOnResearch = false;
                 tech.unlockedCar = null;
-                // ---- Устанавливаем год и месяц доступности ----
                 tech.availableYear = (level == 1) ? 2025 : 9999;
                 tech.availableMonth = 1;
                 newTechs.Add(tech);
@@ -122,7 +121,6 @@ public class TechManager : MonoBehaviour
             tech.demandModifier = 1f;
             tech.unlockCarOnResearch = true;
             tech.unlockedCar = car;
-            // ---- Устанавливаем год доступности (месяц = 1) ----
             tech.availableYear = 2025 + i;
             tech.availableMonth = 1;
             newTechs.Add(tech);
@@ -210,10 +208,9 @@ public class TechManager : MonoBehaviour
         technologies = techList.ToArray();
     }
 
-    // ---- Доступные машины (с учётом createdCars) ----
+    // ---- Доступные машины (пересборка из всех источников) ----
     private void BuildAvailableCars()
     {
-        // Используем HashSet для уникальности
         HashSet<CarBlueprint> uniqueCars = new HashSet<CarBlueprint>();
 
         // 1. Добавляем все стартовые машины
@@ -240,14 +237,13 @@ public class TechManager : MonoBehaviour
 
         availableCars = uniqueCars.ToArray();
 
-        // ---- Отладка ----
         Debug.Log($"=== BuildAvailableCars: всего машин {availableCars.Length} ===");
         foreach (var c in availableCars)
             Debug.Log($" - {c.carName} (level {c.currentLevel})");
-        // ---------------
 
         ui.CreateCarCards(availableCars);
     }
+
     // ---- Исследование ----
     public void ResearchTechnology(Technology tech)
     {
@@ -289,7 +285,6 @@ public class TechManager : MonoBehaviour
         tech.isResearched = true;
         ui.ShowNotification($"Технология '{tech.techName}' исследована!");
 
-        // Применение тюнинга ко всем машинам
         string techName = tech.techName;
         for (int i = 0; i < tuningParamNames.Length; i++)
         {
@@ -331,7 +326,6 @@ public class TechManager : MonoBehaviour
 
         demand.UpdateDemand();
 
-        // ---- Устанавливаем дату для следующей технологии (если это тюнинг) ----
         for (int i = 0; i < tuningParamNames.Length; i++)
         {
             string param = tuningParamNames[i];
@@ -459,64 +453,58 @@ public class TechManager : MonoBehaviour
         ui.RefreshTechButtons();
     }
 
-    // ---- Улучшение машины (создание новой версии с новой ценой) ----
-// ---- Улучшение машины (создание новой версии) ----
-public void UpgradeCar(CarBlueprint car)
-{
-    if (car == null) return;
-    if (!IsCarUpgradeUnlocked())
+    // ---- Улучшение машины (создание новой версии) ----
+    public void UpgradeCar(CarBlueprint car)
     {
-        ui.ShowNotification($"Для улучшения машин изучите технологию '{CarCompanyManager.Instance.CarUpgradeTechName}'");
-        return;
+        if (car == null) return;
+        if (!IsCarUpgradeUnlocked())
+        {
+            ui.ShowNotification($"Для улучшения машин изучите технологию '{CarCompanyManager.Instance.CarUpgradeTechName}'");
+            return;
+        }
+        if (car.levelPrefabs == null || car.levelPrefabs.Length == 0)
+        {
+            ui.ShowNotification("Эту машину нельзя улучшить!");
+            return;
+        }
+        int maxLevel = car.levelPrefabs.Length - 1;
+        if (car.currentLevel >= maxLevel)
+        {
+            ui.ShowNotification("Машина уже максимально улучшена!");
+            return;
+        }
+        int cost = 100 * (car.currentLevel + 1);
+        if (!economy.SpendMoney(cost))
+        {
+            ui.ShowNotification($"Не хватает денег! Нужно ещё ${cost - economy.Money:F0}");
+            return;
+        }
+
+        CarBlueprint upgradedCar = car.Clone();
+        upgradedCar.currentLevel = car.currentLevel + 1;
+
+        int priceIncrease = Mathf.RoundToInt(car.basePrice * 0.2f);
+        upgradedCar.currentPrice = car.currentPrice + priceIncrease;
+
+        upgradedCar.tuningPower = car.tuningPower;
+        upgradedCar.tuningEconomy = car.tuningEconomy;
+        upgradedCar.tuningDesign = car.tuningDesign;
+        upgradedCar.tuningSafety = car.tuningSafety;
+        upgradedCar.currentPower = car.currentPower;
+        upgradedCar.currentEconomy = car.currentEconomy;
+        upgradedCar.currentDesign = car.currentDesign;
+        upgradedCar.currentSafety = car.currentSafety;
+
+        createdCars.Add(upgradedCar);
+        BuildAvailableCars();
+
+        ui.ShowNotification($"Новая версия {upgradedCar.GetDisplayName()} создана! Цена: ${upgradedCar.currentPrice}");
+        ui.UpdateMoneyLabels();
+        ui.UpdateCarCards();
+        demand.UpdateDemand();
     }
-    if (car.levelPrefabs == null || car.levelPrefabs.Length == 0)
-    {
-        ui.ShowNotification("Эту машину нельзя улучшить!");
-        return;
-    }
-    int maxLevel = car.levelPrefabs.Length - 1;
-    if (car.currentLevel >= maxLevel)
-    {
-        ui.ShowNotification("Машина уже максимально улучшена!");
-        return;
-    }
-    int cost = 100 * (car.currentLevel + 1);
-    if (!economy.SpendMoney(cost))
-    {
-        ui.ShowNotification($"Не хватает денег! Нужно ещё ${cost - economy.Money:F0}");
-        return;
-    }
 
-    // Создаём новую версию
-    CarBlueprint upgradedCar = car.Clone();
-    upgradedCar.currentLevel = car.currentLevel + 1;
-
-    // ---- УСТАНАВЛИВАЕМ ЦЕНУ ДЛЯ НОВОЙ ВЕРСИИ (+20% от базовой) ----
-    int priceIncrease = Mathf.RoundToInt(car.basePrice * 0.2f);
-    upgradedCar.currentPrice = car.currentPrice + priceIncrease;
-
-    // Копируем тюнинг (если есть)
-    upgradedCar.tuningPower = car.tuningPower;
-    upgradedCar.tuningEconomy = car.tuningEconomy;
-    upgradedCar.tuningDesign = car.tuningDesign;
-    upgradedCar.tuningSafety = car.tuningSafety;
-    upgradedCar.currentPower = car.currentPower;
-    upgradedCar.currentEconomy = car.currentEconomy;
-    upgradedCar.currentDesign = car.currentDesign;
-    upgradedCar.currentSafety = car.currentSafety;
-
-    // ---- ДОБАВЛЯЕМ В СПИСОК СОЗДАННЫХ МАШИН ----
-    createdCars.Add(upgradedCar);
-
-    // ---- ПЕРЕСБИРАЕМ ВЕСЬ СПИСОК ДОСТУПНЫХ МАШИН (гарантирует, что старые версии не потеряются) ----
-    BuildAvailableCars();
-
-    ui.ShowNotification($"Новая версия {upgradedCar.GetDisplayName()} создана! Цена: ${upgradedCar.currentPrice}");
-    ui.UpdateMoneyLabels();
-    ui.UpdateCarCards();
-    demand.UpdateDemand();
-}
-    // ---- Проверка, разблокировано ли улучшение ----
+    // ---- Проверки ----
     public bool IsCarUpgradeUnlocked()
     {
         string upgradeTechName = CarCompanyManager.Instance.CarUpgradeTechName;
@@ -528,7 +516,6 @@ public void UpgradeCar(CarBlueprint car)
         return false;
     }
 
-    // ---- Массовое производство ----
     public bool IsBulkProductionUnlocked()
     {
         string bulkTech = CarCompanyManager.Instance.BulkProductionTechName;
@@ -540,19 +527,17 @@ public void UpgradeCar(CarBlueprint car)
         return false;
     }
 
-    // ---- Получение технологии по имени ----
     public Technology GetTechnologyByName(string name)
     {
         return technologies.FirstOrDefault(t => t != null && t.techName == name);
     }
 
-    // ---- Обновление UI технологий ----
     public void RefreshTechButtons()
     {
         ui.RefreshTechButtons();
     }
 
-    // ---- Сброс и загрузка ----
+    // ---- Сброс ----
     public void ResetTechs()
     {
         if (technologies != null)
@@ -570,6 +555,7 @@ public void UpgradeCar(CarBlueprint car)
                 car.currentDesign = 0;
                 car.currentSafety = 0;
                 car.currentPrice = car.basePrice;
+                car.currentLevel = 0;
             }
         createdCars.Clear();
         BuildAvailableCars();
@@ -578,6 +564,7 @@ public void UpgradeCar(CarBlueprint car)
         ui.CreateCarCards(availableCars);
     }
 
+    // ---- Загрузка из сохранения (ИСПРАВЛЕНО) ----
     public void LoadFromSave(SaveData data)
     {
         // ---- Сброс текущих технологий ----
@@ -598,7 +585,7 @@ public void UpgradeCar(CarBlueprint car)
                 }
             }
         }
-        else if (data.researchedTechNames != null) // обратная совместимость
+        else if (data.researchedTechNames != null)
         {
             foreach (string techName in data.researchedTechNames)
             {
@@ -607,9 +594,8 @@ public void UpgradeCar(CarBlueprint car)
             }
         }
 
-        // ---- Восстановление параметров машин (уровни, тюнинг, цвета) ----
+        // ---- Восстановление тюнинга для всех машин (без уровней) ----
         List<CarBlueprint> allCars = GetAllPossibleCars();
-        // Сначала сбрасываем тюнинг для всех
         foreach (var car in allCars)
         {
             if (car == null) continue;
@@ -623,7 +609,7 @@ public void UpgradeCar(CarBlueprint car)
             car.currentSafety = 0;
         }
 
-        // Применяем исследованные тюнинг-технологии ко всем машинам
+        // Применяем исследованные тюнинг-технологии
         if (technologies != null)
         {
             foreach (var tech in technologies)
@@ -637,12 +623,23 @@ public void UpgradeCar(CarBlueprint car)
             }
         }
 
-        // Восстанавливаем текущие уровни и цвета из сохранения
-        if (data.carLevels != null)
+        // ---- Загрузка созданных улучшенных машин ----
+        if (data.createdCarsData != null)
+        {
+            LoadCreatedCars(data.createdCarsData);
+        }
+        else
+        {
+            BuildAvailableCars();
+        }
+
+        // ---- Восстановление уровней и цветов ТОЛЬКО для стартовых машин ----
+        if (data.carLevels != null && startCars != null)
         {
             foreach (CarLevelData lvl in data.carLevels)
             {
-                CarBlueprint car = allCars.FirstOrDefault(c => c != null && c.carName == lvl.carName);
+                // Ищем только среди стартовых машин
+                CarBlueprint car = startCars.FirstOrDefault(c => c != null && c.carName == lvl.carName);
                 if (car != null)
                 {
                     car.currentLevel = lvl.currentLevel;
@@ -654,16 +651,7 @@ public void UpgradeCar(CarBlueprint car)
                     car.hasTint = lvl.hasTint;
                 }
             }
-        }
-
-        // ---- Загрузка созданных улучшенных машин ----
-        if (data.createdCarsData != null)
-        {
-            LoadCreatedCars(data.createdCarsData); // теперь внутри вызывается BuildAvailableCars
-        }
-        else
-        {
-            // Если нет созданных машин, всё равно пересобираем список
+            // Пересобираем список, чтобы обновить стартовые машины в availableCars
             BuildAvailableCars();
         }
 
@@ -696,7 +684,7 @@ public void UpgradeCar(CarBlueprint car)
                 }
             }
         }
-        data.researchedTechNames = researched.ToArray(); // для обратной совместимости
+        data.researchedTechNames = researched.ToArray();
 
         // ---- Машины (уровни, тюнинг, цвета) ----
         data.carLevels = new List<CarLevelData>();
@@ -750,10 +738,9 @@ public void UpgradeCar(CarBlueprint car)
         return list;
     }
 
-// ---- Загрузка созданных машин из сохранения ----
+    // ---- Загрузка созданных машин из сохранения ----
     public void LoadCreatedCars(List<CarBlueprintSaveData> dataList)
     {
-        // Очищаем текущий список созданных машин
         createdCars.Clear();
 
         foreach (var data in dataList)
@@ -778,7 +765,6 @@ public void UpgradeCar(CarBlueprint car)
             createdCars.Add(newCar);
         }
 
-        // ---- ПЕРЕСБИРАЕМ ВЕСЬ СПИСОК (чтобы добавить и стартовые, и созданные) ----
         BuildAvailableCars();
     }
 

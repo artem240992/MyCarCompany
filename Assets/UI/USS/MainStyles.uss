@@ -421,3 +421,24 @@
     font-size: 12px;
     color: #666;
 }
+
+.tutorial-button {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    border-width: 0;
+}
+.tutorial-skip {
+    background-color: #666;
+    color: white;
+}
+.tutorial-next {
+    background-color: #4CAF50;
+    color: white;
+}
+.tutorial-skip:hover {
+    background-color: #888;
+}
+.tutorial-next:hover {
+    background-color: #66BB6A;
+}
