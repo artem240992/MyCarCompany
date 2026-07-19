@@ -17,6 +17,12 @@ public class UIManager : MonoBehaviour
     private Label savedDifficultyLabel;
     private Label versionLabel;
 
+    // ---- Лейблы для деталей склада ----
+    private Label engineLabel;
+    private Label bodyLabel;
+    private Label wheelsLabel;
+    private Label electronicsLabel;
+
     // ---- Лейблы для дополнительной информации ----
     private Label dateLabel;
     private Label inflationLabel;
@@ -55,12 +61,27 @@ public class UIManager : MonoBehaviour
     private Label engineerCountLabel;
     private Button buyConveyorButton;
     private Button hireEngineerButton;
+    private Button buyPartsButton;
+
+    // ---- Требования по деталям для улучшений (назначаются в инспекторе) ----
+    [Header("Требования для улучшения конвейера")]
+    public int conveyorEngineRequired = 2;
+    public int conveyorBodyRequired = 1;
+    public int conveyorWheelsRequired = 4;
+    public int conveyorElectronicsRequired = 1;
+
+    [Header("Требования для найма инженера")]
+    public int engineerEngineRequired = 1;
+    public int engineerBodyRequired = 0;
+    public int engineerWheelsRequired = 0;
+    public int engineerElectronicsRequired = 1;
 
     private EconomyManager economy => CarCompanyManager.Instance.EconomyManager;
     private TechManager tech => CarCompanyManager.Instance.TechManager;
     private DemandManager demand => CarCompanyManager.Instance.DemandManager;
     private CompetitorManager competitor => CarCompanyManager.Instance.CompetitorManager;
     private ProductionManager production => CarCompanyManager.Instance.ProductionManager;
+    private WarehouseManager warehouse => WarehouseManager.Instance;
 
     private List<CarCardData> carCards = new List<CarCardData>();
     private List<(Competitor competitor, DropdownField dropdown)> competitorActionRows = new List<(Competitor, DropdownField)>();
@@ -190,6 +211,13 @@ public class UIManager : MonoBehaviour
         engineerCountLabel = root.Q<Label>("EngineerCountLabel");
         buyConveyorButton = root.Q<Button>("BuyConveyorButton");
         hireEngineerButton = root.Q<Button>("HireEngineerButton");
+        buyPartsButton = root.Q<Button>("BuyPartsButton");
+
+        // ---- Лейблы склада ----
+        engineLabel = root.Q<Label>("EngineLabel");
+        bodyLabel = root.Q<Label>("BodyLabel");
+        wheelsLabel = root.Q<Label>("WheelsLabel");
+        electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
@@ -224,7 +252,8 @@ public class UIManager : MonoBehaviour
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
         SubscribeButton("LoadButton", () => CarCompanyManager.Instance.SaveLoadManager.LoadGame());
         SubscribeButton("NewGameButton", () => CarCompanyManager.Instance.SaveLoadManager.NewGame());
-        SubscribeButton("ProduceButton", () => production.ProduceBasicCar());
+
+        SubscribeButton("ProduceButton", TryProduceBasicCar);
 
         SubscribeButton("EasyButton", () => { SetDifficulty(Difficulty.Easy); CloseSettingsWindow(); });
         SubscribeButton("NormalButton", () => { SetDifficulty(Difficulty.Normal); CloseSettingsWindow(); });
@@ -242,15 +271,22 @@ public class UIManager : MonoBehaviour
         if (closeAchievementsButton != null)
             closeAchievementsButton.clicked += CloseAchievementsWindow;
 
-        if (buyConveyorButton != null) buyConveyorButton.clicked += economy.BuyConveyorUpgrade;
-        if (hireEngineerButton != null) hireEngineerButton.clicked += economy.HireEngineer;
+        // ---- Подписка кнопок улучшений с проверкой ----
+        if (buyConveyorButton != null)
+            buyConveyorButton.clicked += TryBuyConveyorUpgrade;
+        if (hireEngineerButton != null)
+            hireEngineerButton.clicked += TryHireEngineer;
+
         if (decreaseCountBtn != null) decreaseCountBtn.clicked += production.DecreaseCount;
         if (increaseCountBtn != null) increaseCountBtn.clicked += production.IncreaseCount;
+        if (buyPartsButton != null) buyPartsButton.clicked += TryBuyParts;
 
         HideAllOverlays();
         UpdateMoneyLabels();
         UpdateReputationLabel();
         UpdateUpgradeUI();
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
 
         int saved = PlayerPrefs.GetInt("Difficulty", 1);
         currentDifficulty = (Difficulty)saved;
@@ -274,6 +310,163 @@ public class UIManager : MonoBehaviour
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
 
+    // ---- Производство базовой машины (кнопка "Произвести авто") ----
+    private void TryProduceBasicCar()
+    {
+        CarRecipe defaultRecipe = ScriptableObject.CreateInstance<CarRecipe>();
+        defaultRecipe.engineRequired = 1;
+        defaultRecipe.bodyRequired = 1;
+        defaultRecipe.wheelsRequired = 1;
+        defaultRecipe.electronicsRequired = 1;
+        defaultRecipe.assemblyCost = 10;
+
+        CarBlueprint dummy = new CarBlueprint();
+        dummy.recipe = defaultRecipe;
+
+        if (!HasRequiredParts(dummy))
+        {
+            ShowNotification("❌ Недостаточно деталей для базовой машины!");
+            return;
+        }
+
+        production.ProduceBasicCar();
+        ConsumeParts(dummy);
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateMoneyLabels();
+        ShowNotification("✅ Базовая машина произведена!");
+    }
+
+    // ---- Производство конкретной машины (по клику на карточку) ----
+    private void TryProduceSpecificCar(CarBlueprint car)
+    {
+        if (car == null) return;
+        if (!HasRequiredParts(car))
+        {
+            ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
+            return;
+        }
+        production.ProduceSpecificCar(car);
+        ConsumeParts(car);
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateMoneyLabels();
+        ShowNotification($"✅ {car.GetDisplayName()} произведён!");
+    }
+
+    private void UpdateProductionButtonsState()
+    {
+        if (produceButton != null)
+        {
+            CarRecipe defaultRecipe = ScriptableObject.CreateInstance<CarRecipe>();
+            defaultRecipe.engineRequired = 1;
+            defaultRecipe.bodyRequired = 1;
+            defaultRecipe.wheelsRequired = 1;
+            defaultRecipe.electronicsRequired = 1;
+            CarBlueprint dummy = new CarBlueprint();
+            dummy.recipe = defaultRecipe;
+            produceButton.SetEnabled(HasRequiredParts(dummy));
+        }
+    }
+
+    // ---- Покупка деталей ----
+    private void TryBuyParts()
+    {
+        if (warehouse == null)
+        {
+            ShowNotification("Склад не доступен");
+            return;
+        }
+
+        int cost = Mathf.RoundToInt(100 * economy.CostMultiplier);
+        if (economy.Money < cost)
+        {
+            ShowNotification($"Недостаточно денег! Нужно ${cost}");
+            return;
+        }
+
+        economy.Money -= cost;
+        warehouse.AddParts(PartType.Engine, 1);
+        warehouse.AddParts(PartType.Body, 1);
+        warehouse.AddParts(PartType.Wheels, 1);
+        warehouse.AddParts(PartType.Electronics, 1);
+
+        UpdateMoneyLabels();
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateUpgradeUI();
+
+        ShowNotification("✅ Куплена партия деталей (+1 каждой)");
+    }
+
+    // ---- Обновление лейблов склада ----
+    private void UpdateWarehouseLabels()
+    {
+        if (warehouse == null) return;
+        if (engineLabel != null)
+            engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
+        if (bodyLabel != null)
+            bodyLabel.text = warehouse.GetPartCount(PartType.Body).ToString();
+        if (wheelsLabel != null)
+            wheelsLabel.text = warehouse.GetPartCount(PartType.Wheels).ToString();
+        if (electronicsLabel != null)
+            electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
+    }
+
+    // ========== УЛУЧШЕНИЯ С ПРОВЕРКОЙ ПОЛЕЙ (без CarRecipe) ==========
+
+    private bool HasRequiredPartsForUpgrade(int engine, int body, int wheels, int electronics)
+    {
+        if (warehouse == null) return false;
+        return warehouse.GetPartCount(PartType.Engine) >= engine &&
+               warehouse.GetPartCount(PartType.Body) >= body &&
+               warehouse.GetPartCount(PartType.Wheels) >= wheels &&
+               warehouse.GetPartCount(PartType.Electronics) >= electronics;
+    }
+
+    private void ConsumePartsForUpgrade(int engine, int body, int wheels, int electronics)
+    {
+        if (warehouse == null) return;
+        warehouse.AddParts(PartType.Engine, -engine);
+        warehouse.AddParts(PartType.Body, -body);
+        warehouse.AddParts(PartType.Wheels, -wheels);
+        warehouse.AddParts(PartType.Electronics, -electronics);
+    }
+
+    private void TryBuyConveyorUpgrade()
+    {
+        if (!HasRequiredPartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired))
+        {
+            ShowNotification("❌ Недостаточно деталей для улучшения конвейера!");
+            return;
+        }
+
+        economy.BuyConveyorUpgrade();
+        ConsumePartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired);
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateUpgradeUI();
+        ShowNotification("✅ Конвейер улучшен!");
+    }
+
+    private void TryHireEngineer()
+    {
+        if (!HasRequiredPartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired))
+        {
+            ShowNotification("❌ Недостаточно деталей для найма инженера!");
+            return;
+        }
+
+        economy.HireEngineer();
+        ConsumePartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired);
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateUpgradeUI();
+        ShowNotification("✅ Инженер нанят!");
+    }
+
+    // ========== КОНЕЦ УЛУЧШЕНИЙ ==========
+
     private void SwitchCompetitorTab(bool showCompetitors)
     {
         if (competitorsContent != null)
@@ -282,13 +475,9 @@ public class UIManager : MonoBehaviour
             actionLogContent.style.display = showCompetitors ? DisplayStyle.None : DisplayStyle.Flex;
 
         if (showCompetitors)
-        {
             competitor.RefreshCompetitorsList();
-        }
         else
-        {
             RefreshActionLogs();
-        }
     }
 
     private void OpenAchievementsWindow()
@@ -542,15 +731,25 @@ public class UIManager : MonoBehaviour
     {
         if (conveyorLevelLabel != null) conveyorLevelLabel.text = $"Уровень конвейера: {economy.ConveyorLevel}";
         if (engineerCountLabel != null) engineerCountLabel.text = $"Инженеров: {economy.EngineerCount}";
+
         if (buyConveyorButton != null)
         {
             int cost = Mathf.RoundToInt((10 + economy.ConveyorLevel * 5) * economy.CostMultiplier);
-            buyConveyorButton.text = $"Улучшить конвейер ({cost})";
+            string reqText = $"🔧{conveyorEngineRequired} 🔩{conveyorBodyRequired} ⚙️{conveyorWheelsRequired} 💻{conveyorElectronicsRequired}";
+            buyConveyorButton.text = $"Улучшить конвейер ({cost})\n{reqText}";
         }
+
         if (hireEngineerButton != null)
         {
             int cost = Mathf.RoundToInt((50 + economy.EngineerCount * 20) * economy.CostMultiplier);
-            hireEngineerButton.text = $"Нанять инженера ({cost})";
+            string reqText = $"🔧{engineerEngineRequired} 🔩{engineerBodyRequired} ⚙️{engineerWheelsRequired} 💻{engineerElectronicsRequired}";
+            hireEngineerButton.text = $"Нанять инженера ({cost})\n{reqText}";
+        }
+
+        if (buyPartsButton != null)
+        {
+            int cost = Mathf.RoundToInt(100 * economy.CostMultiplier);
+            buyPartsButton.text = $"Купить детали (${cost})";
         }
     }
 
@@ -614,6 +813,9 @@ public class UIManager : MonoBehaviour
 
         RefreshTechButtons();
         UpdateReputationLabel();
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateUpgradeUI();
     }
 
     private string GetTechPriceInfo(Technology tech)
@@ -704,6 +906,23 @@ public class UIManager : MonoBehaviour
             VisualElement textContainer = new VisualElement();
             textContainer.style.flexDirection = FlexDirection.Column;
             textContainer.style.flexGrow = 1;
+
+            // ---- Получение рецепта текущего уровня ----
+            CarRecipe currentRecipe = car.GetCurrentRecipe();
+            var req = GetRequirements(currentRecipe);
+
+            // ---- Лейбл с требованиями к деталям ----
+            Label partsLabel = new Label($"Требуется: 🔧{req.engine} 🔩{req.body} ⚙️{req.wheels} 💻{req.electronics}");
+            partsLabel.style.fontSize = 10;
+            partsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+            textContainer.Add(partsLabel);
+
+            // ---- (Опционально) стоимость сборки ----
+            int assemblyCost = (currentRecipe != null) ? currentRecipe.assemblyCost : 0;
+            Label costLabel = new Label($"Сборка: ${assemblyCost}");
+            costLabel.style.fontSize = 10;
+            costLabel.style.color = new Color(0.9f, 0.7f, 0.3f);
+            textContainer.Add(costLabel);
 
             Label nameLabel = new Label(car.GetDisplayName());
             nameLabel.style.fontSize = 15;
@@ -946,7 +1165,7 @@ public class UIManager : MonoBehaviour
             carCards.Add(cardData);
 
             CarBlueprint localCarForProduction = car;
-            card.RegisterCallback<ClickEvent>(evt => production.ProduceSpecificCar(localCarForProduction));
+            card.RegisterCallback<ClickEvent>(evt => TryProduceSpecificCar(localCarForProduction));
             carsContainer.Add(card);
         }
 
@@ -1022,21 +1241,18 @@ public class UIManager : MonoBehaviour
                 UpdateColorButtons(cardData, selectedIndex);
             }
 
-            // ---- ОБНОВЛЕНИЕ МОДИФИКАТОРОВ (исправлено) ----
             if (cardData.modifierLabel != null)
             {
                 string modText = "";
                 bool hasMod = false;
 
-                // Штраф от конкурентов (через DemandManager)
-                float penalty = 0f; // инициализация обязательна
+                float penalty = 0f;
                 if (demand.demandPenalties != null && demand.demandPenalties.TryGetValue(car.carName, out penalty))
                 {
                     modText += $"⚔️ Спрос -{(1f - penalty) * 100:F0}% ";
                     hasMod = true;
                 }
 
-                // Ценовой модификатор от событий
                 if (economy.TemporaryPriceModifier != 1f)
                 {
                     float change = (economy.TemporaryPriceModifier - 1f) * 100f;
@@ -1057,6 +1273,9 @@ public class UIManager : MonoBehaviour
                 }
             }
         }
+
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
     }
 
     private void UpdateTuningSliders(CarCardData cardData, CarBlueprint car)
@@ -1329,7 +1548,7 @@ public class UIManager : MonoBehaviour
         techGraphRoot = new VisualElement();
         techGraphRoot.style.width = new Length(totalWidth, LengthUnit.Pixel);
         techGraphRoot.style.position = Position.Relative;
-        techGraphRoot.style.overflow = Overflow.Visible; // чтобы узлы не обрезались
+        techGraphRoot.style.overflow = Overflow.Visible;
         techScrollView.Add(techGraphRoot);
 
         Dictionary<Technology, TechNode> nodeMap = new Dictionary<Technology, TechNode>();
@@ -1385,7 +1604,6 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Вычисляем реальную высоту
         float calculatedMaxY = 0;
         foreach (var node in techNodes)
         {
@@ -1396,11 +1614,10 @@ public class UIManager : MonoBehaviour
         float calculatedHeight = Mathf.Max(calculatedMaxY + 20, 100);
         techGraphRoot.style.height = new Length(calculatedHeight, LengthUnit.Pixel);
 
-        // ---- Слой для линий (теперь не перехватывает клики) ----
         VisualElement lineLayer = new VisualElement();
         lineLayer.style.position = Position.Absolute;
         lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
-        lineLayer.pickingMode = PickingMode.Ignore; // <-- ОСНОВНОЕ ИСПРАВЛЕНИЕ
+        lineLayer.pickingMode = PickingMode.Ignore;
         techGraphRoot.Add(lineLayer);
 
         lineLayer.generateVisualContent += (meshGenerationContext) =>
@@ -1773,5 +1990,36 @@ public class UIManager : MonoBehaviour
         {
             Debug.Log("Туториал не запущен");
         }
+    }
+
+    // ---- Вспомогательный метод для получения требований из рецепта ----
+    private (int engine, int body, int wheels, int electronics) GetRequirements(CarRecipe recipe)
+    {
+        if (recipe == null) return (1, 1, 1, 1);
+        return (recipe.engineRequired, recipe.bodyRequired, recipe.wheelsRequired, recipe.electronicsRequired);
+    }
+
+    // ---- Проверка наличия деталей для машины ----
+    private bool HasRequiredParts(CarBlueprint car)
+    {
+        if (warehouse == null || car == null) return false;
+        var recipe = car.GetCurrentRecipe();
+        var req = GetRequirements(recipe);
+        return warehouse.GetPartCount(PartType.Engine) >= req.engine &&
+               warehouse.GetPartCount(PartType.Body) >= req.body &&
+               warehouse.GetPartCount(PartType.Wheels) >= req.wheels &&
+               warehouse.GetPartCount(PartType.Electronics) >= req.electronics;
+    }
+
+    // ---- Списание деталей для машины ----
+    private void ConsumeParts(CarBlueprint car)
+    {
+        if (warehouse == null || car == null) return;
+        var recipe = car.GetCurrentRecipe();
+        var req = GetRequirements(recipe);
+        warehouse.AddParts(PartType.Engine, -req.engine);
+        warehouse.AddParts(PartType.Body, -req.body);
+        warehouse.AddParts(PartType.Wheels, -req.wheels);
+        warehouse.AddParts(PartType.Electronics, -req.electronics);
     }
 }

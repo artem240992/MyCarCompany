@@ -10,26 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1d33f3a4a6675ec41b975002ed96aa9f, type: 3}
-  m_Name: BaseCar
+  m_Name: CarSport
   m_EditorClassIdentifier: Assembly-CSharp::CarBlueprint
-  carName: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u0430\u044F \u043C\u0430\u0448\u0438\u043D\u0430"
-  carPrefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
+  carName: "\u0421\u043F\u043E\u0440\u0442"
+  carPrefab: {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
   levelPrefabs:
-  - {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
-  - {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
-  - {fileID: 919132149155446097, guid: 15e3b883b05343c409ed2f085de014a1, type: 3}
-  - {fileID: 919132149155446097, guid: 10e7cb01c3556db44a379229e63a357b, type: 3}
-  basePrice: 100
-  productionCost: 50
+  - {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
+  - {fileID: 1718881139866272103, guid: d84787863a48b884e8c303159510c801, type: 3}
+  - {fileID: 2922220883736789182, guid: 041e4e3100f07184cacfe35dce34f022, type: 3}
+  basePrice: 250
+  productionCost: 100
   demandMultiplier: 1
   currentLevel: 2
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
   levelRecipes:
   - {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
-  - {fileID: 11400000, guid: 7992eb4ec51b07e43a436f3a4c47929f, type: 2}
-  - {fileID: 11400000, guid: c095346ea6aef144e841608a8935cbad, type: 2}
-  - {fileID: 11400000, guid: 7f2de3ba8e446cc448abff22bc9c7bbd, type: 2}
+  - {fileID: 11400000, guid: 4faa01681feaf6f4387cefeb1140f075, type: 2}
+  - {fileID: 11400000, guid: da5d5c5ed03c70f41b240e255b643417, type: 2}
   tuningPower: 0
   tuningEconomy: 0
   tuningDesign: 0
@@ -42,4 +40,4 @@ MonoBehaviour:
   bodyColorIndex: 0
   tintLevel: 0
   hasTint: 0
-  currentPrice: 100
+  currentPrice: 250

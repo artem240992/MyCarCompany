@@ -24,11 +24,14 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.FillSaveData(data);
         CarCompanyManager.Instance.AchievementManager.FillSaveData(data);
 
+        // ---- НОВЫЕ МЕНЕДЖЕРЫ ----
+        CarCompanyManager.Instance.WarehouseManager.FillSaveData(data);
+        CarCompanyManager.Instance.PartsMarketManager.FillSaveData(data);
+
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null)
             data.difficulty = (int)ui.GetCurrentDifficulty();
 
-        // ---- Сохраняем прогресс обучения ----
         data.tutorialProgress = TutorialManager.Instance?.CurrentStep ?? -1;
 
         string json = JsonUtility.ToJson(data, true);
@@ -62,7 +65,10 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.LoadFromSave(data);
         CarCompanyManager.Instance.AchievementManager.LoadFromSave(data);
 
-        // ---- Загружаем прогресс обучения ----
+        // ---- НОВЫЕ МЕНЕДЖЕРЫ ----
+        CarCompanyManager.Instance.WarehouseManager.LoadFromSave(data);
+        CarCompanyManager.Instance.PartsMarketManager.LoadFromSave(data);
+
         TutorialManager.Instance?.LoadProgress(data.tutorialProgress);
 
         var ui = CarCompanyManager.Instance.UIManager;
@@ -92,7 +98,6 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.ClearLogs();
         CarCompanyManager.Instance.AchievementManager.ResetProgress();
 
-        // ---- Сбрасываем обучение ----
         TutorialManager.Instance?.ResetProgress();
 
         var ui = CarCompanyManager.Instance.UIManager;

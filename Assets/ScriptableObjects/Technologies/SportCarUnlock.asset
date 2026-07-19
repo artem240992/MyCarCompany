@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db755e9b27954c84394c67f4c7a8f1cf, type: 3}
+  m_Name: SportCarUnlock
+  m_EditorClassIdentifier: Assembly-CSharp::TechnologyAsset
+  techName: "\u0420\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C
+    \u0441\u043F\u043E\u0440\u0442\u043A\u0430\u0440"
+  description: "\u0420\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C
+    \u0441\u043F\u043E\u0440\u0442\u043A\u0430\u0440"
+  researchCost: 250
+  requiredTechNames: []
+  priceModifier: 1
+  demandModifier: 1
+  unlockCarOnResearch: 1
+  unlockedCar: {fileID: 11400000, guid: 14afb1993e54d884dbe12254c55c37bf, type: 2}
+  availableYear: 2025

@@ -12,6 +12,8 @@ public class CarBlueprint : ScriptableObject
     public float demandMultiplier = 1f;
     public int currentLevel = 0;
     public Sprite carIcon;
+    public CarRecipe recipe; // ссылка на ScriptableObject
+    public CarRecipe[] levelRecipes;
 
     [Header("Тюнинг (максимальные значения)")]
     public int tuningPower = 0;
@@ -113,5 +115,13 @@ public class CarBlueprint : ScriptableObject
         currentEconomy = tuningEconomy;
         currentDesign = tuningDesign;
         currentSafety = tuningSafety;
+    }
+
+    // Получить рецепт для текущего уровня машины
+    public CarRecipe GetCurrentRecipe()
+    {
+        if (levelRecipes != null && currentLevel >= 0 && currentLevel < levelRecipes.Length && levelRecipes[currentLevel] != null)
+            return levelRecipes[currentLevel];
+        return recipe;
     }
 }

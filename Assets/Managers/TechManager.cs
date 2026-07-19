@@ -173,6 +173,50 @@ public class TechManager : MonoBehaviour
         }
 
         technologies = techList.ToArray();
+
+        string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
+        foreach (string part in partTypes)
+        {
+            string techName = $"Производство {part}";
+            if (!techList.Any(t => t != null && t.techName == techName))
+            {
+                Technology tech = new Technology();
+                tech.techName = techName;
+                tech.description = $"Позволяет производить {part} на складе";
+                tech.researchCost = 100 + Array.IndexOf(partTypes, part) * 50;
+                tech.isResearched = false;
+                tech.requiredTechNames = new string[0];
+                tech.priceModifier = 1f;
+                tech.demandModifier = 1f;
+                tech.unlockCarOnResearch = false;
+                tech.unlockedCar = null;
+                tech.availableYear = 2025;
+                tech.availableMonth = 1;
+                techList.Add(tech);
+            }
+        }
+
+        // Улучшение склада (до 5 уровней)
+        for (int i = 1; i <= 5; i++)
+        {
+            string techName = $"Улучшение склада {i}";
+            if (!techList.Any(t => t != null && t.techName == techName))
+            {
+                Technology tech = new Technology();
+                tech.techName = techName;
+                tech.description = $"Увеличивает склад на {100 * i}%";
+                tech.researchCost = 200 + i * 100;
+                tech.isResearched = false;
+                tech.requiredTechNames = i > 1 ? new string[] { $"Улучшение склада {i - 1}" } : new string[0];
+                tech.priceModifier = 1f;
+                tech.demandModifier = 1f;
+                tech.unlockCarOnResearch = false;
+                tech.unlockedCar = null;
+                tech.availableYear = 2025;
+                tech.availableMonth = 1;
+                techList.Add(tech);
+            }
+        }
     }
 
     // ---- Добавление кастомных технологий из ассетов ----
