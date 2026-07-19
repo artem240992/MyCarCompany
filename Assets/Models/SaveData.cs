@@ -7,6 +7,10 @@ public class SaveData
     // ---- Обучение ----
     public int tutorialProgress; // -1 = не начато, -2 = завершено, 0..N-1 = текущий шаг
     
+    public int warehouseLevel;
+    public List<PartSaveData> partsInventory;
+    public List<PartPriceSaveData> partPrices;
+
     // ---- Экономика ----
     public double money;
     public int conveyorLevel;

@@ -21,6 +21,31 @@
                         <ui:Label text="" name="IncomeLabel" class="resource-value"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <!-- Детали склада -->
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="🔧" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="EngineLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="🔩" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="BodyLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="⚙️" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="WheelsLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="💻" class="resource-icon"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="ElectronicsLabel" class="resource-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:VisualElement class="top-right">
                     <ui:Label text="" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
                     <ui:Label text="" name="DateLabel" class="date-display top-label" />
@@ -98,6 +123,7 @@
             <ui:Button text="" name="BuyConveyorButton" class="upgrade-button"/>
             <ui:Label text="" name="EngineerCountLabel" class="upgrade-label"/>
             <ui:Button text="" name="HireEngineerButton" class="upgrade-button"/>
+            <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button"/>
         </ui:VisualElement>
     </ui:VisualElement>
 

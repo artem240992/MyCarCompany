@@ -102,12 +102,19 @@ public class ProductionManager : MonoBehaviour
         CarBlueprint car = availableCars[0];
         if (car == null) return;
 
-        // ---- РАСЧЁТ С УЧЁТОМ НАЛОГОВ И ИНФЛЯЦИИ ----
+        // ---- Проверка запчастей ----
+        if (!CheckPartsAvailability(car)) return;
+
+        // ---- Расчёт прибыли с учётом себестоимости запчастей ----
+        float partCost = economy.GetPartCostForCar(car);
+        float productionCost = car.GetProductionCostWithLevel() + partCost;
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-        double profitBeforeTax = (modPrice - modCost);
+        double profitBeforeTax = modPrice - productionCost;
         float taxRate = economy.GetTaxRate(car);
         double profitAfterTax = profitBeforeTax * (1f - taxRate);
+
+        // ---- Списание запчастей ----
+        ConsumePartsForCar(car);
 
         economy.AddMoney(profitAfterTax);
         ui.ShowNotification($"Произведена машина {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
@@ -119,15 +126,53 @@ public class ProductionManager : MonoBehaviour
         if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
         if (car == null) return;
 
+        // ---- Проверка запчастей на всё количество машин ----
+        if (!CheckPartsAvailability(car, productionCount)) return;
+
+        // ---- Расчёт прибыли с учётом себестоимости запчастей ----
+        float partCost = economy.GetPartCostForCar(car) * productionCount;
+        float productionCost = car.GetProductionCostWithLevel() * productionCount + partCost;
         int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-        double profitBeforeTax = (modPrice - modCost) * productionCount;
+        double profitBeforeTax = (modPrice * productionCount) - productionCost;
         float taxRate = economy.GetTaxRate(car);
         double profitAfterTax = profitBeforeTax * (1f - taxRate);
+
+        // ---- Списание запчастей для всех машин ----
+        ConsumePartsForCar(car, productionCount);
 
         economy.AddMoney(profitAfterTax);
         ui.ShowNotification($"Произведено {productionCount} шт. {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
         SpawnCar(car);
+    }
+
+    // ---- Вспомогательные методы для работы с запчастями ----
+    private bool CheckPartsAvailability(CarBlueprint car, int count = 1)
+    {
+        if (car.recipe == null) return true; // если рецепта нет, запчасти не нужны
+
+        // Проверяем, хватит ли запчастей на все машины
+        CarRecipe recipe = car.recipe;
+        bool hasEnough = WarehouseManager.Instance.HasParts(PartType.Engine, recipe.engineRequired * count) &&
+                         WarehouseManager.Instance.HasParts(PartType.Body, recipe.bodyRequired * count) &&
+                         WarehouseManager.Instance.HasParts(PartType.Wheels, recipe.wheelsRequired * count) &&
+                         WarehouseManager.Instance.HasParts(PartType.Electronics, recipe.electronicsRequired * count);
+
+        if (!hasEnough)
+        {
+            ui.ShowNotification("Не хватает запчастей для производства!");
+            return false;
+        }
+        return true;
+    }
+
+    private void ConsumePartsForCar(CarBlueprint car, int count = 1)
+    {
+        if (car.recipe == null) return;
+        CarRecipe recipe = car.recipe;
+        WarehouseManager.Instance.RemoveParts(PartType.Engine, recipe.engineRequired * count);
+        WarehouseManager.Instance.RemoveParts(PartType.Body, recipe.bodyRequired * count);
+        WarehouseManager.Instance.RemoveParts(PartType.Wheels, recipe.wheelsRequired * count);
+        WarehouseManager.Instance.RemoveParts(PartType.Electronics, recipe.electronicsRequired * count);
     }
 
     private void SpawnCar(CarBlueprint car)
@@ -164,7 +209,6 @@ public class ProductionManager : MonoBehaviour
         currentCarInstance.transform.localRotation = Quaternion.identity;
         currentCarInstance.transform.localScale = Vector3.one;
 
-        // ---- ПРИМЕНЯЕМ ЦВЕТ И ТОНИРОВКУ (уже есть) ----
         ApplyCarColor(currentCarInstance, car);
 
         CarAnimation anim = currentCarInstance.GetComponent<CarAnimation>();
@@ -176,7 +220,6 @@ public class ProductionManager : MonoBehaviour
         anim.PlayProduction();
     }
 
-    // ---- МЕТОД ПРИМЕНЕНИЯ ЦВЕТА И ТОНИРОВКИ (расширенный для версии 2.1.30) ----
     private void ApplyCarColor(GameObject carObject, CarBlueprint car)
     {
         if (carObject == null || car == null) return;
@@ -185,12 +228,8 @@ public class ProductionManager : MonoBehaviour
         foreach (var renderer in renderers)
         {
             if (renderer.material == null) continue;
-
-            // Клонируем материал, чтобы не менять исходный префаб
             Material mat = renderer.material;
             mat.color = car.bodyColor;
-
-            // Тонировка стёкол (если включена)
             if (car.hasTint && mat.shader.name.Contains("Standard"))
             {
                 Color tintColor = new Color(0.1f, 0.1f, 0.1f, 0.7f);

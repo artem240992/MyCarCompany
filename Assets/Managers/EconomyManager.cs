@@ -19,7 +19,7 @@ public class EconomyManager : MonoBehaviour
     public float ProfitMultiplier = 1f;
     public float TemporaryPriceModifier = 1f;
 
-    public float inflationRate = 0.0005f; // теперь за месяц
+    public float inflationRate = 0.0005f;
     public float basePriceMultiplier = 1f;
 
     public float DifficultyTechCostMultiplier = 1f;
@@ -57,13 +57,13 @@ public class EconomyManager : MonoBehaviour
     }
 
     public void AddMoney(double amount)
-{
-    Money += amount;
-    OnMoneyChanged?.Invoke();
-    var achManager = CarCompanyManager.Instance.AchievementManager;
-    if (achManager != null)
-        achManager.UpdateProgress("money", (int)Money);
-}
+    {
+        Money += amount;
+        OnMoneyChanged?.Invoke();
+        var achManager = CarCompanyManager.Instance.AchievementManager;
+        if (achManager != null)
+            achManager.UpdateProgress("money", (int)Money);
+    }
 
     public void AddReputation(int amount)
     {
@@ -139,7 +139,6 @@ public class EconomyManager : MonoBehaviour
     {
         if (GameTimeManager.Instance == null) return 1f;
         int month = GameTimeManager.Instance.currentMonth;
-        // 12-месячный цикл: январь = 1 -> sin(0), пик в середине года
         float angle = ((month - 1) / 12f) * Mathf.PI * 2f;
         return 0.8f + 0.4f * (0.5f + 0.5f * Mathf.Sin(angle));
     }
@@ -158,6 +157,13 @@ public class EconomyManager : MonoBehaviour
         int totalTuning = car.currentPower + car.currentEconomy + car.currentDesign + car.currentSafety;
         float tuningBonus = totalTuning * 0.02f;
         return Mathf.Min(baseTax + levelBonus + tuningBonus, 0.5f);
+    }
+
+    // ---- НОВЫЙ МЕТОД ДЛЯ РАСЧЁТА СЕБЕСТОИМОСТИ МАШИНЫ С УЧЁТОМ ЗАПЧАСТЕЙ ----
+    public float GetPartCostForCar(CarBlueprint car)
+    {
+        if (car == null || car.recipe == null) return 0f;
+        return CarCompanyManager.Instance.PartsMarketManager.GetProductionCost(car.recipe);
     }
 
     public void FillSaveData(SaveData data)
@@ -223,14 +229,11 @@ public class EconomyManager : MonoBehaviour
             GameTimeManager.Instance.OnMonthChanged -= OnMonthChanged;
     }
 
-    // ---- ОБРАБОТЧИК СМЕНЫ МЕСЯЦА ----
     private void OnMonthChanged()
     {
-        // Инфляция
         basePriceMultiplier *= (1f + inflationRate);
         RecalculateModifiers(null);
 
-        // ---- ГОДОВОЙ НАЛОГ (в январе) ----
         if (GameTimeManager.Instance != null)
         {
             int month = GameTimeManager.Instance.currentMonth;
