@@ -13,7 +13,7 @@ public class DemandManager : MonoBehaviour
     private UIManager ui => CarCompanyManager.Instance.UIManager;
 
     // ---- Штрафы от конкурентов (временные) ----
-    public Dictionary<string, float> demandPenalties = new Dictionary<string, float>(); // теперь публичное
+    public Dictionary<string, float> demandPenalties = new Dictionary<string, float>();
     private Dictionary<string, Coroutine> penaltyCoroutines = new Dictionary<string, Coroutine>();
 
     public void Initialize() { }
@@ -102,8 +102,18 @@ public class DemandManager : MonoBehaviour
             if (demandPenalties.TryGetValue(car.carName, out float p))
                 penalty = p;
 
-            // Итоговый спрос
-            float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, baseWithTech * tuningDemandModifier * penalty);
+            // ---- МАРКЕТИНГ И БРЕНД (НОВОЕ) ----
+            float marketingModifier = 1f;
+            float brandModifier = 1f;
+            if (MarketingManager.Instance != null)
+            {
+                marketingModifier = MarketingManager.Instance.GetDemandModifierForCar(car.carName);
+                brandModifier = MarketingManager.Instance.GetBrandModifier();
+            }
+
+            // ---- ИТОГОВЫЙ СПРОС ----
+            float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, 
+                baseWithTech * tuningDemandModifier * penalty * marketingModifier * brandModifier);
             car.demandMultiplier = finalDemand;
         }
 

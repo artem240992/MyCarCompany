@@ -1,0 +1,52 @@
+/* Общие настройки */
+.unity-list-view {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-width: 1px;
+    border-color: #666;
+    border-radius: 4px;
+}
+
+.unity-list-view .unity-list-view__item {
+    padding: 4px 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: #444;
+    color: #eee;
+    font-size: 14px;
+}
+
+/* Кнопки */
+Button {
+    border-radius: 4px;
+    border-width: 0;
+    font-size: 14px;
+    padding: 4px 12px;
+    transition-duration: 0.1s;
+}
+
+Button:hover {
+    background-color: #666;
+}
+
+Button:active {
+    background-color: #888;
+}
+
+/* Поля ввода */
+IntegerField, FloatField, DropdownField {
+    background-color: rgba(255,255,255,0.1);
+    border-width: 1px;
+    border-color: #555;
+    border-radius: 3px;
+    color: white;
+    padding: 2px 6px;
+}
+
+IntegerField .unity-text-field__input,
+FloatField .unity-text-field__input {
+    color: white;
+}
+
+/* Заголовки полей */
+Label {
+    color: #ddd;
+}
