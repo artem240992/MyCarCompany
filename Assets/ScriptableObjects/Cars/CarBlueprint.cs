@@ -48,6 +48,7 @@ public class CarBlueprint : ScriptableObject
         clone.carPrefab = this.carPrefab;
         clone.levelPrefabs = this.levelPrefabs;
         clone.basePrice = this.basePrice;
+        clone.recipe = this.recipe;
         clone.productionCost = this.productionCost;
         clone.demandMultiplier = this.demandMultiplier;
         clone.currentLevel = this.currentLevel;

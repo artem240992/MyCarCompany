@@ -45,6 +45,9 @@ public class UIManager : MonoBehaviour
     private ScrollView achievementsContainer;
     private Button closeAchievementsButton;
 
+    // ---- МАРКЕТИНГ (НОВОЕ) ----
+    private VisualElement marketingOverlay;
+
     // ---- Вкладки конкурентов ----
     private Button competitorsTabButton;
     private Button actionLogTabButton;
@@ -102,6 +105,16 @@ public class UIManager : MonoBehaviour
         new Color(0.9f, 0.9f, 0.9f)
     };
     private string[] colorNames = { "Зелёный", "Красный", "Чёрный", "Мокрый асфальт", "Белый" };
+
+    public static UIManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+        else
+            Debug.LogWarning("Дублирующийся UIManager");
+    }
 
     private class CarCardData
     {
@@ -219,6 +232,9 @@ public class UIManager : MonoBehaviour
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
+        // ---- МАРКЕТИНГ (НОВОЕ) ----
+        marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
+
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
         if (actionLogContent != null)
@@ -243,6 +259,9 @@ public class UIManager : MonoBehaviour
         SubscribeButton("CloseUpgradeButton", CloseUpgradeWindow);
         SubscribeButton("CloseSettingsButton", CloseSettingsWindow);
         SubscribeButton("CloseCompetitorsButton", CloseCompetitorsWindow);
+        SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
+        SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
+        SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
         SubscribeButton("RefreshCompetitorsButton", () =>
         {
             ExecuteAllCompetitorActions();
@@ -281,6 +300,9 @@ public class UIManager : MonoBehaviour
         if (increaseCountBtn != null) increaseCountBtn.clicked += production.IncreaseCount;
         if (buyPartsButton != null) buyPartsButton.clicked += TryBuyParts;
 
+        // ---- ПОДПИСКА НА КНОПКУ МАРКЕТИНГА (НОВОЕ) ----
+        SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
+
         HideAllOverlays();
         UpdateMoneyLabels();
         UpdateReputationLabel();
@@ -301,6 +323,10 @@ public class UIManager : MonoBehaviour
         {
             Debug.LogWarning("GameTimeManager не найден! Дата не будет обновляться.");
         }
+
+        // Скрыть маркетинговое окно при старте
+        if (marketingOverlay != null)
+            marketingOverlay.style.display = DisplayStyle.None;
     }
 
     private void SubscribeButton(string name, Action action)
@@ -313,28 +339,26 @@ public class UIManager : MonoBehaviour
     // ---- Производство базовой машины (кнопка "Произвести авто") ----
     private void TryProduceBasicCar()
     {
-        CarRecipe defaultRecipe = ScriptableObject.CreateInstance<CarRecipe>();
-        defaultRecipe.engineRequired = 1;
-        defaultRecipe.bodyRequired = 1;
-        defaultRecipe.wheelsRequired = 1;
-        defaultRecipe.electronicsRequired = 1;
-        defaultRecipe.assemblyCost = 10;
-
-        CarBlueprint dummy = new CarBlueprint();
-        dummy.recipe = defaultRecipe;
-
-        if (!HasRequiredParts(dummy))
+        var availableCars = tech.AvailableCars;
+        if (availableCars == null || availableCars.Length == 0)
         {
-            ShowNotification("❌ Недостаточно деталей для базовой машины!");
+            ShowNotification("Нет доступных машин для производства!");
+            return;
+        }
+        CarBlueprint car = availableCars[0];
+        if (car == null) return;
+
+        if (!HasRequiredParts(car))
+        {
+            ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
             return;
         }
 
         production.ProduceBasicCar();
-        ConsumeParts(dummy);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateMoneyLabels();
-        ShowNotification("✅ Базовая машина произведена!");
+        ShowNotification($"✅ {car.GetDisplayName()} произведена!");
     }
 
     // ---- Производство конкретной машины (по клику на карточку) ----
@@ -347,7 +371,6 @@ public class UIManager : MonoBehaviour
             return;
         }
         production.ProduceSpecificCar(car);
-        ConsumeParts(car);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateMoneyLabels();
@@ -908,7 +931,7 @@ public class UIManager : MonoBehaviour
             textContainer.style.flexGrow = 1;
 
             // ---- Получение рецепта текущего уровня ----
-            CarRecipe currentRecipe = car.GetCurrentRecipe();
+            CarRecipe currentRecipe = car.recipe;
             var req = GetRequirements(currentRecipe);
 
             // ---- Лейбл с требованиями к деталям ----
@@ -1669,7 +1692,11 @@ public class UIManager : MonoBehaviour
         CloseSettingsWindow();
         CloseCompetitorsWindow();
         CloseAchievementsWindow();
+        // Закрыть маркетинг (если открыт)
+        CloseMarketingWindow();
     }
+
+    // ========== МЕТОДЫ ДЛЯ ОКОН (открытие/закрытие) ==========
 
     private void OpenCarsWindow()
     {
@@ -1762,6 +1789,42 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(competitorsOverlay, () => { competitorsOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
     }
 
+    // ---- МАРКЕТИНГ (НОВЫЕ МЕТОДЫ) ----
+    private void OpenMarketingWindow()
+    {
+        HideAllOverlays();
+        if (marketingOverlay != null)
+        {
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(marketingOverlay);
+            var marketingCtrl = GetComponent<UIMarketingController>();
+            if (marketingCtrl != null)
+            {
+                marketingCtrl.RefreshUI();
+                // Обновить деньги в UI (на случай, если они изменились)
+                UpdateMoneyLabels();
+            }
+            else
+                Debug.LogWarning("UIMarketingController не найден на этом объекте");
+        }
+        else
+        {
+            Debug.LogError("MarketingOverlay не найден в UXML!");
+        }
+    }
+
+    private void CloseMarketingWindow()
+    {
+        if (marketingOverlay != null)
+            AnimateWindowClose(marketingOverlay, () => 
+            { 
+                marketingOverlay.style.display = DisplayStyle.None; 
+                mainPanel.style.display = DisplayStyle.Flex; 
+            });
+    }
+
+    // ---- Вспомогательные методы скрытия ----
     private void HideAllOverlays()
     {
         if (carsOverlay != null) carsOverlay.style.display = DisplayStyle.None;
@@ -1771,6 +1834,7 @@ public class UIManager : MonoBehaviour
         if (competitorsOverlay != null) competitorsOverlay.style.display = DisplayStyle.None;
         if (welcomeOverlay != null) welcomeOverlay.style.display = DisplayStyle.None;
         if (achievementsOverlay != null) achievementsOverlay.style.display = DisplayStyle.None;
+        if (marketingOverlay != null) marketingOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -1795,6 +1859,7 @@ public class UIManager : MonoBehaviour
         }).ExecuteLater(150);
     }
 
+    // ---- Вспомогательные методы ----
     private Sprite LoadCarIcon(string carName)
     {
         if (string.IsNullOrEmpty(carName)) return null;
@@ -2022,4 +2087,5 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Wheels, -req.wheels);
         warehouse.AddParts(PartType.Electronics, -req.electronics);
     }
+
 }

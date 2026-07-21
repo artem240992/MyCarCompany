@@ -1,0 +1,48 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement style="flex-grow: 1; background-color: rgba(30, 30, 40, 0.95); padding: 20px;">
+        
+        <!-- Заголовок -->
+        <ui:Label text="Маркетинговые кампании" style="font-size: 28px; color: white; -unity-font-style: bold; margin-bottom: 15px;" />
+        
+        <!-- Верхняя панель: бренд и модификатор -->
+        <ui:VisualElement style="flex-direction: row; margin-bottom: 20px;">
+            <ui:Label name="BrandQualityLabel" text="Качество бренда: 50.0 / 100" style="font-size: 18px; color: #ffd700; margin-right: 30px;" />
+            <ui:Label name="BrandModifierLabel" text="Модификатор спроса: 1.00x" style="font-size: 18px; color: #00d4ff;" />
+        </ui:VisualElement>
+        
+        <!-- Список активных кампаний -->
+        <ui:Label text="Активные кампании" style="font-size: 20px; color: white; margin-bottom: 8px;" />
+        <ui:ListView name="ActiveCampaignsList" style="height: 200px; background-color: rgba(0,0,0,0.3); border-width: 1px; border-color: #444;" />
+        
+        <!-- Разделитель -->
+        <ui:VisualElement style="height: 2px; background-color: #555; margin: 15px 0;" />
+        
+        <!-- Панель создания новой кампании -->
+        <ui:Label text="Запустить новую кампанию" style="font-size: 20px; color: white; margin-bottom: 10px;" />
+        <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: center;">
+            <ui:Label text="Машина:" style="width: 80px; color: #ccc;" />
+            <ui:DropdownField name="CarDropdown" style="width: 150px; margin-right: 20px;" />
+            
+            <ui:Label text="Тип:" style="width: 50px; color: #ccc;" />
+            <ui:DropdownField name="CampaignTypeDropdown" style="width: 120px; margin-right: 20px;" />
+            
+            <ui:Label text="Месяцев:" style="width: 70px; color: #ccc;" />
+            <ui:IntegerField name="DurationField" style="width: 80px; margin-right: 20px;" value="3" />
+            
+            <ui:Label text="Бюджет:" style="width: 60px; color: #ccc;" />
+            <ui:FloatField name="BudgetField" style="width: 120px; margin-right: 20px;" value="1000" />
+            
+            <ui:Button name="StartCampaignButton" text="Запустить" style="background-color: #2a8a2a; color: white; font-size: 16px; padding: 5px 20px;" />
+        </ui:VisualElement>
+        
+        <!-- Сообщение об ошибке -->
+        <ui:Label name="ErrorMessageLabel" style="color: #ff6b6b; margin-top: 8px; font-size: 14px;" />
+        
+        <!-- Кнопки управления -->
+        <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 20px;">
+            <ui:Button name="RefreshButton" text="Обновить" style="background-color: #444; color: white; margin-right: 10px; padding: 5px 15px;" />
+            <ui:Button name="CloseButton" text="Закрыть" style="background-color: #8a2a2a; color: white; padding: 5px 15px;" />
+        </ui:VisualElement>
+        
+    </ui:VisualElement>
+</ui:UXML>

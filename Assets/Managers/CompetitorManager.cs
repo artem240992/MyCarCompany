@@ -49,6 +49,16 @@ public class CompetitorManager : MonoBehaviour
             comp.loyalty = Random.Range(50, 100);
             comp.isAlly = false;
             comp.stolenTechs = new List<string>();
+
+            // ---- Новые поля (должны быть добавлены в классе Competitor в отдельном файле) ----
+            // Если они ещё не добавлены, раскомментируйте строки ниже или добавьте их в файл Competitor.cs.
+            // comp.marketingBudget = 100f;
+            // comp.brandQuality = 30f;
+            // comp.strategy = "Conservative";
+            // comp.lastPriceCut = 0f;
+            // comp.lastAdCampaign = 0f;
+            // comp.activeCampaigns = new List<MarketingCampaign>();
+
             competitors.Add(comp);
         }
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
@@ -89,7 +99,6 @@ public class CompetitorManager : MonoBehaviour
     {
         if (comp == null) return;
 
-        // Определяем множитель агрессивности для Hard
         float aggressionMod = 1f;
         if (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty == DifficultyManager.DifficultyLevel.Hard)
             aggressionMod = 1.5f;
@@ -170,7 +179,6 @@ public class CompetitorManager : MonoBehaviour
                     demand.ApplyDemandPenalty(carName, penalty, duration);
                     string desc = $"Спрос на {carName} упал на {(1f - penalty) * 100:F0}% на {duration:F0} сек.";
                     ui.ShowNotification($"{comp.companyName} атакует! {desc} Репутация -{repLoss}");
-                    // ---- ЛОГИРУЕМ ----
                     logManager.AddLog(comp.companyName, "Маркетинговая атака", true, desc);
                 }
                 else
@@ -258,7 +266,7 @@ public class CompetitorManager : MonoBehaviour
         }
     }
 
-    // ---- Действия игрока (оставляем без изменений, они не логируются в журнал конкурентов) ----
+    // ---- Действия игрока ----
     public void PerformMarketingAttack(Competitor target)
     {
         if (target == null || target.isAlly) { ui.ShowNotification("Нельзя атаковать союзника!"); return; }

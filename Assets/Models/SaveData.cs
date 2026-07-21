@@ -40,6 +40,10 @@ public class SaveData
 
     // ---- Сложность ----
     public int difficulty; // 0=Easy, 1=Normal, 2=Hard
+
+    // ===== НОВЫЕ ПОЛЯ ДЛЯ МАРКЕТИНГА =====
+    public List<MarketingCampaign> activeCampaigns = new List<MarketingCampaign>();
+    public float brandQuality = 50f;
 }
 
 [Serializable]

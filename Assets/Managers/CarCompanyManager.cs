@@ -49,6 +49,7 @@ public class CarCompanyManager : MonoBehaviour
     public string BulkProductionTechName => bulkProductionTechName;
     public string CarUpgradeTechName => carUpgradeTechName;
     public TechnologyAsset[] AdditionalTechnologies => additionalTechnologies;
+    public MarketingManager MarketingManager { get; private set; }
 
     private void Awake()
     {
@@ -82,6 +83,7 @@ public class CarCompanyManager : MonoBehaviour
         WarehouseManager = GetComponent<WarehouseManager>() ?? gameObject.AddComponent<WarehouseManager>();
         PartsMarketManager = GetComponent<PartsMarketManager>() ?? gameObject.AddComponent<PartsMarketManager>();
         PartsProductionManager = GetComponent<PartsProductionManager>() ?? gameObject.AddComponent<PartsProductionManager>();
+        MarketingManager = GetComponent<MarketingManager>() ?? gameObject.AddComponent<MarketingManager>();
     }
 
     private void Start()
