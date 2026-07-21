@@ -11,14 +11,15 @@ public class UIMarketingController : MonoBehaviour
     private Label brandModifierLabel;
     private ListView activeCampaignsList;
     private Button refreshButton;
-    private Button closeButton1;
-    private Button closeButton2;
+    private Button closeButton1; // крестик
+    private Button closeButton2; // кнопка "Закрыть"
 
     private DropdownField carDropdown;
     private DropdownField campaignTypeDropdown;
     private IntegerField durationField;
     private FloatField budgetField;
     private Button startCampaignButton;
+    private Button discountButton; // кнопка скидки
     private Label errorMessageLabel;
 
     private List<string> availableCarNames = new List<string>();
@@ -36,6 +37,7 @@ public class UIMarketingController : MonoBehaviour
     {
         if (root == null) return;
 
+        // Найти элементы по именам
         brandQualityLabel = root.Q<Label>("BrandQualityLabel");
         brandModifierLabel = root.Q<Label>("BrandModifierLabel");
         activeCampaignsList = root.Q<ListView>("ActiveCampaignsList");
@@ -48,6 +50,7 @@ public class UIMarketingController : MonoBehaviour
         durationField = root.Q<IntegerField>("DurationField");
         budgetField = root.Q<FloatField>("BudgetField");
         startCampaignButton = root.Q<Button>("StartCampaignButton");
+        discountButton = root.Q<Button>("ApplyDiscountButton");
         errorMessageLabel = root.Q<Label>("ErrorMessageLabel");
 
         PopulateCarDropdown();
@@ -55,10 +58,12 @@ public class UIMarketingController : MonoBehaviour
 
         // Подписки
         if (refreshButton != null) refreshButton.clicked += RefreshUI;
-        // Закрытие теперь через UIManager – эти строки закомментированы
+        if (startCampaignButton != null) startCampaignButton.clicked += OnStartCampaignClicked;
+        if (discountButton != null) discountButton.clicked += OnApplyDiscount;
+
+        // Закрытие теперь через UIManager
         // if (closeButton1 != null) closeButton1.clicked += CloseWindow;
         // if (closeButton2 != null) closeButton2.clicked += CloseWindow;
-        if (startCampaignButton != null) startCampaignButton.clicked += OnStartCampaignClicked;
 
         SetupCampaignsListView();
         RefreshUI();
@@ -77,13 +82,12 @@ public class UIMarketingController : MonoBehaviour
     {
         if (CarCompanyManager.Instance?.TechManager != null)
         {
-            // AvailableCars уже содержит только открытые машины, фильтр не нужен
             var cars = CarCompanyManager.Instance.TechManager.AvailableCars;
             availableCarNames = cars.Select(c => c.carName).ToList();
         }
         else
         {
-            availableCarNames = new List<string> { "Sedan", "SUV", "Sport" };
+            availableCarNames = new List<string> { "Sedan", "SUV", "Sport" }; // заглушка
         }
 
         if (carDropdown != null)
@@ -171,7 +175,7 @@ public class UIMarketingController : MonoBehaviour
         if (activeCampaignsList != null)
         {
             activeCampaignsList.itemsSource = MarketingManager.Instance.activeCampaigns;
-            activeCampaignsList.Rebuild();
+            activeCampaignsList.Rebuild(); // если ошибка, замените на Refresh()
         }
 
         if (errorMessageLabel != null)
@@ -212,24 +216,37 @@ public class UIMarketingController : MonoBehaviour
             durationField.value,
             budgetField.value
         );
-        Debug.Log($"StartCampaign вернул: {success}");
 
         if (success)
         {
             RefreshUI();
+            UIManager.Instance?.UpdateMoneyLabels();
         }
         else if (errorMessageLabel != null)
         {
             errorMessageLabel.text = "Не удалось запустить кампанию. Возможно, уже активна для этой машины.";
         }
-        if (success)
-        {
-            RefreshUI();
-            // Принудительно обновить деньги
-            UIManager.Instance?.UpdateMoneyLabels();
-        }
     }
 
-    // Закрытие теперь обрабатывается через UIManager – этот метод можно удалить
-    // private void CloseWindow() { ... }
+    private void OnApplyDiscount()
+    {
+        float discount = 0.2f;
+        int months = 3;
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        if (economy.Money < 50)
+        {
+            UIManager.Instance?.ShowNotification("❌ Недостаточно денег для проведения акции (нужно $50)");
+            return;
+        }
+        economy.ApplyDiscount(discount, months);
+        UIManager.Instance?.UpdateMoneyLabels();
+        UIManager.Instance?.ShowNotification($"✅ Скидка {discount * 100:F0}% применена на {months} мес.");
+    }
+
+    private void CloseWindow()
+    {
+        var overlay = root?.Q<VisualElement>("MarketingOverlay");
+        if (overlay != null)
+            overlay.style.display = DisplayStyle.None;
+    }
 }

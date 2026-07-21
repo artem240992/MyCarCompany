@@ -114,19 +114,48 @@
     </ui:VisualElement>
 
     <!-- Upgrade -->
-    <ui:VisualElement name="UpgradeOverlay" class="overlay">
-        <ui:VisualElement name="UpgradeWindow" class="window upgrade-window">
-            <ui:VisualElement class="window-header">
-                <ui:Label text="Улучшения завода" class="window-title"/>
-                <ui:Button text="✕" name="CloseUpgradeButton" class="close-button"/>
-            </ui:VisualElement>
-            <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label"/>
-            <ui:Button text="" name="BuyConveyorButton" class="upgrade-button"/>
-            <ui:Label text="" name="EngineerCountLabel" class="upgrade-label"/>
-            <ui:Button text="" name="HireEngineerButton" class="upgrade-button"/>
-            <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button"/>
+    <!-- Улучшения завода -->
+<ui:VisualElement name="UpgradeOverlay" class="overlay">
+    <ui:VisualElement name="UpgradeWindow" style="width: 90%; max-width: 600px; height: 85%; max-height: 700px; background-color: rgb(40, 40, 40); padding: 16px; border-radius: 10px; flex-direction: column;">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+            <ui:Label text="Улучшения завода" style="font-size: 20px; color: white;"/>
+            <ui:Button text="✕" name="CloseUpgradeButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
         </ui:VisualElement>
+
+        <!-- Вкладки -->
+        <ui:VisualElement style="flex-direction: row; margin-bottom: 8px; flex-shrink: 0;">
+            <ui:Button text="Завод" name="UpgradeTabFactoryButton" class="tab-button" style="flex-grow: 1;"/>
+            <ui:Button text="Детали" name="UpgradeTabPartsButton" class="tab-button" style="flex-grow: 1;"/>
+        </ui:VisualElement>
+
+        <!-- Содержимое вкладок -->
+        <ui:ScrollView name="UpgradeScrollView" style="flex-grow: 1; min-height: 100px;">
+            <!-- Вкладка "Завод" -->
+            <ui:VisualElement name="UpgradeFactoryContent" style="flex-direction: column;">
+                <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label" style="font-size: 16px;"/>
+                <ui:Button text="" name="BuyConveyorButton" class="upgrade-button" style="margin-bottom: 8px;"/>
+                <ui:Label text="" name="EngineerCountLabel" class="upgrade-label" style="font-size: 16px;"/>
+                <ui:Button text="" name="HireEngineerButton" class="upgrade-button" style="margin-bottom: 8px;"/>
+                <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button" style="margin-bottom: 8px;"/>
+                <!-- Можно добавить ещё улучшения склада -->
+            </ui:VisualElement>
+
+            <!-- Вкладка "Детали" -->
+            <ui:VisualElement name="UpgradePartsContent" style="flex-direction: column; display: none;">
+                <ui:Label text="Производство деталей" style="color: white; font-size: 16px; margin-bottom: 6px;"/>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 6px;">
+                    <ui:Button text="🔧 Двигатель" name="ProduceEngineButton" style="flex-grow: 1; min-width: 80px;"/>
+                    <ui:Button text="🔩 Кузов" name="ProduceBodyButton" style="flex-grow: 1; min-width: 80px;"/>
+                    <ui:Button text="⚙️ Колёса" name="ProduceWheelsButton" style="flex-grow: 1; min-width: 80px;"/>
+                    <ui:Button text="💻 Электроника" name="ProduceElectronicsButton" style="flex-grow: 1; min-width: 80px;"/>
+                </ui:VisualElement>
+                <ui:Label text="" name="PartsProductionInfo" style="color: #aaa; font-size: 12px; margin-top: 8px;">
+                    Требуется: 1 инженер, 1 уровень конвейера, $10 за деталь
+                </ui:Label>
+            </ui:VisualElement>
+        </ui:ScrollView>
     </ui:VisualElement>
+</ui:VisualElement>
 
     <!-- Settings -->
     <ui:VisualElement name="SettingsOverlay" class="overlay">

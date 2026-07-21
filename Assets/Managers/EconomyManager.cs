@@ -19,6 +19,10 @@ public class EconomyManager : MonoBehaviour
     public float ProfitMultiplier = 1f;
     public float TemporaryPriceModifier = 1f;
 
+    // ---- Скидки ----
+    public float DiscountMultiplier = 1f;
+    public float DiscountDuration = 0f;
+
     public float inflationRate = 0.0005f;
     public float basePriceMultiplier = 1f;
 
@@ -39,6 +43,8 @@ public class EconomyManager : MonoBehaviour
         PassiveIncome = 0;
         basePriceMultiplier = 1f;
         TemporaryPriceModifier = 1f;
+        DiscountMultiplier = 1f;
+        DiscountDuration = 0f;
         DifficultyTechCostMultiplier = 1f;
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
@@ -129,10 +135,42 @@ public class EconomyManager : MonoBehaviour
         float priceMod = 1f;
         float costMod = 1f;
         float techCostMod = 1f;
-        TotalPriceModifier = priceMod * basePriceMultiplier * TemporaryPriceModifier;
-        CostMultiplier = costMod * basePriceMultiplier * TemporaryPriceModifier;
-        TechCostMultiplier = techCostMod * basePriceMultiplier * TemporaryPriceModifier * DifficultyTechCostMultiplier;
+        TotalPriceModifier = priceMod * basePriceMultiplier * TemporaryPriceModifier * DiscountMultiplier;
+        CostMultiplier = costMod * basePriceMultiplier * TemporaryPriceModifier * DiscountMultiplier;
+        TechCostMultiplier = techCostMod * basePriceMultiplier * TemporaryPriceModifier * DiscountMultiplier * DifficultyTechCostMultiplier;
         TotalDemandModifier = 1f;
+    }
+
+    // ---- Методы скидок ----
+    public void ApplyDiscount(float discount, int months)
+    {
+        if (discount < 0f || discount > 1f || months <= 0)
+        {
+            Debug.LogWarning($"Некорректные параметры скидки: {discount}, {months}");
+            return;
+        }
+        DiscountMultiplier = 1f - discount;
+        DiscountDuration = months;
+        RecalculateModifiers(null);
+        // Уведомить конкурентов
+        CarCompanyManager.Instance.CompetitorManager.OnPlayerAppliesDiscount(discount);
+        CarCompanyManager.Instance.UIManager?.UpdateMoneyLabels();
+        CarCompanyManager.Instance.UIManager?.ShowNotification($"Скидка {discount * 100:F0}% на все машины на {months} мес.");
+    }
+
+    public void UpdateDiscount()
+    {
+        if (DiscountDuration > 0)
+        {
+            DiscountDuration -= 1f;
+            if (DiscountDuration <= 0)
+            {
+                DiscountMultiplier = 1f;
+                RecalculateModifiers(null);
+                CarCompanyManager.Instance.UIManager?.UpdateMoneyLabels();
+                CarCompanyManager.Instance.UIManager?.ShowNotification("Скидка закончилась.");
+            }
+        }
     }
 
     public float GetSeasonalDemandModifier()
@@ -159,7 +197,6 @@ public class EconomyManager : MonoBehaviour
         return Mathf.Min(baseTax + levelBonus + tuningBonus, 0.5f);
     }
 
-    // ---- НОВЫЙ МЕТОД ДЛЯ РАСЧЁТА СЕБЕСТОИМОСТИ МАШИНЫ С УЧЁТОМ ЗАПЧАСТЕЙ ----
     public float GetPartCostForCar(CarBlueprint car)
     {
         if (car == null || car.recipe == null) return 0f;
@@ -175,6 +212,8 @@ public class EconomyManager : MonoBehaviour
         data.passiveIncome = PassiveIncome;
         data.basePriceMultiplier = basePriceMultiplier;
         data.lastTaxYear = lastTaxYear;
+        data.discountMultiplier = DiscountMultiplier;
+        data.discountDuration = DiscountDuration;
     }
 
     public void LoadFromSave(SaveData data)
@@ -186,6 +225,8 @@ public class EconomyManager : MonoBehaviour
         PassiveIncome = data.passiveIncome;
         basePriceMultiplier = data.basePriceMultiplier;
         lastTaxYear = data.lastTaxYear;
+        DiscountMultiplier = data.discountMultiplier;
+        DiscountDuration = data.discountDuration;
         OnMoneyChanged?.Invoke();
     }
 
@@ -198,6 +239,8 @@ public class EconomyManager : MonoBehaviour
         PassiveIncome = 0;
         basePriceMultiplier = 1f;
         TemporaryPriceModifier = 1f;
+        DiscountMultiplier = 1f;
+        DiscountDuration = 0f;
         DifficultyTechCostMultiplier = 1f;
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
@@ -232,6 +275,7 @@ public class EconomyManager : MonoBehaviour
     private void OnMonthChanged()
     {
         basePriceMultiplier *= (1f + inflationRate);
+        UpdateDiscount();
         RecalculateModifiers(null);
 
         if (GameTimeManager.Instance != null)

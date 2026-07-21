@@ -7,6 +7,10 @@ using System.Linq;
 
 public class UIManager : MonoBehaviour
 {
+    private Button upgradeTabFactoryButton;
+    private Button upgradeTabPartsButton;
+    private VisualElement upgradeFactoryContent;
+    private VisualElement upgradePartsContent;
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;
@@ -213,6 +217,10 @@ public class UIManager : MonoBehaviour
         techOverlay = root.Q<VisualElement>("TechOverlay");
         techScrollView = root.Q<ScrollView>("TechContainer");
         upgradeOverlay = root.Q<VisualElement>("UpgradeOverlay");
+        upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
+        upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
+        upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
+        upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
         settingsOverlay = root.Q<VisualElement>("SettingsOverlay");
         competitorsOverlay = root.Q<VisualElement>("CompetitorsOverlay");
         welcomeOverlay = root.Q<VisualElement>("WelcomeOverlay");
@@ -262,6 +270,10 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
+        SubscribeButton("ProduceEngineButton", () => TryProducePart(PartType.Engine));
+        SubscribeButton("ProduceBodyButton", () => TryProducePart(PartType.Body));
+        SubscribeButton("ProduceWheelsButton", () => TryProducePart(PartType.Wheels));
+        SubscribeButton("ProduceElectronicsButton", () => TryProducePart(PartType.Electronics));
         SubscribeButton("RefreshCompetitorsButton", () =>
         {
             ExecuteAllCompetitorActions();
@@ -289,6 +301,10 @@ public class UIManager : MonoBehaviour
 
         if (closeAchievementsButton != null)
             closeAchievementsButton.clicked += CloseAchievementsWindow;
+        if (upgradeTabFactoryButton != null)
+            upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
+        if (upgradeTabPartsButton != null)
+            upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
         // ---- Подписка кнопок улучшений с проверкой ----
         if (buyConveyorButton != null)
@@ -422,19 +438,6 @@ public class UIManager : MonoBehaviour
         ShowNotification("✅ Куплена партия деталей (+1 каждой)");
     }
 
-    // ---- Обновление лейблов склада ----
-    private void UpdateWarehouseLabels()
-    {
-        if (warehouse == null) return;
-        if (engineLabel != null)
-            engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
-        if (bodyLabel != null)
-            bodyLabel.text = warehouse.GetPartCount(PartType.Body).ToString();
-        if (wheelsLabel != null)
-            wheelsLabel.text = warehouse.GetPartCount(PartType.Wheels).ToString();
-        if (electronicsLabel != null)
-            electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
-    }
 
     // ========== УЛУЧШЕНИЯ С ПРОВЕРКОЙ ПОЛЕЙ (без CarRecipe) ==========
 
@@ -1735,7 +1738,7 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(techOverlay, () => { techOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
     }
 
-    private void OpenUpgradeWindow()
+   private void OpenUpgradeWindow()
     {
         HideAllOverlays();
         if (upgradeOverlay != null)
@@ -1744,6 +1747,7 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(upgradeOverlay);
             UpdateUpgradeUI();
+            SwitchUpgradeTab(true); // показать вкладку "Завод"
         }
     }
 
@@ -2086,6 +2090,46 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Body, -req.body);
         warehouse.AddParts(PartType.Wheels, -req.wheels);
         warehouse.AddParts(PartType.Electronics, -req.electronics);
+    }
+
+    private void TryProducePart(PartType type)
+    {
+        int count = 1; // можно сделать выбор количества
+        if (warehouse.ProduceParts(type, count))
+        {
+            // всё уже обновлено внутри
+        }
+    }
+
+    public void UpdateWarehouseLabels()
+    {
+        if (CarCompanyManager.Instance == null) return;
+        var warehouse = WarehouseManager.Instance;
+        if (warehouse == null) return;
+        var root = uiDoc?.rootVisualElement;
+        if (root == null) return;
+
+        engineLabel = root.Q<Label>("EngineLabel");
+        bodyLabel = root.Q<Label>("BodyLabel");
+        wheelsLabel = root.Q<Label>("WheelsLabel");
+        electronicsLabel = root.Q<Label>("ElectronicsLabel");
+
+        if (engineLabel != null)
+            engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
+        if (bodyLabel != null)
+            bodyLabel.text = warehouse.GetPartCount(PartType.Body).ToString();
+        if (wheelsLabel != null)
+            wheelsLabel.text = warehouse.GetPartCount(PartType.Wheels).ToString();
+        if (electronicsLabel != null)
+            electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
+    }
+
+    private void SwitchUpgradeTab(bool showFactory)
+    {
+        if (upgradeFactoryContent != null)
+            upgradeFactoryContent.style.display = showFactory ? DisplayStyle.Flex : DisplayStyle.None;
+        if (upgradePartsContent != null)
+            upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
     }
 
 }

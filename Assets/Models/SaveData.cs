@@ -44,6 +44,10 @@ public class SaveData
     // ===== НОВЫЕ ПОЛЯ ДЛЯ МАРКЕТИНГА =====
     public List<MarketingCampaign> activeCampaigns = new List<MarketingCampaign>();
     public float brandQuality = 50f;
+
+    // ---- Скидки ----
+    public float discountMultiplier = 1f;
+    public float discountDuration = 0f;
 }
 
 [Serializable]

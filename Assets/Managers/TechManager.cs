@@ -128,96 +128,7 @@ public class TechManager : MonoBehaviour
         technologies = newTechs.ToArray();
     }
 
-    // ---- Создание специальных технологий ----
-    private void GenerateSpecialTechnologies()
-    {
-        if (technologies == null) return;
-        List<Technology> techList = technologies.ToList();
-
-        string bulkName = CarCompanyManager.Instance.BulkProductionTechName;
-        if (!techList.Any(t => t != null && t.techName == bulkName))
-        {
-            Technology bulkTech = new Technology();
-            bulkTech.techName = bulkName;
-            bulkTech.description = "Позволяет производить до 10 машин за раз";
-            bulkTech.researchCost = 200;
-            bulkTech.isResearched = false;
-            bulkTech.requiredTechNames = new string[0];
-            bulkTech.priceModifier = 1f;
-            bulkTech.demandModifier = 1f;
-            bulkTech.unlockCarOnResearch = false;
-            bulkTech.unlockedCar = null;
-            bulkTech.availableYear = 2025;
-            bulkTech.availableMonth = 1;
-            techList.Add(bulkTech);
-            Debug.Log($"Добавлена технология: {bulkName}");
-        }
-
-        string upgradeName = CarCompanyManager.Instance.CarUpgradeTechName;
-        if (!techList.Any(t => t != null && t.techName == upgradeName))
-        {
-            Technology upgradeTech = new Technology();
-            upgradeTech.techName = upgradeName;
-            upgradeTech.description = "Позволяет улучшать машины на уровень";
-            upgradeTech.researchCost = 150;
-            upgradeTech.isResearched = false;
-            upgradeTech.requiredTechNames = new string[0];
-            upgradeTech.priceModifier = 1f;
-            upgradeTech.demandModifier = 1f;
-            upgradeTech.unlockCarOnResearch = false;
-            upgradeTech.unlockedCar = null;
-            upgradeTech.availableYear = 2025;
-            upgradeTech.availableMonth = 1;
-            techList.Add(upgradeTech);
-            Debug.Log($"Добавлена технология: {upgradeName}");
-        }
-
-        technologies = techList.ToArray();
-
-        string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
-        foreach (string part in partTypes)
-        {
-            string techName = $"Производство {part}";
-            if (!techList.Any(t => t != null && t.techName == techName))
-            {
-                Technology tech = new Technology();
-                tech.techName = techName;
-                tech.description = $"Позволяет производить {part} на складе";
-                tech.researchCost = 100 + Array.IndexOf(partTypes, part) * 50;
-                tech.isResearched = false;
-                tech.requiredTechNames = new string[0];
-                tech.priceModifier = 1f;
-                tech.demandModifier = 1f;
-                tech.unlockCarOnResearch = false;
-                tech.unlockedCar = null;
-                tech.availableYear = 2025;
-                tech.availableMonth = 1;
-                techList.Add(tech);
-            }
-        }
-
-        // Улучшение склада (до 5 уровней)
-        for (int i = 1; i <= 5; i++)
-        {
-            string techName = $"Улучшение склада {i}";
-            if (!techList.Any(t => t != null && t.techName == techName))
-            {
-                Technology tech = new Technology();
-                tech.techName = techName;
-                tech.description = $"Увеличивает склад на {100 * i}%";
-                tech.researchCost = 200 + i * 100;
-                tech.isResearched = false;
-                tech.requiredTechNames = i > 1 ? new string[] { $"Улучшение склада {i - 1}" } : new string[0];
-                tech.priceModifier = 1f;
-                tech.demandModifier = 1f;
-                tech.unlockCarOnResearch = false;
-                tech.unlockedCar = null;
-                tech.availableYear = 2025;
-                tech.availableMonth = 1;
-                techList.Add(tech);
-            }
-        }
-    }
+    
 
     // ---- Добавление кастомных технологий из ассетов ----
     private void AddAdditionalTechnologies()
@@ -871,5 +782,150 @@ public class TechManager : MonoBehaviour
                     break;
             }
         }
+    }
+
+    // Технологии, добавляемые в GenerateSpecialTechnologies()
+    private void GenerateSpecialTechnologies()
+{
+    if (technologies == null) return;
+    List<Technology> techList = technologies.ToList();
+
+    // ---- Bulk Production ----
+    string bulkName = CarCompanyManager.Instance.BulkProductionTechName;
+    if (!techList.Any(t => t != null && t.techName == bulkName))
+    {
+        Technology bulkTech = new Technology();
+        bulkTech.techName = bulkName;
+        bulkTech.description = "Позволяет производить до 10 машин за раз";
+        bulkTech.researchCost = 200;
+        bulkTech.isResearched = false;
+        bulkTech.requiredTechNames = new string[0];
+        bulkTech.priceModifier = 1f;
+        bulkTech.demandModifier = 1f;
+        bulkTech.unlockCarOnResearch = false;
+        bulkTech.unlockedCar = null;
+        bulkTech.availableYear = 2025;
+        bulkTech.availableMonth = 1;
+        techList.Add(bulkTech);
+    }
+
+    // ---- Car Upgrade ----
+    string upgradeName = CarCompanyManager.Instance.CarUpgradeTechName;
+    if (!techList.Any(t => t != null && t.techName == upgradeName))
+    {
+        Technology upgradeTech = new Technology();
+        upgradeTech.techName = upgradeName;
+        upgradeTech.description = "Позволяет улучшать машины на уровень";
+        upgradeTech.researchCost = 150;
+        upgradeTech.isResearched = false;
+        upgradeTech.requiredTechNames = new string[0];
+        upgradeTech.priceModifier = 1f;
+        upgradeTech.demandModifier = 1f;
+        upgradeTech.unlockCarOnResearch = false;
+        upgradeTech.unlockedCar = null;
+        upgradeTech.availableYear = 2025;
+        upgradeTech.availableMonth = 1;
+        techList.Add(upgradeTech);
+    }
+
+    // ---- Производство деталей ----
+    string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
+    foreach (string part in partTypes)
+    {
+        string techName = $"Производство {part}";
+        if (!techList.Any(t => t != null && t.techName == techName))
+        {
+            Technology tech = new Technology();
+            tech.techName = techName;
+            tech.description = $"Позволяет производить {part} на складе";
+            tech.researchCost = 100 + Array.IndexOf(partTypes, part) * 50;
+            tech.isResearched = false;
+            tech.requiredTechNames = new string[0];
+            tech.priceModifier = 1f;
+            tech.demandModifier = 1f;
+            tech.unlockCarOnResearch = false;
+            tech.unlockedCar = null;
+            tech.availableYear = 2025;
+            tech.availableMonth = 1;
+            techList.Add(tech);
+        }
+    }
+
+    // ---- Улучшение склада (до 5 уровней) ----
+    for (int i = 1; i <= 5; i++)
+    {
+        string techName = $"Улучшение склада {i}";
+        if (!techList.Any(t => t != null && t.techName == techName))
+        {
+            Technology tech = new Technology();
+            tech.techName = techName;
+            tech.description = $"Увеличивает склад на {100 * i}%";
+            tech.researchCost = 200 + i * 100;
+            tech.isResearched = false;
+            tech.requiredTechNames = i > 1 ? new string[] { $"Улучшение склада {i - 1}" } : new string[0];
+            tech.priceModifier = 1f;
+            tech.demandModifier = 1f;
+            tech.unlockCarOnResearch = false;
+            tech.unlockedCar = null;
+            tech.availableYear = 2025;
+            tech.availableMonth = 1;
+            techList.Add(tech);
+        }
+    }
+
+    // ========== НОВЫЕ МАРКЕТИНГОВЫЕ ТЕХНОЛОГИИ ==========
+    string[] marketingTechs = {
+        "Таргетинговая реклама",
+        "Аналитика рынка",
+        "Программа лояльности",
+        "Вирусный маркетинг"
+    };
+    string[] marketingDescriptions = {
+        "Увеличивает эффективность всех кампаний на 20%",
+        "Позволяет видеть стратегии конкурентов (+30% к шансу угадать их действия)",
+        "Повышает повторные продажи (+10% к спросу на все машины)",
+        "Резко повышает спрос на выбранную машину (+50% на 2 месяца)"
+    };
+    int[] marketingCosts = { 500, 800, 1200, 1500 };
+    string[][] marketingRequirements = {
+        new string[0],
+        new string[] { "Таргетинговая реклама" },
+        new string[] { "Аналитика рынка" },
+        new string[] { "Программа лояльности" }
+    };
+    int[] marketingYears = { 2025, 2025, 2026, 2026 };
+    int[] marketingMonths = { 1, 6, 1, 6 };
+
+    for (int i = 0; i < marketingTechs.Length; i++)
+    {
+        string name = marketingTechs[i];
+        if (techList.Any(t => t != null && t.techName == name)) continue;
+
+        Technology tech = new Technology();
+        tech.techName = name;
+        tech.description = marketingDescriptions[i];
+        tech.researchCost = marketingCosts[i];
+        tech.isResearched = false;
+        tech.requiredTechNames = marketingRequirements[i];
+        tech.priceModifier = 1f;
+        tech.demandModifier = 1f;
+        tech.unlockCarOnResearch = false;
+        tech.unlockedCar = null;
+        tech.availableYear = marketingYears[i];
+        tech.availableMonth = marketingMonths[i];
+        techList.Add(tech);
+    }
+
+    technologies = techList.ToArray();
+}
+
+    // Добавьте также метод IsTechResearched, если его нет:
+    public bool IsTechResearched(string techName)
+    {
+        if (technologies == null) return false;
+        foreach (var t in technologies)
+            if (t != null && t.techName == techName && t.isResearched)
+                return true;
+        return false;
     }
 }

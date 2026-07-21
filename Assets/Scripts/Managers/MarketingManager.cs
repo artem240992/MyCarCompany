@@ -27,6 +27,7 @@ public class MarketingManager : MonoBehaviour
             GameTimeManager.Instance.OnMonthChanged -= OnMonthChanged;
     }
 
+    // ---- Запуск кампании ----
     public bool StartCampaign(string carName, string campaignType, int months, float budget)
     {
         if (budget <= 0 || months <= 0) return false;
@@ -48,7 +49,8 @@ public class MarketingManager : MonoBehaviour
         economy.Money -= budget;
         Debug.Log($"Списано {budget}, осталось {economy.Money}");
 
-        // Создание кампании – передаём все параметры
+        // Эффективность от технологий
+        float effectiveness = GetCampaignEffectiveness(campaignType);
         var campaign = new MarketingCampaign(
             $"Реклама {carName} ({campaignType})",
             carName,
@@ -56,17 +58,33 @@ public class MarketingManager : MonoBehaviour
             months,
             budget
         );
+        campaign.demandModifier *= effectiveness; // применяем бонус от технологий
 
         activeCampaigns.Add(campaign);
         ApplyCampaignEffect(campaign);
 
-        // Обновление UI – деньги
+        // Уведомить конкурентов
+        CarCompanyManager.Instance.CompetitorManager.OnPlayerStartsCampaign(carName, budget);
+
+        // Обновление UI
         if (UIManager.Instance != null)
             UIManager.Instance.UpdateMoneyLabels();
         else
             Debug.LogError("UIManager.Instance == null! Деньги не обновлены.");
 
         return true;
+    }
+
+    // ---- Расчёт эффективности кампании от технологий ----
+    public float GetCampaignEffectiveness(string campaignType)
+    {
+        float baseEffect = 1f;
+        var techManager = CarCompanyManager.Instance.TechManager;
+        if (techManager.IsTechResearched("Таргетинговая реклама"))
+            baseEffect *= 1.2f;
+        if (techManager.IsTechResearched("Вирусный маркетинг"))
+            baseEffect *= 1.5f;
+        return baseEffect;
     }
 
     private void ApplyCampaignEffect(MarketingCampaign campaign)

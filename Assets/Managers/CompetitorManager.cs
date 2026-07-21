@@ -23,6 +23,7 @@ public class CompetitorManager : MonoBehaviour
     {
         InitCompetitors();
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
+        StartCompetitorAI();
     }
 
     private void InitCompetitors()
@@ -49,15 +50,14 @@ public class CompetitorManager : MonoBehaviour
             comp.loyalty = Random.Range(50, 100);
             comp.isAlly = false;
             comp.stolenTechs = new List<string>();
+            comp.researchedTechs = new List<string>();
 
-            // ---- Новые поля (должны быть добавлены в классе Competitor в отдельном файле) ----
-            // Если они ещё не добавлены, раскомментируйте строки ниже или добавьте их в файл Competitor.cs.
-            // comp.marketingBudget = 100f;
-            // comp.brandQuality = 30f;
-            // comp.strategy = "Conservative";
-            // comp.lastPriceCut = 0f;
-            // comp.lastAdCampaign = 0f;
-            // comp.activeCampaigns = new List<MarketingCampaign>();
+            // ---- Новые поля ----
+            comp.marketingBudget = Random.Range(50f, 200f);
+            comp.brandQuality = Random.Range(20f, 50f);
+            string[] strategies = { "Aggressive", "Conservative", "Innovative" };
+            comp.strategy = strategies[Random.Range(0, strategies.Length)];
+            comp.activeCampaigns = new List<MarketingCampaign>();
 
             competitors.Add(comp);
         }
@@ -76,7 +76,10 @@ public class CompetitorManager : MonoBehaviour
         {
             yield return new WaitForSeconds(GetDecisionInterval());
             foreach (var comp in competitors)
+            {
+                comp.UpdateMonth(); // обновляем кампании
                 RunCompetitorDecision(comp);
+            }
             demand.UpdateDemand();
             ui.RefreshCompetitorsList(competitors, economy.Reputation);
         }
@@ -94,7 +97,7 @@ public class CompetitorManager : MonoBehaviour
         }
     }
 
-    // ---- Полная логика AI конкурента (с логированием) ----
+    // ---- Основная логика AI ----
     private void RunCompetitorDecision(Competitor comp)
     {
         if (comp == null) return;
@@ -105,29 +108,43 @@ public class CompetitorManager : MonoBehaviour
 
         float decision = Random.value * aggressionMod;
 
-        // 1. Если у конкурента мало денег – поднимает цены
-        if (comp.money < 200 && decision < 0.4f)
+        // 1. Обновление бренда и маркетингового бюджета
+        if (comp.money > 100 && comp.marketingBudget < 200)
+            comp.marketingBudget += 10f;
+
+        // 2. Запуск рекламной кампании
+        if (comp.availableCars.Count > 0 && comp.marketingBudget > 50 && decision < 0.15f * aggressionMod)
         {
-            comp.priceMultiplier = Mathf.Min(comp.priceMultiplier + 0.1f, 1.5f);
-            ui.ShowNotification($"{comp.companyName} поднял цены!");
+            string carName = comp.availableCars[Random.Range(0, comp.availableCars.Count)].carName;
+            float campaignCost = Random.Range(50f, 150f);
+            if (comp.money >= campaignCost && comp.marketingBudget >= campaignCost)
+            {
+                comp.money -= campaignCost;
+                comp.marketingBudget -= campaignCost;
+                comp.LaunchCampaign(carName, campaignCost);
+                comp.lastAdCampaign = Time.time;
+                ui.ShowNotification($"{comp.companyName} запускает рекламу для {carName}!");
+                logManager.AddLog(comp.companyName, "Рекламная кампания", true, $"Реклама {carName} за ${campaignCost}");
+                return;
+            }
+        }
+
+        // 3. Применение скидки
+        if (comp.marketShare < 0.15f && comp.money > 200 && Time.time - comp.lastPriceCut > 20f && decision < 0.2f * aggressionMod)
+        {
+            float discount = Random.Range(0.05f, 0.15f);
+            int months = Random.Range(2, 4);
+            comp.ApplyDiscount(discount, months);
+            ui.ShowNotification($"{comp.companyName} даёт скидку {discount * 100:F0}% на {months} мес.");
+            logManager.AddLog(comp.companyName, "Скидка", true, $"Скидка {discount * 100:F0}%");
             return;
         }
 
-        // 2. Если доля рынка мала – снижает цены
-        if (comp.marketShare < 0.2f && comp.money > 300 && decision < 0.5f)
+        // 4. Исследование технологий (инновационные чаще)
+        if (comp.researchLevel < 5 && comp.money > 400 && (comp.strategy == "Innovative" || decision < 0.3f))
         {
-            comp.priceMultiplier = Mathf.Max(comp.priceMultiplier - 0.05f, 0.6f);
-            comp.reputation += 10;
-            comp.money -= 50;
-            ui.ShowNotification($"{comp.companyName} снизил цены для захвата рынка!");
-            return;
-        }
-
-        // 3. Исследование технологий
-        if (comp.researchLevel < 5 && comp.money > 400 && decision < 0.6f)
-        {
-            List<Technology> availableTechs = tech.Technologies.Where(t => t != null && !t.isResearched && !comp.researchedTechs.Contains(t.techName) && t.priceModifier > 1f).ToList();
-            if (availableTechs.Count > 0 && comp.money > 300)
+            List<Technology> availableTechs = tech.Technologies.Where(t => t != null && !t.isResearched && !comp.researchedTechs.Contains(t.techName)).ToList();
+            if (availableTechs.Count > 0)
             {
                 Technology chosen = availableTechs[Random.Range(0, availableTechs.Count)];
                 int cost = Mathf.RoundToInt(chosen.researchCost * 0.8f);
@@ -138,21 +155,16 @@ public class CompetitorManager : MonoBehaviour
                     comp.researchLevel++;
                     comp.reputation += 5;
                     comp.marketShare += 0.02f;
+                    comp.brandQuality = Mathf.Min(100, comp.brandQuality + 2f);
                     ui.ShowNotification($"{comp.companyName} исследовал технологию '{chosen.techName}'!");
+                    logManager.AddLog(comp.companyName, "Исследование", true, $"Технология {chosen.techName}");
                     return;
                 }
             }
-            if (comp.money > 300)
-            {
-                comp.money -= 150;
-                comp.factoryLevel++;
-                ui.ShowNotification($"{comp.companyName} модернизирует завод!");
-                return;
-            }
         }
 
-        // 4. Модернизация завода
-        if (comp.money > 300 && decision < 0.7f)
+        // 5. Улучшение завода
+        if (comp.money > 300 && decision < 0.4f)
         {
             comp.money -= 150;
             comp.factoryLevel++;
@@ -160,9 +172,8 @@ public class CompetitorManager : MonoBehaviour
             return;
         }
 
-        // 5. Маркетинговая атака на игрока
-        float actionChance = Random.value;
-        if (!comp.isAlly && comp.money > 150 && actionChance < 0.15f * aggressionMod)
+        // 6. Маркетинговая атака (только агрессивные)
+        if (!comp.isAlly && comp.money > 150 && comp.strategy == "Aggressive" && decision < 0.2f * aggressionMod)
         {
             float attackSuccess = Random.value;
             float attackChance = 0.2f + (comp.marketingPower * 0.03f);
@@ -192,8 +203,8 @@ public class CompetitorManager : MonoBehaviour
             return;
         }
 
-        // 6. Чёрный PR
-        if (!comp.isAlly && comp.money > 300 && actionChance < 0.08f * aggressionMod)
+        // 7. Чёрный PR (только агрессивные)
+        if (!comp.isAlly && comp.money > 300 && comp.strategy == "Aggressive" && decision < 0.1f * aggressionMod)
         {
             float prSuccess = Random.value;
             float prChance = 0.1f + (comp.marketingPower * 0.02f);
@@ -223,12 +234,10 @@ public class CompetitorManager : MonoBehaviour
             return;
         }
 
-        // 7. Кража технологии у игрока
-        if (!comp.isAlly && comp.researchLevel > 2 && comp.money > 200 && actionChance < 0.10f * aggressionMod)
+        // 8. Кража технологии (не консервативные)
+        if (!comp.isAlly && comp.researchLevel > 2 && comp.money > 200 && (comp.strategy != "Conservative") && decision < 0.12f * aggressionMod)
         {
-            List<string> playerTechs = new List<string>();
-            foreach (var t in tech.Technologies)
-                if (t != null && t.isResearched) playerTechs.Add(t.techName);
+            List<string> playerTechs = tech.Technologies.Where(t => t != null && t.isResearched).Select(t => t.techName).ToList();
             if (playerTechs.Count > 0)
             {
                 float stealSuccess = Random.value;
@@ -248,8 +257,8 @@ public class CompetitorManager : MonoBehaviour
             }
         }
 
-        // 8. Переманивание инженера у игрока
-        if (!comp.isAlly && comp.money > 100 && economy.EngineerCount > 0 && actionChance < 0.12f * aggressionMod)
+        // 9. Переманивание инженера
+        if (!comp.isAlly && comp.money > 100 && economy.EngineerCount > 0 && decision < 0.15f * aggressionMod)
         {
             float poachSuccess = Random.value;
             float poachChance = 0.15f + (comp.marketingPower * 0.02f);
@@ -266,7 +275,55 @@ public class CompetitorManager : MonoBehaviour
         }
     }
 
-    // ---- Действия игрока ----
+    // ---- Реакция на действия игрока ----
+    public void OnPlayerStartsCampaign(string carName, float budget)
+    {
+        foreach (var comp in competitors)
+        {
+            if (comp.isAlly) continue;
+            float responseChance = 0.3f;
+            if (comp.strategy == "Aggressive") responseChance = 0.7f;
+            else if (comp.strategy == "Conservative") responseChance = 0.2f;
+            if (budget > 200) responseChance += 0.2f;
+
+            if (Random.value < responseChance && comp.money > 100 && comp.availableCars.Count > 0)
+            {
+                string responseCar = comp.availableCars[Random.Range(0, comp.availableCars.Count)].carName;
+                float responseBudget = budget * Random.Range(0.5f, 1.2f);
+                if (comp.money >= responseBudget && comp.marketingBudget >= responseBudget * 0.5f)
+                {
+                    comp.money -= responseBudget;
+                    comp.marketingBudget -= responseBudget * 0.5f;
+                    comp.LaunchCampaign(responseCar, responseBudget);
+                    comp.lastAdCampaign = Time.time;
+                    ui.ShowNotification($"{comp.companyName} запускает ответную кампанию для {responseCar}!");
+                    logManager.AddLog(comp.companyName, "Рекламная кампания (ответ)", true, $"Ответ на кампанию игрока");
+                }
+            }
+        }
+    }
+
+    public void OnPlayerAppliesDiscount(float discount)
+    {
+        foreach (var comp in competitors)
+        {
+            if (comp.isAlly) continue;
+            float responseChance = 0.4f;
+            if (comp.strategy == "Aggressive") responseChance = 0.8f;
+            else if (comp.strategy == "Conservative") responseChance = 0.1f;
+
+            if (Random.value < responseChance && comp.money > 150 && Time.time - comp.lastPriceCut > 15f)
+            {
+                float responseDiscount = discount * Random.Range(0.7f, 1.3f);
+                int months = Random.Range(2, 4);
+                comp.ApplyDiscount(Mathf.Min(responseDiscount, 0.3f), months);
+                ui.ShowNotification($"{comp.companyName} тоже снижает цены на {Mathf.Min(responseDiscount, 0.3f) * 100:F0}%!");
+                logManager.AddLog(comp.companyName, "Скидка (ответ)", true, $"Ответная скидка");
+            }
+        }
+    }
+
+    // ---- Действия игрока (оставлены без изменений) ----
     public void PerformMarketingAttack(Competitor target)
     {
         if (target == null || target.isAlly) { ui.ShowNotification("Нельзя атаковать союзника!"); return; }
@@ -444,6 +501,11 @@ public class CompetitorManager : MonoBehaviour
             int carCount = Mathf.Min(Random.Range(1, 3), tech.AvailableCars.Length);
             for (int j = 0; j < carCount; j++)
                 if (tech.AvailableCars[j] != null) comp.availableCars.Add(tech.AvailableCars[j]);
+            comp.marketingBudget = Random.Range(50f, 200f);
+            comp.brandQuality = Random.Range(20f, 50f);
+            string[] strategies = { "Aggressive", "Conservative", "Innovative" };
+            comp.strategy = strategies[Random.Range(0, strategies.Length)];
+            comp.activeCampaigns.Clear();
         }
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
     }
