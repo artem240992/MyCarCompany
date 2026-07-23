@@ -4,8 +4,19 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
+
     // ---- Обучение ----
     public int tutorialProgress; // -1 = не начато, -2 = завершено, 0..N-1 = текущий шаг
+
+    // НОВЫЕ ФЛАГИ ДЛЯ МОДУЛЬНЫХ ТУТОРИАЛОВ
+    public bool tutorialCarsCompleted;
+    public bool tutorialTechCompleted;
+    public bool tutorialMarketingCompleted;
+    public bool tutorialUpgradeCompleted;
+    public bool tutorialCompetitorsCompleted;
+
+    // ... остальные поля (warehouseLevel, partsInventory, money и т.д.)
+
     
     public int warehouseLevel;
     public List<PartSaveData> partsInventory;
@@ -84,6 +95,8 @@ public class CarBlueprintSaveData
     public float bodyColorG;
     public float bodyColorB;
     public bool hasTint;
+
+   
 }
 
 [Serializable]

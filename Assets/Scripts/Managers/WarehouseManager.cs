@@ -7,7 +7,7 @@ public class WarehouseManager : MonoBehaviour
 
     [Header("Warehouse Settings")]
     public int warehouseLevel = 0;
-    public int maxCapacity = 100; // уровень 0 = 100
+    public int maxCapacity = 100;
 
     private Dictionary<PartType, int> partsInventory = new Dictionary<PartType, int>();
 
@@ -19,14 +19,12 @@ public class WarehouseManager : MonoBehaviour
 
     private void Start()
     {
-        // Инициализация склада
         foreach (PartType type in System.Enum.GetValues(typeof(PartType)))
             partsInventory[type] = 0;
         UpdateCapacity();
     }
 
     public int GetPartCount(PartType type) => partsInventory.TryGetValue(type, out int count) ? count : 0;
-
     public bool HasParts(PartType type, int amount) => GetPartCount(type) >= amount;
 
     public bool AddParts(PartType type, int amount)
@@ -77,7 +75,55 @@ public class WarehouseManager : MonoBehaviour
 
     private void UpdateCapacity()
     {
-        maxCapacity = 100 * (int)Mathf.Pow(2, warehouseLevel); // 100, 200, 400, 800, 1600...
+        maxCapacity = 100 * (int)Mathf.Pow(2, warehouseLevel);
+    }
+
+    // ---- ПРОИЗВОДСТВО ДЕТАЛЕЙ ----
+    public bool ProduceParts(PartType type, int count)
+    {
+        if (!IsPartProductionUnlocked(type)) 
+        {
+            UIManager.Instance?.ShowNotification($"Технология производства {type} не изучена!");
+            return false;
+        }
+
+        int cost = 10 * count;
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        if (economy.Money < cost)
+        {
+            UIManager.Instance?.ShowNotification($"Не хватает денег! Нужно ${cost}");
+            return false;
+        }
+        if (economy.EngineerCount < 1)
+        {
+            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 инженер для производства деталей!");
+            return false;
+        }
+        if (economy.ConveyorLevel < 1)
+        {
+            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 уровень конвейера для производства деталей!");
+            return false;
+        }
+
+        economy.Money -= cost;
+        AddParts(type, count);
+        UIManager.Instance?.UpdateMoneyLabels();
+        UIManager.Instance?.UpdateWarehouseLabels();
+        UIManager.Instance?.ShowNotification($"Произведено {count} {type} за ${cost}");
+        return true;
+    }
+
+    private bool IsPartProductionUnlocked(PartType type)
+    {
+        string techName = type switch
+        {
+            PartType.Engine => "Производство Engine",
+            PartType.Body => "Производство Body",
+            PartType.Wheels => "Производство Wheels",
+            PartType.Electronics => "Производство Electronics",
+            _ => ""
+        };
+        return CarCompanyManager.Instance.TechManager.IsTechResearched(techName);
     }
 
     // ---- Сохранение/загрузка ----

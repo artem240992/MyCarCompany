@@ -49,7 +49,7 @@ public class UIManager : MonoBehaviour
     private ScrollView achievementsContainer;
     private Button closeAchievementsButton;
 
-    // ---- МАРКЕТИНГ (НОВОЕ) ----
+    // ---- МАРКЕТИНГ ----
     private VisualElement marketingOverlay;
 
     // ---- Вкладки конкурентов ----
@@ -69,6 +69,12 @@ public class UIManager : MonoBehaviour
     private Button buyConveyorButton;
     private Button hireEngineerButton;
     private Button buyPartsButton;
+
+    // ---- НОВЫЕ ПОЛЯ ДЛЯ ВКЛАДОК УЛУЧШЕНИЙ ----
+    private Button upgradeTabFactoryButton;
+    private Button upgradeTabPartsButton;
+    private VisualElement upgradeFactoryContent;
+    private VisualElement upgradePartsContent;
 
     // ---- Требования по деталям для улучшений (назначаются в инспекторе) ----
     [Header("Требования для улучшения конвейера")]
@@ -240,8 +246,14 @@ public class UIManager : MonoBehaviour
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
-        // ---- МАРКЕТИНГ (НОВОЕ) ----
+        // ---- МАРКЕТИНГ ----
         marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
+
+        // ---- НАХОДИМ ЭЛЕМЕНТЫ ВКЛАДОК УЛУЧШЕНИЙ ----
+        upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
+        upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
+        upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
+        upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
@@ -316,8 +328,11 @@ public class UIManager : MonoBehaviour
         if (increaseCountBtn != null) increaseCountBtn.clicked += production.IncreaseCount;
         if (buyPartsButton != null) buyPartsButton.clicked += TryBuyParts;
 
-        // ---- ПОДПИСКА НА КНОПКУ МАРКЕТИНГА (НОВОЕ) ----
-        SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
+        // ---- Подписка кнопок вкладок улучшений ----
+        if (upgradeTabFactoryButton != null)
+            upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
+        if (upgradeTabPartsButton != null)
+            upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
         HideAllOverlays();
         UpdateMoneyLabels();
@@ -438,6 +453,19 @@ public class UIManager : MonoBehaviour
         ShowNotification("✅ Куплена партия деталей (+1 каждой)");
     }
 
+    // ---- Обновление лейблов склада ----
+    public void UpdateWarehouseLabels()
+    {
+        if (warehouse == null) return;
+        if (engineLabel != null)
+            engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
+        if (bodyLabel != null)
+            bodyLabel.text = warehouse.GetPartCount(PartType.Body).ToString();
+        if (wheelsLabel != null)
+            wheelsLabel.text = warehouse.GetPartCount(PartType.Wheels).ToString();
+        if (electronicsLabel != null)
+            electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
+    }
 
     // ========== УЛУЧШЕНИЯ С ПРОВЕРКОЙ ПОЛЕЙ (без CarRecipe) ==========
 
@@ -459,36 +487,26 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Electronics, -electronics);
     }
 
-    private void TryBuyConveyorUpgrade()
+   private void TryBuyConveyorUpgrade()
     {
-        if (!HasRequiredPartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired))
-        {
-            ShowNotification("❌ Недостаточно деталей для улучшения конвейера!");
-            return;
-        }
-
+        // Проверяем только деньги (внутри BuyConveyorUpgrade уже есть проверка SpendMoney)
         economy.BuyConveyorUpgrade();
-        ConsumePartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
         ShowNotification("✅ Конвейер улучшен!");
+        // Уведомление уже показывается внутри BuyConveyorUpgrade (через UIManager.ShowNotification)
     }
 
     private void TryHireEngineer()
     {
-        if (!HasRequiredPartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired))
-        {
-            ShowNotification("❌ Недостаточно деталей для найма инженера!");
-            return;
-        }
-
+        // Проверяем только деньги (внутри HireEngineer уже есть проверка SpendMoney)
         economy.HireEngineer();
-        ConsumePartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
         ShowNotification("✅ Инженер нанят!");
+        // Уведомление уже показывается внутри HireEngineer
     }
 
     // ========== КОНЕЦ УЛУЧШЕНИЙ ==========
@@ -651,6 +669,14 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void TryProducePart(PartType type)
+    {
+        int count = 1; // можно сделать выбор количества
+        if (WarehouseManager.Instance.ProduceParts(type, count))
+        {
+            // всё уже обновлено внутри
+        }
+    }
     private void RefreshActionLogs()
     {
         if (actionLogContent == null) return;
@@ -761,15 +787,13 @@ public class UIManager : MonoBehaviour
         if (buyConveyorButton != null)
         {
             int cost = Mathf.RoundToInt((10 + economy.ConveyorLevel * 5) * economy.CostMultiplier);
-            string reqText = $"🔧{conveyorEngineRequired} 🔩{conveyorBodyRequired} ⚙️{conveyorWheelsRequired} 💻{conveyorElectronicsRequired}";
-            buyConveyorButton.text = $"Улучшить конвейер ({cost})\n{reqText}";
+            buyConveyorButton.text = $"Улучшить конвейер (${cost})";
         }
 
         if (hireEngineerButton != null)
         {
             int cost = Mathf.RoundToInt((50 + economy.EngineerCount * 20) * economy.CostMultiplier);
-            string reqText = $"🔧{engineerEngineRequired} 🔩{engineerBodyRequired} ⚙️{engineerWheelsRequired} 💻{engineerElectronicsRequired}";
-            hireEngineerButton.text = $"Нанять инженера ({cost})\n{reqText}";
+            hireEngineerButton.text = $"Нанять инженера (${cost})";
         }
 
         if (buyPartsButton != null)
@@ -1711,6 +1735,12 @@ public class UIManager : MonoBehaviour
             AnimateWindowOpen(carsOverlay);
             demand.UpdateDemand();
             UpdateCarCards();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО МАШИНАМ (только первый раз) ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("cars"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("cars");
+            }
         }
     }
 
@@ -1729,6 +1759,12 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(techOverlay);
             RefreshTechButtons();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО ТЕХНОЛОГИЯМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("tech"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("tech");
+            }
         }
     }
 
@@ -1747,7 +1783,13 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(upgradeOverlay);
             UpdateUpgradeUI();
-            SwitchUpgradeTab(true); // показать вкладку "Завод"
+            SwitchUpgradeTab(true);
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО УЛУЧШЕНИЯМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("upgrade"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("upgrade");
+            }
         }
     }
 
@@ -1784,6 +1826,12 @@ public class UIManager : MonoBehaviour
             AnimateWindowOpen(competitorsOverlay);
             competitor.RefreshCompetitorsList();
             SwitchCompetitorTab(true);
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО КОНКУРЕНТАМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("competitors"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("competitors");
+            }
         }
     }
 
@@ -1803,18 +1851,13 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(marketingOverlay);
             var marketingCtrl = GetComponent<UIMarketingController>();
-            if (marketingCtrl != null)
+            if (marketingCtrl != null) marketingCtrl.RefreshUI();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО МАРКЕТИНГУ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("marketing"))
             {
-                marketingCtrl.RefreshUI();
-                // Обновить деньги в UI (на случай, если они изменились)
-                UpdateMoneyLabels();
+                TutorialManager.Instance.StartModuleTutorial("marketing");
             }
-            else
-                Debug.LogWarning("UIMarketingController не найден на этом объекте");
-        }
-        else
-        {
-            Debug.LogError("MarketingOverlay не найден в UXML!");
         }
     }
 
@@ -2092,38 +2135,7 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Electronics, -req.electronics);
     }
 
-    private void TryProducePart(PartType type)
-    {
-        int count = 1; // можно сделать выбор количества
-        if (warehouse.ProduceParts(type, count))
-        {
-            // всё уже обновлено внутри
-        }
-    }
-
-    public void UpdateWarehouseLabels()
-    {
-        if (CarCompanyManager.Instance == null) return;
-        var warehouse = WarehouseManager.Instance;
-        if (warehouse == null) return;
-        var root = uiDoc?.rootVisualElement;
-        if (root == null) return;
-
-        engineLabel = root.Q<Label>("EngineLabel");
-        bodyLabel = root.Q<Label>("BodyLabel");
-        wheelsLabel = root.Q<Label>("WheelsLabel");
-        electronicsLabel = root.Q<Label>("ElectronicsLabel");
-
-        if (engineLabel != null)
-            engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
-        if (bodyLabel != null)
-            bodyLabel.text = warehouse.GetPartCount(PartType.Body).ToString();
-        if (wheelsLabel != null)
-            wheelsLabel.text = warehouse.GetPartCount(PartType.Wheels).ToString();
-        if (electronicsLabel != null)
-            electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
-    }
-
+    // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК УЛУЧШЕНИЙ ==========
     private void SwitchUpgradeTab(bool showFactory)
     {
         if (upgradeFactoryContent != null)
@@ -2131,5 +2143,4 @@ public class UIManager : MonoBehaviour
         if (upgradePartsContent != null)
             upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
     }
-
 }

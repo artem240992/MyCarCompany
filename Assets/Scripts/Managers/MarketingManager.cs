@@ -60,6 +60,13 @@ public class MarketingManager : MonoBehaviour
         );
         campaign.demandModifier *= effectiveness; // применяем бонус от технологий
 
+        // Проверка, что тип рекламы разблокирован
+        if (!CarCompanyManager.Instance.TechManager.IsAdTypeUnlocked(campaignType))
+        {
+            Debug.LogWarning($"Тип рекламы '{campaignType}' ещё не исследован!");
+            return false;
+        }
+
         activeCampaigns.Add(campaign);
         ApplyCampaignEffect(campaign);
 
