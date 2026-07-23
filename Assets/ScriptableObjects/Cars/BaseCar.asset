@@ -19,10 +19,10 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
   - {fileID: 919132149155446097, guid: 15e3b883b05343c409ed2f085de014a1, type: 3}
   - {fileID: 919132149155446097, guid: 10e7cb01c3556db44a379229e63a357b, type: 3}
-  basePrice: 100
+  basePrice: 250
   productionCost: 50
   demandMultiplier: 1
-  currentLevel: 2
+  currentLevel: 0
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
   levelRecipes:

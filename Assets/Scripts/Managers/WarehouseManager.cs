@@ -78,36 +78,7 @@ public class WarehouseManager : MonoBehaviour
         maxCapacity = 100 * (int)Mathf.Pow(2, warehouseLevel);
     }
 
-
-    // ---- Сохранение/загрузка ----
-    public void FillSaveData(SaveData data)
-    {
-        data.warehouseLevel = warehouseLevel;
-        data.partsInventory = new List<PartSaveData>();
-        foreach (var kvp in partsInventory)
-        {
-            data.partsInventory.Add(new PartSaveData { partType = kvp.Key, amount = kvp.Value });
-        }
-    }
-
-    public void LoadFromSave(SaveData data)
-    {
-        warehouseLevel = data.warehouseLevel;
-        UpdateCapacity();
-        partsInventory.Clear();
-        foreach (PartType type in System.Enum.GetValues(typeof(PartType)))
-            partsInventory[type] = 0;
-        if (data.partsInventory != null)
-        {
-            foreach (var saved in data.partsInventory)
-            {
-                partsInventory[saved.partType] = saved.amount;
-            }
-        }
-    }
-
-    // ========== НОВЫЕ МЕТОДЫ ДЛЯ ПРОИЗВОДСТВА ДЕТАЛЕЙ ==========
-
+    // ---- ПРОИЗВОДСТВО ДЕТАЛЕЙ ----
     public bool ProduceParts(PartType type, int count)
     {
         if (!IsPartProductionUnlocked(type)) 
@@ -116,7 +87,6 @@ public class WarehouseManager : MonoBehaviour
             return false;
         }
 
-        // Стоимость производства: например, $10 * count, требует 1 инженера и 1 уровень конвейера
         int cost = 10 * count;
         var economy = CarCompanyManager.Instance.EconomyManager;
         if (economy.Money < cost)
@@ -154,6 +124,61 @@ public class WarehouseManager : MonoBehaviour
             _ => ""
         };
         return CarCompanyManager.Instance.TechManager.IsTechResearched(techName);
+    }
+
+    // ---- ПРОДАЖА ДЕТАЛЕЙ ----
+    public bool SellParts(PartType type, int count, float pricePerUnit)
+    {
+        if (!HasParts(type, count)) return false;
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        double total = count * pricePerUnit;
+        economy.AddMoney(total);
+        RemoveParts(type, count);
+        UIManager.Instance?.UpdateMoneyLabels();
+        UIManager.Instance?.UpdateWarehouseLabels();
+        UIManager.Instance?.ShowNotification($"Продано {count} {type} за ${total:F0}");
+        return true;
+    }
+
+    public float GetMarketPrice(PartType type)
+    {
+        float basePrice = type switch
+        {
+            PartType.Engine => 30f,
+            PartType.Body => 25f,
+            PartType.Wheels => 20f,
+            PartType.Electronics => 35f,
+            _ => 20f
+        };
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        return basePrice * economy.TotalPriceModifier;
+    }
+
+    // ---- СОХРАНЕНИЕ/ЗАГРУЗКА ----
+    public void FillSaveData(SaveData data)
+    {
+        data.warehouseLevel = warehouseLevel;
+        data.partsInventory = new List<PartSaveData>();
+        foreach (var kvp in partsInventory)
+        {
+            data.partsInventory.Add(new PartSaveData { partType = kvp.Key, amount = kvp.Value });
+        }
+    }
+
+    public void LoadFromSave(SaveData data)
+    {
+        warehouseLevel = data.warehouseLevel;
+        UpdateCapacity();
+        partsInventory.Clear();
+        foreach (PartType type in System.Enum.GetValues(typeof(PartType)))
+            partsInventory[type] = 0;
+        if (data.partsInventory != null)
+        {
+            foreach (var saved in data.partsInventory)
+            {
+                partsInventory[saved.partType] = saved.amount;
+            }
+        }
     }
 }
 

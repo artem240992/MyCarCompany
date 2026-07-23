@@ -271,10 +271,14 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenCompetitorsButton", OpenCompetitorsWindow);
         SubscribeButton("OpenAchievementsButton", OpenAchievementsWindow);
         SubscribeButton("CloseCarsButton", CloseCarsWindow);
+        SubscribeButton("SellEngineButton", () => TrySellPart(PartType.Engine));
         SubscribeButton("CloseTechButton", CloseTechWindow);
         SubscribeButton("CloseUpgradeButton", CloseUpgradeWindow);
         SubscribeButton("CloseSettingsButton", CloseSettingsWindow);
         SubscribeButton("CloseCompetitorsButton", CloseCompetitorsWindow);
+        SubscribeButton("SaveSlot1", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(0));
+        SubscribeButton("SaveSlot2", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(1));
+        SubscribeButton("SaveSlot3", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(2));
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
@@ -2139,4 +2143,26 @@ public class UIManager : MonoBehaviour
         if (upgradePartsContent != null)
             upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
     }
+
+    private void TrySellPart(PartType type)
+    {
+        int count = 1; // или можно сделать слайдер
+        float price = GetMarketPrice(type); // определяем цену в зависимости от типа
+        WarehouseManager.Instance.SellParts(type, count, price);
+    }
+
+    private float GetMarketPrice(PartType type)
+    {
+        // Базовая цена + модификаторы (спрос, инфляция)
+        float basePrice = type switch
+        {
+            PartType.Engine => 30f,
+            PartType.Body => 25f,
+            PartType.Wheels => 20f,
+            PartType.Electronics => 35f,
+            _ => 20f
+        };
+        return basePrice * economy.TotalPriceModifier;
+    }
+
 }

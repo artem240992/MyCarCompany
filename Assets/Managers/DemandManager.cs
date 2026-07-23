@@ -13,6 +13,7 @@ public class DemandManager : MonoBehaviour
     private UIManager ui => CarCompanyManager.Instance.UIManager;
 
     // ---- Штрафы от конкурентов (временные) ----
+    [System.NonSerialized]
     public Dictionary<string, float> demandPenalties = new Dictionary<string, float>();
     private Dictionary<string, Coroutine> penaltyCoroutines = new Dictionary<string, Coroutine>();
 

@@ -2,9 +2,6 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections;
 
-using UnityEngine;
-using UnityEngine.UIElements;
-using System.Collections;
 
 public class CarCompanyManager : MonoBehaviour
 {
