@@ -130,6 +130,14 @@ public class UIMarketingController : MonoBehaviour
 
     private void SetupCampaignsListView()
     {
+        if (MarketingManager.Instance == null) return;
+        if (CarCompanyManager.Instance?.TechManager == null) 
+        {
+            Debug.LogWarning("TechManager ещё не инициализирован, пропускаем обновление бренда");
+            return;
+        }
+        
+        MarketingManager.Instance.UpdateBrandQuality();
         if (activeCampaignsList == null) return;
 
         activeCampaignsList.makeItem = () =>

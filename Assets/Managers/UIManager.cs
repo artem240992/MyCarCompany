@@ -7,10 +7,6 @@ using System.Linq;
 
 public class UIManager : MonoBehaviour
 {
-    private Button upgradeTabFactoryButton;
-    private Button upgradeTabPartsButton;
-    private VisualElement upgradeFactoryContent;
-    private VisualElement upgradePartsContent;
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;

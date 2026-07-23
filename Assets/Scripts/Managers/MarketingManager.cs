@@ -128,7 +128,14 @@ public class MarketingManager : MonoBehaviour
         float baseQuality = 50f;
         float campaignBoost = activeCampaigns.Count * 2f;
         float reputationBoost = CarCompanyManager.Instance.EconomyManager.Reputation / 5f;
-        float techBoost = CarCompanyManager.Instance.TechManager.Technologies.Count(t => t.isResearched) * 0.2f;
+        
+        // ---- ЗАЩИТА ОТ NULL ----
+        var techManager = CarCompanyManager.Instance.TechManager;
+        int researchedTechCount = (techManager != null && techManager.Technologies != null) 
+            ? techManager.Technologies.Count(t => t.isResearched) 
+            : 0;
+        float techBoost = researchedTechCount * 0.2f;
+        
         brandQuality = Mathf.Clamp(baseQuality + campaignBoost + reputationBoost + techBoost, 0f, 100f);
     }
 
