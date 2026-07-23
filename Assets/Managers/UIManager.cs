@@ -45,7 +45,7 @@ public class UIManager : MonoBehaviour
     private ScrollView achievementsContainer;
     private Button closeAchievementsButton;
 
-    // ---- МАРКЕТИНГ (НОВОЕ) ----
+    // ---- МАРКЕТИНГ ----
     private VisualElement marketingOverlay;
 
     // ---- Вкладки конкурентов ----
@@ -65,6 +65,12 @@ public class UIManager : MonoBehaviour
     private Button buyConveyorButton;
     private Button hireEngineerButton;
     private Button buyPartsButton;
+
+    // ---- НОВЫЕ ПОЛЯ ДЛЯ ВКЛАДОК УЛУЧШЕНИЙ ----
+    private Button upgradeTabFactoryButton;
+    private Button upgradeTabPartsButton;
+    private VisualElement upgradeFactoryContent;
+    private VisualElement upgradePartsContent;
 
     // ---- Требования по деталям для улучшений (назначаются в инспекторе) ----
     [Header("Требования для улучшения конвейера")]
@@ -232,8 +238,14 @@ public class UIManager : MonoBehaviour
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
-        // ---- МАРКЕТИНГ (НОВОЕ) ----
+        // ---- МАРКЕТИНГ ----
         marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
+
+        // ---- НАХОДИМ ЭЛЕМЕНТЫ ВКЛАДОК УЛУЧШЕНИЙ ----
+        upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
+        upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
+        upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
+        upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
@@ -300,8 +312,11 @@ public class UIManager : MonoBehaviour
         if (increaseCountBtn != null) increaseCountBtn.clicked += production.IncreaseCount;
         if (buyPartsButton != null) buyPartsButton.clicked += TryBuyParts;
 
-        // ---- ПОДПИСКА НА КНОПКУ МАРКЕТИНГА (НОВОЕ) ----
-        SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
+        // ---- Подписка кнопок вкладок улучшений ----
+        if (upgradeTabFactoryButton != null)
+            upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
+        if (upgradeTabPartsButton != null)
+            upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
         HideAllOverlays();
         UpdateMoneyLabels();
@@ -423,7 +438,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ---- Обновление лейблов склада ----
-    private void UpdateWarehouseLabels()
+    public void UpdateWarehouseLabels()
     {
         if (warehouse == null) return;
         if (engineLabel != null)
@@ -1708,6 +1723,12 @@ public class UIManager : MonoBehaviour
             AnimateWindowOpen(carsOverlay);
             demand.UpdateDemand();
             UpdateCarCards();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО МАШИНАМ (только первый раз) ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("cars"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("cars");
+            }
         }
     }
 
@@ -1726,6 +1747,12 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(techOverlay);
             RefreshTechButtons();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО ТЕХНОЛОГИЯМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("tech"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("tech");
+            }
         }
     }
 
@@ -1744,6 +1771,13 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(upgradeOverlay);
             UpdateUpgradeUI();
+            SwitchUpgradeTab(true);
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО УЛУЧШЕНИЯМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("upgrade"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("upgrade");
+            }
         }
     }
 
@@ -1780,6 +1814,12 @@ public class UIManager : MonoBehaviour
             AnimateWindowOpen(competitorsOverlay);
             competitor.RefreshCompetitorsList();
             SwitchCompetitorTab(true);
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО КОНКУРЕНТАМ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("competitors"))
+            {
+                TutorialManager.Instance.StartModuleTutorial("competitors");
+            }
         }
     }
 
@@ -1799,18 +1839,13 @@ public class UIManager : MonoBehaviour
             mainPanel.style.display = DisplayStyle.None;
             AnimateWindowOpen(marketingOverlay);
             var marketingCtrl = GetComponent<UIMarketingController>();
-            if (marketingCtrl != null)
+            if (marketingCtrl != null) marketingCtrl.RefreshUI();
+
+            // ---- ЗАПУСК ТУТОРИАЛА ПО МАРКЕТИНГУ ----
+            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("marketing"))
             {
-                marketingCtrl.RefreshUI();
-                // Обновить деньги в UI (на случай, если они изменились)
-                UpdateMoneyLabels();
+                TutorialManager.Instance.StartModuleTutorial("marketing");
             }
-            else
-                Debug.LogWarning("UIMarketingController не найден на этом объекте");
-        }
-        else
-        {
-            Debug.LogError("MarketingOverlay не найден в UXML!");
         }
     }
 
@@ -2088,4 +2123,12 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Electronics, -req.electronics);
     }
 
+    // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК УЛУЧШЕНИЙ ==========
+    private void SwitchUpgradeTab(bool showFactory)
+    {
+        if (upgradeFactoryContent != null)
+            upgradeFactoryContent.style.display = showFactory ? DisplayStyle.Flex : DisplayStyle.None;
+        if (upgradePartsContent != null)
+            upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
+    }
 }

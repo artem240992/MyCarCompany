@@ -3,7 +3,13 @@ using System.IO;
 
 public class SaveLoadManager : MonoBehaviour
 {
+    private SaveData currentSaveData; // поле для хранения загруженных данных
     private string savePath => Application.persistentDataPath + "/save.json";
+    
+    public SaveData GetCurrentSaveData()
+    {
+        return currentSaveData;
+    }
 
     public void Initialize() { }
 
@@ -55,6 +61,9 @@ public class SaveLoadManager : MonoBehaviour
             return;
         }
 
+        // ---- СОХРАНЯЕМ ТЕКУЩИЕ ДАННЫЕ ----
+        currentSaveData = data; // <-- ДОБАВИТЬ
+
         CarCompanyManager.Instance.CompetitorManager.Initialize();
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);
@@ -65,11 +74,11 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.LoadFromSave(data);
         CarCompanyManager.Instance.AchievementManager.LoadFromSave(data);
 
-        // ---- НОВЫЕ МЕНЕДЖЕРЫ ----
         CarCompanyManager.Instance.WarehouseManager.LoadFromSave(data);
         CarCompanyManager.Instance.PartsMarketManager.LoadFromSave(data);
 
-        TutorialManager.Instance?.LoadProgress(data.tutorialProgress);
+        // ---- УДАЛИТЬ ЭТУ СТРОКУ ----
+        // TutorialManager.Instance?.LoadProgress(data.tutorialProgress);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null && data.difficulty >= 0 && data.difficulty <= 2)
@@ -89,6 +98,9 @@ public class SaveLoadManager : MonoBehaviour
         if (File.Exists(savePath))
             File.Delete(savePath);
 
+        // ---- СОЗДАЁМ НОВЫЙ ОБЪЕКТ СОХРАНЕНИЯ ----
+        currentSaveData = new SaveData();
+
         CarCompanyManager.Instance.EconomyManager.ResetState();
         CarCompanyManager.Instance.TechManager.ResetTechs();
 
@@ -104,7 +116,9 @@ public class SaveLoadManager : MonoBehaviour
         ui.ShowWelcomeScreen();
         ui.UpdateMoneyLabels();
         ui.UpdateDateTimeDisplay();
+        TutorialManager.Instance?.ResetProgress(); // можно убрать дублирование
 
         Debug.Log("Новая игра начата");
     }
+    
 }
