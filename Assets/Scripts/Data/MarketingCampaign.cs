@@ -13,7 +13,7 @@ public class MarketingCampaign
     public float demandModifier;
     public bool isActive;
 
-    // ПУСТОЙ КОНСТРУКТОР – ОБЯЗАТЕЛЕН ДЛЯ СЕРИАЛИЗАЦИИ
+    // Пустой конструктор – обязателен для сериализации
     public MarketingCampaign() { }
 
     public MarketingCampaign(string name, string car, string type, int months, float budget)
