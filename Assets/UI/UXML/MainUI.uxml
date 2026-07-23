@@ -4,69 +4,80 @@
         <ui:VisualElement name="MainPanel" class="main-panel">
             <ui:VisualElement class="top-bar">
                 <ui:VisualElement class="resource-block money-block">
-                    <ui:Label text="💰" class="resource-icon"/>
+                    <ui:Label text="💰" class="resource-icon" tooltip="Текущий баланс денег"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="MoneyLabel" class="resource-value"/>
+                        <ui:Label text="" name="MoneyLabel" class="resource-value" tooltip="Текущий баланс денег"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block reputation-block">
-                    <ui:Label text="⭐" class="resource-icon" />
+                    <ui:Label text="⭐" class="resource-icon" tooltip="Репутация компании"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="ReputationLabel" class="resource-value" />
+                        <ui:Label text="" name="ReputationLabel" class="resource-value" tooltip="Репутация компании"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block auto-block">
-                    <ui:Label text="🚗" class="resource-icon"/>
+                    <ui:Label text="🚗" class="resource-icon" tooltip="Количество автомобилей, производимых в секунду"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="IncomeLabel" class="resource-value"/>
+                        <ui:Label text="" name="IncomeLabel" class="resource-value" tooltip="Количество автомобилей, производимых в секунду"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <!-- Детали склада -->
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="🔧" class="resource-icon" tooltip="Двигатели на складе"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="EngineLabel" class="resource-value" tooltip="Двигатели на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block parts-block">
-                    <ui:Label text="🔧" class="resource-icon"/>
+                    <ui:Label text="🔩" class="resource-icon" tooltip="Кузова на складе"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="EngineLabel" class="resource-value"/>
+                        <ui:Label text="" name="BodyLabel" class="resource-value" tooltip="Кузова на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block parts-block">
-                    <ui:Label text="🔩" class="resource-icon"/>
+                    <ui:Label text="⚙️" class="resource-icon" tooltip="Колёса на складе"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="BodyLabel" class="resource-value"/>
+                        <ui:Label text="" name="WheelsLabel" class="resource-value" tooltip="Колёса на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block parts-block">
-                    <ui:Label text="⚙️" class="resource-icon"/>
+                    <ui:Label text="💻" class="resource-icon" tooltip="Электроника на складе"/>
                     <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="WheelsLabel" class="resource-value"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-                <ui:VisualElement class="resource-block parts-block">
-                    <ui:Label text="💻" class="resource-icon"/>
-                    <ui:VisualElement class="resource-info">
-                        <ui:Label text="" name="ElectronicsLabel" class="resource-value"/>
+                        <ui:Label text="" name="ElectronicsLabel" class="resource-value" tooltip="Электроника на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="top-right">
-                    <ui:Label text="" name="SavedDifficultyLabel" class="difficulty-display top-label"/>
-                    <ui:Label text="" name="DateLabel" class="date-display top-label" />
-                    <ui:Label text="" name="SeasonLabel" class="season-display top-label" />
-                    <ui:Label text="" name="InflationLabel" class="inflation-display top-label" />
+                    <ui:Label text="" name="SavedDifficultyLabel" class="difficulty-display top-label" tooltip="Текущий уровень сложности"/>
+                    <ui:Label text="" name="DateLabel" class="date-display top-label" tooltip="Текущая игровая дата"/>
+                    <ui:Label text="" name="SeasonLabel" class="season-display top-label" tooltip="Текущий сезон (влияет на спрос)"/>
+                    <ui:Label text="" name="InflationLabel" class="inflation-display top-label" tooltip="Текущий уровень инфляции"/>
                     <ui:VisualElement class="hamburger-wrapper">
-                        <ui:Button text="☰" name="HamburgerButton" class="hamburger"/>
+                        <ui:Button text="☰" name="HamburgerButton" class="hamburger" tooltip="Открыть/закрыть главное меню"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:Button text="Произвести авто" name="ProduceButton" class="produce-button"/>
+            <ui:Button text="Произвести авто" name="ProduceButton" class="produce-button" tooltip="Произвести одну базовую машину"/>
             <ui:VisualElement name="MenuContainer" class="menu-container">
-                <ui:Button text="Маркетинг" name="OpenMarketingButton" class="menu-button"/>
-                <ui:Button text="Машины" name="OpenCarsButton" class="menu-button"/>
-                <ui:Button text="Технологии" name="OpenTechButton" class="menu-button"/>
-                <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button"/>
-                <ui:Button text="Настройки" name="OpenSettingsButton" class="menu-button"/>
-                <ui:Button text="Сохранить" name="SaveButton" class="menu-button"/>
-                <ui:Button text="Загрузить" name="LoadButton" class="menu-button"/>
-                <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last"/>
-                <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button"/>
-                <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button"/>
+                <!-- Основные кнопки меню -->
+                <ui:Button text="Маркетинг" name="OpenMarketingButton" class="menu-button" tooltip="Открыть окно маркетинговых кампаний"/>
+                <ui:Button text="Машины" name="OpenCarsButton" class="menu-button" tooltip="Открыть окно производства машин"/>
+                <ui:Button text="Технологии" name="OpenTechButton" class="menu-button" tooltip="Открыть дерево технологий"/>
+                <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button" tooltip="Открыть окно улучшений завода"/>
+                <ui:Button text="Настройки" name="OpenSettingsButton" class="menu-button" tooltip="Открыть настройки сложности"/>
+                <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button" tooltip="Открыть окно достижений"/>
+                <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button" tooltip="Открыть окно конкурентов"/>
+                <!-- Кнопки сохранения слотов -->
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 4px; margin-top: 8px; border-top-width: 1px; border-top-color: #444; padding-top: 6px;">
+                    <ui:Button text="💾 Слот 1" name="SaveSlot1" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 1"/>
+                    <ui:Button text="💾 Слот 2" name="SaveSlot2" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 2"/>
+                    <ui:Button text="💾 Слот 3" name="SaveSlot3" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 3"/>
+                    <ui:Button text="📂 Слот 1" name="LoadSlot1" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 1"/>
+                    <ui:Button text="📂 Слот 2" name="LoadSlot2" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 2"/>
+                    <ui:Button text="📂 Слот 3" name="LoadSlot3" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 3"/>
+                </ui:VisualElement>
+                <ui:Button text="Сохранить" name="SaveButton" class="menu-button" tooltip="Сохранить игру (текущий слот)"/>
+                <ui:Button text="Загрузить" name="LoadButton" class="menu-button" tooltip="Загрузить игру (текущий слот)"/>
+                <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last" tooltip="Начать новую игру (текущий слот будет перезаписан)"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
@@ -74,11 +85,11 @@
     <!-- Welcome -->
     <ui:VisualElement name="WelcomeOverlay" class="overlay">
         <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
-            <ui:Label text="Выберите сложность" class="welcome-title"/>
+            <ui:Label text="Выберите сложность" class="welcome-title" tooltip="Выберите уровень сложности для начала игры"/>
             <ui:Label text="Установите уровень сложности для начала игры:" class="welcome-subtitle"/>
-            <ui:Button text="Easy" name="WelcomeEasyButton" class="difficulty-button"/>
-            <ui:Button text="Normal" name="WelcomeNormalButton" class="difficulty-button"/>
-            <ui:Button text="Hard" name="WelcomeHardButton" class="difficulty-button difficulty-button-last"/>
+            <ui:Button text="Easy" name="WelcomeEasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
+            <ui:Button text="Normal" name="WelcomeNormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
+            <ui:Button text="Hard" name="WelcomeHardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -86,14 +97,14 @@
     <ui:VisualElement name="CarsOverlay" class="overlay">
         <ui:VisualElement name="CarsWindow" style="width: 90%; max-width: 900px; height: 90%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 15px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Производство машин" style="font-size: 20px; color: white;"/>
-                <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+                <ui:Label text="Производство машин" style="font-size: 20px; color: white;" tooltip="Окно производства автомобилей"/>
+                <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px; flex-shrink: 0;">
                 <ui:Label text="" style="color: white; margin-right: 10px; font-size: 14px;"/>
-                <ui:Button text="-" name="DecreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
-                <ui:Label text="" name="CountLabel" style="color: white; font-size: 18px; min-width: 30px; text-align: center;"/>
-                <ui:Button text="+" name="IncreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;"/>
+                <ui:Button text="-" name="DecreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;" tooltip="Уменьшить количество машин для производства"/>
+                <ui:Label text="" name="CountLabel" style="color: white; font-size: 18px; min-width: 30px; text-align: center;" tooltip="Количество машин в очереди"/>
+                <ui:Button text="+" name="IncreaseCountButton" style="width: 28px; height: 28px; font-size: 16px;" tooltip="Увеличить количество машин для производства"/>
             </ui:VisualElement>
             <ui:ScrollView name="CarsContainer" style="flex-grow: 1; flex-shrink: 1; min-height: 200px;"/>
         </ui:VisualElement>
@@ -103,45 +114,59 @@
     <ui:VisualElement name="TechOverlay" class="overlay">
         <ui:VisualElement name="TechWindow" style="width: 95%; max-width: 1200px; height: 80%; max-height: 700px; min-height: 300px; background-color: rgb(40, 40, 40); padding: 8px 16px 12px 16px; border-radius: 10px; flex-direction: column; align-self: center;">
             <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 4px; flex-shrink: 0;">
-                <ui:Label text="Дерево технологий" style="font-size: 18px; color: white; flex-grow: 1; -unity-text-align: middle-center;"/>
-                <ui:Button text="✕" name="CloseTechButton" style="font-size: 18px; background-color: transparent; border-width: 0; color: white; padding: 0; margin-left: 8px; flex-shrink: 0; width: 28px; height: 28px;"/>
+                <ui:Label text="Дерево технологий" style="font-size: 18px; color: white; flex-grow: 1; -unity-text-align: middle-center;" tooltip="Исследуйте технологии для улучшения производства и открытия новых возможностей"/>
+                <ui:Button text="✕" name="CloseTechButton" style="font-size: 18px; background-color: transparent; border-width: 0; color: white; padding: 0; margin-left: 8px; flex-shrink: 0; width: 28px; height: 28px;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:ScrollView name="TechContainer" vertical-scroller-visibility="Auto" style="flex-grow: 1; flex-shrink: 1; min-height: 80px; margin-top: 0;"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- Улучшения завода -->
+    <!-- Улучшения завода (с продажей деталей) -->
     <ui:VisualElement name="UpgradeOverlay" class="overlay">
         <ui:VisualElement name="UpgradeWindow" style="width: 90%; max-width: 600px; height: 85%; max-height: 700px; background-color: rgb(40, 40, 40); padding: 16px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Улучшения завода" style="font-size: 20px; color: white;"/>
-                <ui:Button text="✕" name="CloseUpgradeButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+                <ui:Label text="Улучшения завода" style="font-size: 20px; color: white;" tooltip="Улучшайте завод, нанимайте инженеров, управляйте деталями"/>
+                <ui:Button text="✕" name="CloseUpgradeButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
 
             <ui:VisualElement style="flex-direction: row; margin-bottom: 8px; flex-shrink: 0;">
-                <ui:Button text="Завод" name="UpgradeTabFactoryButton" class="tab-button" style="flex-grow: 1;"/>
-                <ui:Button text="Детали" name="UpgradeTabPartsButton" class="tab-button" style="flex-grow: 1;"/>
+                <ui:Button text="Завод" name="UpgradeTabFactoryButton" class="tab-button" style="flex-grow: 1;" tooltip="Управление заводом и инженерами"/>
+                <ui:Button text="Детали" name="UpgradeTabPartsButton" class="tab-button" style="flex-grow: 1;" tooltip="Производство и продажа деталей"/>
             </ui:VisualElement>
 
             <ui:ScrollView name="UpgradeScrollView" style="flex-grow: 1; min-height: 100px;">
+                <!-- Вкладка "Завод" -->
                 <ui:VisualElement name="UpgradeFactoryContent" style="flex-direction: column;">
-                    <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label" style="font-size: 16px;"/>
-                    <ui:Button text="" name="BuyConveyorButton" class="upgrade-button" style="margin-bottom: 8px;"/>
-                    <ui:Label text="" name="EngineerCountLabel" class="upgrade-label" style="font-size: 16px;"/>
-                    <ui:Button text="" name="HireEngineerButton" class="upgrade-button" style="margin-bottom: 8px;"/>
-                    <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button" style="margin-bottom: 8px;"/>
+                    <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label" style="font-size: 16px;" tooltip="Текущий уровень конвейера (влияет на пассивный доход)"/>
+                    <ui:Button text="" name="BuyConveyorButton" class="upgrade-button" style="margin-bottom: 8px;" tooltip="Улучшить конвейер за деньги"/>
+                    <ui:Label text="" name="EngineerCountLabel" class="upgrade-label" style="font-size: 16px;" tooltip="Количество инженеров (ускоряет производство и исследования)"/>
+                    <ui:Button text="" name="HireEngineerButton" class="upgrade-button" style="margin-bottom: 8px;" tooltip="Нанять инженера за деньги"/>
+                    <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button" style="margin-bottom: 8px;" tooltip="Купить по 1 детали каждого типа на рынке"/>
                 </ui:VisualElement>
 
+                <!-- Вкладка "Детали" (производство + продажа) -->
                 <ui:VisualElement name="UpgradePartsContent" style="flex-direction: column; display: none;">
-                    <ui:Label text="Производство деталей" style="color: white; font-size: 16px; margin-bottom: 6px;"/>
+                    <ui:Label text="Производство деталей" style="color: white; font-size: 16px; margin-bottom: 6px;" tooltip="Производите детали на складе (требует инженера и конвейера)"/>
                     <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 6px;">
-                        <ui:Button text="🔧 Двигатель" name="ProduceEngineButton" style="flex-grow: 1; min-width: 80px;"/>
-                        <ui:Button text="🔩 Кузов" name="ProduceBodyButton" style="flex-grow: 1; min-width: 80px;"/>
-                        <ui:Button text="⚙️ Колёса" name="ProduceWheelsButton" style="flex-grow: 1; min-width: 80px;"/>
-                        <ui:Button text="💻 Электроника" name="ProduceElectronicsButton" style="flex-grow: 1; min-width: 80px;"/>
+                        <ui:Button text="🔧 Двигатель" name="ProduceEngineButton" style="flex-grow: 1; min-width: 80px;" tooltip="Произвести 1 двигатель"/>
+                        <ui:Button text="🔩 Кузов" name="ProduceBodyButton" style="flex-grow: 1; min-width: 80px;" tooltip="Произвести 1 кузов"/>
+                        <ui:Button text="⚙️ Колёса" name="ProduceWheelsButton" style="flex-grow: 1; min-width: 80px;" tooltip="Произвести 1 комплект колёс"/>
+                        <ui:Button text="💻 Электроника" name="ProduceElectronicsButton" style="flex-grow: 1; min-width: 80px;" tooltip="Произвести 1 электронику"/>
                     </ui:VisualElement>
-                    <ui:Label text="" name="PartsProductionInfo" style="color: #aaa; font-size: 12px; margin-top: 8px;">
+                    <ui:Label text="" name="PartsProductionInfo" style="color: #aaa; font-size: 12px; margin-top: 4px;" tooltip="Условия производства">
                         Требуется: 1 инженер, 1 уровень конвейера, $10 за деталь
+                    </ui:Label>
+
+                    <ui:VisualElement style="height: 2px; background-color: #555; margin: 8px 0;"/>
+                    <ui:Label text="Продажа деталей" style="color: white; font-size: 16px; margin-bottom: 6px;" tooltip="Продавайте детали на рынке по текущей рыночной цене"/>
+                    <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 6px;">
+                        <ui:Button text="💰 Продать 🔧" name="SellEngineButton" style="flex-grow: 1; min-width: 80px; background-color: #2a6a2a;" tooltip="Продать 1 двигатель"/>
+                        <ui:Button text="💰 Продать 🔩" name="SellBodyButton" style="flex-grow: 1; min-width: 80px; background-color: #2a6a2a;" tooltip="Продать 1 кузов"/>
+                        <ui:Button text="💰 Продать ⚙️" name="SellWheelsButton" style="flex-grow: 1; min-width: 80px; background-color: #2a6a2a;" tooltip="Продать 1 комплект колёс"/>
+                        <ui:Button text="💰 Продать 💻" name="SellElectronicsButton" style="flex-grow: 1; min-width: 80px; background-color: #2a6a2a;" tooltip="Продать 1 электронику"/>
+                    </ui:VisualElement>
+                    <ui:Label text="" name="PartsSellInfo" style="color: #aaa; font-size: 12px; margin-top: 4px;" tooltip="Цена зависит от рыночного спроса и инфляции">
+                        Цена зависит от рыночного спроса и инфляции
                     </ui:Label>
                 </ui:VisualElement>
             </ui:ScrollView>
@@ -152,13 +177,13 @@
     <ui:VisualElement name="SettingsOverlay" class="overlay">
         <ui:VisualElement name="SettingsWindow" class="window settings-window">
             <ui:VisualElement class="window-header">
-                <ui:Label text="Настройки сложности" class="window-title"/>
-                <ui:Button text="✕" name="CloseSettingsButton" class="close-button"/>
+                <ui:Label text="Настройки сложности" class="window-title" tooltip="Измените сложность игры (применится после перезагрузки)"/>
+                <ui:Button text="✕" name="CloseSettingsButton" class="close-button" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
-            <ui:Button text="Easy" name="EasyButton" class="difficulty-button"/>
-            <ui:Button text="Normal" name="NormalButton" class="difficulty-button"/>
-            <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last"/>
+            <ui:Button text="Easy" name="EasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
+            <ui:Button text="Normal" name="NormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
+            <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -166,16 +191,16 @@
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
         <ui:VisualElement name="CompetitorsWindow" style="width: 90%; max-width: 1200px; height: 85%; max-height: 800px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Конкуренты" style="font-size: 20px; color: white;"/>
-                <ui:Button text="✕" name="CloseCompetitorsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+                <ui:Label text="Конкуренты" style="font-size: 20px; color: white;" tooltip="Информация о конкурентах и журнал их действий"/>
+                <ui:Button text="✕" name="CloseCompetitorsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:VisualElement style="flex-direction: row; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Button text="Список конкурентов" name="CompetitorsTabButton" class="tab-button" style="flex-grow: 1;"/>
-                <ui:Button text="Журнал действий" name="ActionLogTabButton" class="tab-button" style="flex-grow: 1;"/>
+                <ui:Button text="Список конкурентов" name="CompetitorsTabButton" class="tab-button" style="flex-grow: 1;" tooltip="Показать список конкурентов"/>
+                <ui:Button text="Журнал действий" name="ActionLogTabButton" class="tab-button" style="flex-grow: 1;" tooltip="Показать журнал действий конкурентов"/>
             </ui:VisualElement>
             <ui:VisualElement name="CompetitorsContent" style="flex-grow: 1; min-height: 200px;" />
             <ui:VisualElement name="ActionLogContent" style="flex-grow: 1; min-height: 200px; display: none;" />
-            <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0; align-self: center; width: 120px;"/>
+            <ui:Button text="Обновить" name="RefreshCompetitorsButton" style="margin-top: 10px; flex-shrink: 0; align-self: center; width: 120px;" tooltip="Обновить данные и выполнить выбранные действия"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -183,48 +208,65 @@
     <ui:VisualElement name="AchievementsOverlay" class="overlay">
         <ui:VisualElement name="AchievementsWindow" style="width: 80%; max-width: 800px; height: 80%; max-height: 700px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Достижения" style="font-size: 20px; color: white;"/>
-                <ui:Button text="✕" name="CloseAchievementsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+                <ui:Label text="Достижения" style="font-size: 20px; color: white;" tooltip="Список достижений и прогресс"/>
+                <ui:Button text="✕" name="CloseAchievementsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:ScrollView name="AchievementsContainer" style="flex-grow: 1; padding: 10px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- Маркетинг -->
+    <!-- Маркетинг (с фильтрами, сортировкой и статистикой) -->
     <ui:VisualElement name="MarketingOverlay" class="overlay">
         <ui:VisualElement name="MarketingWindow" style="width: 90%; max-width: 900px; height: 85%; max-height: 700px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Маркетинговые кампании" style="font-size: 20px; color: white;"/>
-                <ui:Button text="✕" name="CloseMarketingButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+                <ui:Label text="Маркетинговые кампании" style="font-size: 20px; color: white;" tooltip="Управляйте рекламными кампаниями и отслеживайте их эффективность"/>
+                <ui:Button text="✕" name="CloseMarketingButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             
+            <!-- Бренд -->
             <ui:VisualElement style="flex-direction: row; margin-bottom: 12px; flex-shrink: 0;">
-                <ui:Label name="BrandQualityLabel" text="Качество бренда: 50.0 / 100" style="color: #ffd700; font-size: 16px; margin-right: 30px;"/>
-                <ui:Label name="BrandModifierLabel" text="Модификатор спроса: 1.00x" style="color: #00d4ff; font-size: 16px;"/>
+                <ui:Label name="BrandQualityLabel" text="Качество бренда: 50.0 / 100" style="color: #ffd700; font-size: 16px; margin-right: 30px;" tooltip="Качество бренда (влияет на общий спрос)"/>
+                <ui:Label name="BrandModifierLabel" text="Модификатор спроса: 1.00x" style="color: #00d4ff; font-size: 16px;" tooltip="Текущий модификатор спроса от бренда"/>
             </ui:VisualElement>
 
-            <ui:Label text="Активные кампании" style="color: white; font-size: 16px; margin-bottom: 4px; flex-shrink: 0;"/>
-            <ui:ListView name="ActiveCampaignsList" style="flex-grow: 1; min-height: 100px; background-color: rgba(0,0,0,0.3); border-width: 1px; border-color: #555;"/>
+            <!-- Фильтры, сортировка и статистика -->
+            <ui:VisualElement style="flex-direction: column; margin-bottom: 8px; flex-shrink: 0;">
+                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    <ui:Label text="Статус:" style="color: #ccc;" tooltip="Фильтр по статусу кампании"/>
+                    <ui:DropdownField name="FilterStatusDropdown" style="width: 120px;" tooltip="Выберите статус кампании для отображения"/>
+                    <ui:Label text="Тип:" style="color: #ccc; margin-left: 10px;" tooltip="Фильтр по типу рекламы"/>
+                    <ui:DropdownField name="FilterTypeDropdown" style="width: 120px;" tooltip="Выберите тип рекламы для отображения"/>
+                    <ui:Label text="Сортировка:" style="color: #ccc; margin-left: 10px;" tooltip="Сортировка кампаний"/>
+                    <ui:DropdownField name="SortDropdown" style="width: 150px;" tooltip="Выберите параметр для сортировки"/>
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; gap: 20px; margin-top: 4px;">
+                    <ui:Label name="TotalSpentLabel" text="Всего потрачено: $0" style="color: #ffd700; font-size: 13px;" tooltip="Общая сумма, потраченная на все кампании"/>
+                    <ui:Label name="TotalProfitLabel" text="Оценочная прибыль: $0" style="color: #4caf50; font-size: 13px;" tooltip="Оценочная прибыль от маркетинговых кампаний"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label text="Активные кампании" style="color: white; font-size: 16px; margin-bottom: 4px; flex-shrink: 0;" tooltip="Список текущих активных кампаний"/>
+            <ui:ListView name="ActiveCampaignsList" style="flex-grow: 1; min-height: 100px; background-color: rgba(0,0,0,0.3); border-width: 1px; border-color: #555;" />
 
             <ui:VisualElement style="height: 2px; background-color: #555; margin: 10px 0; flex-shrink: 0;"/>
 
-            <ui:Label text="Запустить новую кампанию" style="color: white; font-size: 16px; margin-bottom: 6px; flex-shrink: 0;"/>
+            <ui:Label text="Запустить новую кампанию" style="color: white; font-size: 16px; margin-bottom: 6px; flex-shrink: 0;" tooltip="Создайте новую рекламную кампанию"/>
             <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; align-items: center; flex-shrink: 0;">
-                <ui:Label text="Машина:" style="color: #ccc; width: 60px;"/>
-                <ui:DropdownField name="CarDropdown" style="width: 130px; margin-right: 15px;"/>
-                <ui:Label text="Тип:" style="color: #ccc; width: 40px;"/>
-                <ui:DropdownField name="CampaignTypeDropdown" style="width: 110px; margin-right: 15px;"/>
-                <ui:Label text="Месяцев:" style="color: #ccc; width: 60px;"/>
-                <ui:IntegerField name="DurationField" style="width: 70px; margin-right: 15px;" value="3"/>
-                <ui:Label text="Бюджет:" style="color: #ccc; width: 55px;"/>
-                <ui:FloatField name="BudgetField" style="width: 110px; margin-right: 15px;" value="1000"/>
-                <ui:Button name="StartCampaignButton" text="Запустить" style="background-color: #2a8a2a; color: white; padding: 4px 16px;"/>
+                <ui:Label text="Машина:" style="color: #ccc; width: 60px;" tooltip="Выберите модель для рекламы"/>
+                <ui:DropdownField name="CarDropdown" style="width: 130px; margin-right: 15px;" tooltip="Выберите машину для рекламной кампании"/>
+                <ui:Label text="Тип:" style="color: #ccc; width: 40px;" tooltip="Тип рекламы"/>
+                <ui:DropdownField name="CampaignTypeDropdown" style="width: 110px; margin-right: 15px;" tooltip="Выберите тип рекламной кампании"/>
+                <ui:Label text="Месяцев:" style="color: #ccc; width: 60px;" tooltip="Длительность кампании в месяцах"/>
+                <ui:IntegerField name="DurationField" style="width: 70px; margin-right: 15px;" value="3" tooltip="Длительность кампании (месяцы)"/>
+                <ui:Label text="Бюджет:" style="color: #ccc; width: 55px;" tooltip="Бюджет кампании"/>
+                <ui:FloatField name="BudgetField" style="width: 110px; margin-right: 15px;" value="1000" tooltip="Сумма бюджета (будет списана при запуске)"/>
+                <ui:Button name="StartCampaignButton" text="Запустить" style="background-color: #2a8a2a; color: white; padding: 4px 16px;" tooltip="Запустить рекламную кампанию"/>
             </ui:VisualElement>
-            <ui:Label name="ErrorMessageLabel" style="color: #ff6b6b; margin-top: 4px; font-size: 13px; flex-shrink: 0;"/>
+            <ui:Label name="ErrorMessageLabel" style="color: #ff6b6b; margin-top: 4px; font-size: 13px; flex-shrink: 0;" />
 
             <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px; flex-shrink: 0;">
-                <ui:Button name="RefreshMarketingButton" text="Обновить" style="background-color: #444; color: white; margin-right: 10px; padding: 4px 14px;"/>
-                <ui:Button name="CloseMarketingButton2" text="Закрыть" style="background-color: #8a2a2a; color: white; padding: 4px 14px;"/>
+                <ui:Button name="RefreshMarketingButton" text="Обновить" style="background-color: #444; color: white; margin-right: 10px; padding: 4px 14px;" tooltip="Обновить данные маркетинга"/>
+                <ui:Button name="CloseMarketingButton2" text="Закрыть" style="background-color: #8a2a2a; color: white; padding: 4px 14px;" tooltip="Закрыть окно маркетинга"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
@@ -235,8 +277,8 @@
             <ui:Label name="TutorialTitle" style="font-size: 22px; color: #ffd700; -unity-font-style: bold; margin-bottom: 12px; -unity-text-align: middle-center;" text=""/>
             <ui:Label name="TutorialDescription" style="font-size: 16px; color: #eee; white-space: normal; margin-bottom: 20px; -unity-text-align: middle-center; padding: 0 8px;" text=""/>
             <ui:VisualElement style="flex-direction: row; justify-content: center; gap: 16px; margin-top: 8px;">
-                <ui:Button name="TutorialSkipButton" text="Пропустить" style="background-color: #555; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" />
-                <ui:Button name="TutorialNextButton" text="Далее" style="background-color: #4CAF50; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" />
+                <ui:Button name="TutorialSkipButton" text="Пропустить" style="background-color: #555; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" tooltip="Пропустить обучение"/>
+                <ui:Button name="TutorialNextButton" text="Далее" style="background-color: #4CAF50; color: white; font-size: 15px; padding: 10px 24px; border-radius: 8px; border-width: 0;" tooltip="Следующий шаг"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

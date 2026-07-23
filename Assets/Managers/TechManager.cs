@@ -73,7 +73,7 @@ public class TechManager : MonoBehaviour
                 Technology tech = new Technology();
                 tech.techName = $"{param}_{level}";
                 tech.description = $"Улучшает {display} до уровня {level}";
-                tech.researchCost = 50 + level * 30;
+                tech.researchCost = 40 + level * 25; // было 50 + level * 30
                 tech.isResearched = false;
                 tech.requiredTechNames = (level > 1) ? new string[] { $"{param}_{level - 1}" } : new string[0];
                 tech.priceModifier = 1f;

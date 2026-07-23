@@ -23,7 +23,7 @@ public class EconomyManager : MonoBehaviour
     public float DiscountMultiplier = 1f;
     public float DiscountDuration = 0f;
 
-    public float inflationRate = 0.0005f;
+    public float inflationRate = 0.0002f;
     public float basePriceMultiplier = 1f;
 
     public float DifficultyTechCostMultiplier = 1f;
@@ -100,7 +100,7 @@ public class EconomyManager : MonoBehaviour
 
     public void BuyConveyorUpgrade()
     {
-        int cost = Mathf.RoundToInt((10 + ConveyorLevel * 5) * CostMultiplier * basePriceMultiplier);
+        int cost = Mathf.RoundToInt((15 + ConveyorLevel * 8) * CostMultiplier * basePriceMultiplier);// было 10 + level*5
         if (SpendMoney(cost))
         {
             ConveyorLevel++;
@@ -116,7 +116,7 @@ public class EconomyManager : MonoBehaviour
 
     public void HireEngineer()
     {
-        int cost = Mathf.RoundToInt((50 + EngineerCount * 20) * CostMultiplier * basePriceMultiplier);
+        int cost = Mathf.RoundToInt((40 + EngineerCount * 15) * CostMultiplier * basePriceMultiplier); // было 50 + count*20
         if (SpendMoney(cost))
         {
             EngineerCount++;
@@ -188,7 +188,7 @@ public class EconomyManager : MonoBehaviour
         switch (difficulty)
         {
             case UIManager.Difficulty.Easy:   baseTax = 0.05f; break;
-            case UIManager.Difficulty.Normal: baseTax = 0.10f; break;
+            case UIManager.Difficulty.Normal: baseTax = 0.05f; break;
             case UIManager.Difficulty.Hard:   baseTax = 0.15f; break;
         }
         float levelBonus = car.currentLevel * 0.1f;

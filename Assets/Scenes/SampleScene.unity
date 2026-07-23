@@ -695,7 +695,6 @@ GameObject:
   - component: {fileID: 2044430357}
   - component: {fileID: 2044430356}
   - component: {fileID: 2044430359}
-  - component: {fileID: 2044430360}
   - component: {fileID: 2044430361}
   m_Layer: 0
   m_Name: GameManager
@@ -766,19 +765,6 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
---- !u!114 &2044430360
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2044430355}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00f534058103ca649ace1c227d7b8622, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TutorialOverlay
-  uiDoc: {fileID: 0}
 --- !u!114 &2044430361
 MonoBehaviour:
   m_ObjectHideFlags: 0

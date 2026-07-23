@@ -18,10 +18,10 @@ MonoBehaviour:
   - {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
   - {fileID: 1718881139866272103, guid: d84787863a48b884e8c303159510c801, type: 3}
   - {fileID: 2922220883736789182, guid: 041e4e3100f07184cacfe35dce34f022, type: 3}
-  basePrice: 250
+  basePrice: 550
   productionCost: 100
   demandMultiplier: 1
-  currentLevel: 2
+  currentLevel: 0
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
   levelRecipes:
@@ -40,4 +40,4 @@ MonoBehaviour:
   bodyColorIndex: 0
   tintLevel: 0
   hasTint: 0
-  currentPrice: 250
+  currentPrice: 550
