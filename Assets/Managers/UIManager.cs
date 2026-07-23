@@ -7,6 +7,10 @@ using System.Linq;
 
 public class UIManager : MonoBehaviour
 {
+    private Button upgradeTabFactoryButton;
+    private Button upgradeTabPartsButton;
+    private VisualElement upgradeFactoryContent;
+    private VisualElement upgradePartsContent;
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;
@@ -219,6 +223,10 @@ public class UIManager : MonoBehaviour
         techOverlay = root.Q<VisualElement>("TechOverlay");
         techScrollView = root.Q<ScrollView>("TechContainer");
         upgradeOverlay = root.Q<VisualElement>("UpgradeOverlay");
+        upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
+        upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
+        upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
+        upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
         settingsOverlay = root.Q<VisualElement>("SettingsOverlay");
         competitorsOverlay = root.Q<VisualElement>("CompetitorsOverlay");
         welcomeOverlay = root.Q<VisualElement>("WelcomeOverlay");
@@ -305,6 +313,10 @@ public class UIManager : MonoBehaviour
 
         if (closeAchievementsButton != null)
             closeAchievementsButton.clicked += CloseAchievementsWindow;
+        if (upgradeTabFactoryButton != null)
+            upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
+        if (upgradeTabPartsButton != null)
+            upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
         // ---- Подписка кнопок улучшений с проверкой ----
         if (buyConveyorButton != null)
@@ -1762,7 +1774,7 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(techOverlay, () => { techOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
     }
 
-    private void OpenUpgradeWindow()
+   private void OpenUpgradeWindow()
     {
         HideAllOverlays();
         if (upgradeOverlay != null)

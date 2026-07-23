@@ -152,6 +152,56 @@ public class WarehouseManager : MonoBehaviour
             }
         }
     }
+
+    // ========== НОВЫЕ МЕТОДЫ ДЛЯ ПРОИЗВОДСТВА ДЕТАЛЕЙ ==========
+
+    public bool ProduceParts(PartType type, int count)
+    {
+        if (!IsPartProductionUnlocked(type)) 
+        {
+            UIManager.Instance?.ShowNotification($"Технология производства {type} не изучена!");
+            return false;
+        }
+
+        // Стоимость производства: например, $10 * count, требует 1 инженера и 1 уровень конвейера
+        int cost = 10 * count;
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        if (economy.Money < cost)
+        {
+            UIManager.Instance?.ShowNotification($"Не хватает денег! Нужно ${cost}");
+            return false;
+        }
+        if (economy.EngineerCount < 1)
+        {
+            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 инженер для производства деталей!");
+            return false;
+        }
+        if (economy.ConveyorLevel < 1)
+        {
+            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 уровень конвейера для производства деталей!");
+            return false;
+        }
+
+        economy.Money -= cost;
+        AddParts(type, count);
+        UIManager.Instance?.UpdateMoneyLabels();
+        UIManager.Instance?.UpdateWarehouseLabels();
+        UIManager.Instance?.ShowNotification($"Произведено {count} {type} за ${cost}");
+        return true;
+    }
+
+    private bool IsPartProductionUnlocked(PartType type)
+    {
+        string techName = type switch
+        {
+            PartType.Engine => "Производство Engine",
+            PartType.Body => "Производство Body",
+            PartType.Wheels => "Производство Wheels",
+            PartType.Electronics => "Производство Electronics",
+            _ => ""
+        };
+        return CarCompanyManager.Instance.TechManager.IsTechResearched(techName);
+    }
 }
 
 [System.Serializable]

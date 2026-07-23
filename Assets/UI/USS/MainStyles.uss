@@ -442,3 +442,20 @@
 .tutorial-next:hover {
     background-color: #66BB6A;
 }
+
+.tab-button {
+    background-color: rgba(255,255,255,0.1);
+    color: #ccc;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-width: 1px;
+    border-color: #555;
+    border-radius: 4px;
+    transition-duration: 0.1s;
+}
+.tab-button:focus {
+    background-color: rgba(255,255,255,0.2);
+}
+.tab-button:hover {
+    background-color: rgba(255,255,255,0.15);
+}
