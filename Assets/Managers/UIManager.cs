@@ -274,6 +274,10 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
+        SubscribeButton("ProduceEngineButton", () => TryProducePart(PartType.Engine));
+        SubscribeButton("ProduceBodyButton", () => TryProducePart(PartType.Body));
+        SubscribeButton("ProduceWheelsButton", () => TryProducePart(PartType.Wheels));
+        SubscribeButton("ProduceElectronicsButton", () => TryProducePart(PartType.Electronics));
         SubscribeButton("RefreshCompetitorsButton", () =>
         {
             ExecuteAllCompetitorActions();
@@ -471,36 +475,26 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Electronics, -electronics);
     }
 
-    private void TryBuyConveyorUpgrade()
+   private void TryBuyConveyorUpgrade()
     {
-        if (!HasRequiredPartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired))
-        {
-            ShowNotification("❌ Недостаточно деталей для улучшения конвейера!");
-            return;
-        }
-
+        // Проверяем только деньги (внутри BuyConveyorUpgrade уже есть проверка SpendMoney)
         economy.BuyConveyorUpgrade();
-        ConsumePartsForUpgrade(conveyorEngineRequired, conveyorBodyRequired, conveyorWheelsRequired, conveyorElectronicsRequired);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
         ShowNotification("✅ Конвейер улучшен!");
+        // Уведомление уже показывается внутри BuyConveyorUpgrade (через UIManager.ShowNotification)
     }
 
     private void TryHireEngineer()
     {
-        if (!HasRequiredPartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired))
-        {
-            ShowNotification("❌ Недостаточно деталей для найма инженера!");
-            return;
-        }
-
+        // Проверяем только деньги (внутри HireEngineer уже есть проверка SpendMoney)
         economy.HireEngineer();
-        ConsumePartsForUpgrade(engineerEngineRequired, engineerBodyRequired, engineerWheelsRequired, engineerElectronicsRequired);
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
         ShowNotification("✅ Инженер нанят!");
+        // Уведомление уже показывается внутри HireEngineer
     }
 
     // ========== КОНЕЦ УЛУЧШЕНИЙ ==========
@@ -663,6 +657,14 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    private void TryProducePart(PartType type)
+    {
+        int count = 1; // можно сделать выбор количества
+        if (WarehouseManager.Instance.ProduceParts(type, count))
+        {
+            // всё уже обновлено внутри
+        }
+    }
     private void RefreshActionLogs()
     {
         if (actionLogContent == null) return;
@@ -773,15 +775,13 @@ public class UIManager : MonoBehaviour
         if (buyConveyorButton != null)
         {
             int cost = Mathf.RoundToInt((10 + economy.ConveyorLevel * 5) * economy.CostMultiplier);
-            string reqText = $"🔧{conveyorEngineRequired} 🔩{conveyorBodyRequired} ⚙️{conveyorWheelsRequired} 💻{conveyorElectronicsRequired}";
-            buyConveyorButton.text = $"Улучшить конвейер ({cost})\n{reqText}";
+            buyConveyorButton.text = $"Улучшить конвейер (${cost})";
         }
 
         if (hireEngineerButton != null)
         {
             int cost = Mathf.RoundToInt((50 + economy.EngineerCount * 20) * economy.CostMultiplier);
-            string reqText = $"🔧{engineerEngineRequired} 🔩{engineerBodyRequired} ⚙️{engineerWheelsRequired} 💻{engineerElectronicsRequired}";
-            hireEngineerButton.text = $"Нанять инженера ({cost})\n{reqText}";
+            hireEngineerButton.text = $"Нанять инженера (${cost})";
         }
 
         if (buyPartsButton != null)

@@ -172,8 +172,6 @@ public class TechManager : MonoBehaviour
             Debug.Log($"Добавлена технология: {upgradeName}");
         }
 
-        technologies = techList.ToArray();
-
         string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
         foreach (string part in partTypes)
         {
@@ -217,6 +215,40 @@ public class TechManager : MonoBehaviour
                 techList.Add(tech);
             }
         }
+
+        // ---- Типы рекламы как технологии ----
+        string[] adTypes = { "TV", "Internet", "Print", "Social" };
+        int[] adCosts = { 150, 200, 120, 180 };
+        int[] adYears = { 2025, 2025, 2025, 2026 };
+        int[] adMonths = { 1, 3, 6, 1 };
+
+        for (int i = 0; i < adTypes.Length; i++)
+        {
+            string techName = $"Реклама {adTypes[i]}";
+            if (!techList.Any(t => t != null && t.techName == techName))
+            {
+                Technology tech = new Technology();
+                tech.techName = techName;
+                tech.description = $"Позволяет запускать рекламные кампании типа {adTypes[i]}";
+                tech.researchCost = adCosts[i];
+                tech.isResearched = false;
+                tech.requiredTechNames = new string[0];
+                tech.priceModifier = 1f;
+                tech.demandModifier = 1f;
+                tech.unlockCarOnResearch = false;
+                tech.unlockedCar = null;
+                tech.availableYear = adYears[i];
+                tech.availableMonth = adMonths[i];
+                techList.Add(tech);
+            }
+        }
+        technologies = techList.ToArray();
+    }
+
+    public bool IsAdTypeUnlocked(string adType)
+    {
+        string techName = $"Реклама {adType}";
+        return IsTechResearched(techName);
     }
 
     // ---- Добавление кастомных технологий из ассетов ----
@@ -871,5 +903,13 @@ public class TechManager : MonoBehaviour
                     break;
             }
         }
+    }
+    public bool IsTechResearched(string techName)
+    {
+        if (technologies == null) return false;
+        foreach (var tech in technologies)
+            if (tech != null && tech.techName == techName && tech.isResearched)
+                return true;
+        return false;
     }
 }

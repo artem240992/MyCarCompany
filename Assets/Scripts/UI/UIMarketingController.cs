@@ -75,15 +75,15 @@ public class UIMarketingController : MonoBehaviour
 
     private void PopulateCarDropdown()
     {
-        if (CarCompanyManager.Instance?.TechManager != null)
+        if (CarCompanyManager.Instance?.TechManager != null && CarCompanyManager.Instance.TechManager.AvailableCars != null)
         {
-            // AvailableCars уже содержит только открытые машины, фильтр не нужен
             var cars = CarCompanyManager.Instance.TechManager.AvailableCars;
             availableCarNames = cars.Select(c => c.carName).ToList();
         }
         else
         {
-            availableCarNames = new List<string> { "Sedan", "SUV", "Sport" };
+            availableCarNames = new List<string>();
+            Debug.LogWarning("TechManager.AvailableCars ещё не инициализирован");
         }
 
         if (carDropdown != null)
@@ -91,16 +91,36 @@ public class UIMarketingController : MonoBehaviour
             carDropdown.choices = availableCarNames;
             if (availableCarNames.Count > 0)
                 carDropdown.value = availableCarNames[0];
+            else
+                carDropdown.value = "Нет машин";
         }
     }
 
     private void PopulateCampaignTypeDropdown()
     {
-        if (campaignTypeDropdown != null)
+        if (campaignTypeDropdown == null) return;
+        
+        var availableTypes = new List<string>();
+        string[] allTypes = { "TV", "Internet", "Print", "Social" };
+        foreach (string type in allTypes)
         {
-            campaignTypeDropdown.choices = new List<string> { "TV", "Internet", "Social", "Print" };
-            campaignTypeDropdown.value = "TV";
+            if (CarCompanyManager.Instance.TechManager.IsAdTypeUnlocked(type))
+                availableTypes.Add(type);
         }
+        
+        // Если ни один тип не разблокирован, показываем заглушку и сообщение
+        if (availableTypes.Count == 0)
+        {
+            availableTypes.Add("Нет доступных типов");
+            campaignTypeDropdown.SetEnabled(false);
+        }
+        else
+        {
+            campaignTypeDropdown.SetEnabled(true);
+        }
+        
+        campaignTypeDropdown.choices = availableTypes;
+        campaignTypeDropdown.value = availableTypes[0];
     }
 
     private void SetupCampaignsListView()
@@ -158,6 +178,7 @@ public class UIMarketingController : MonoBehaviour
     {
         // Обновить список доступных машин
         PopulateCarDropdown();
+        PopulateCampaignTypeDropdown(); // <-- добавить
 
         if (MarketingManager.Instance == null) return;
 
@@ -227,6 +248,11 @@ public class UIMarketingController : MonoBehaviour
             RefreshUI();
             // Принудительно обновить деньги
             UIManager.Instance?.UpdateMoneyLabels();
+        }
+        if (campaignTypeDropdown.value == "Нет доступных типов" || string.IsNullOrEmpty(campaignTypeDropdown.value))
+        {
+            errorMessageLabel.text = "Нет доступных типов рекламы. Исследуйте технологии!";
+            return;
         }
     }
 
