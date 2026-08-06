@@ -17,6 +17,9 @@ public class DemandManager : MonoBehaviour
     public Dictionary<string, float> demandPenalties = new Dictionary<string, float>();
     private Dictionary<string, Coroutine> penaltyCoroutines = new Dictionary<string, Coroutine>();
 
+    // ---- Множитель от инвестиций ----
+    private float temporaryBoost = 1f;
+
     public void Initialize() { }
 
     // ---- Применить штраф к конкретной машине на время ----
@@ -47,6 +50,15 @@ public class DemandManager : MonoBehaviour
                 CarCompanyManager.Instance.StopCoroutine(coroutine);
         demandPenalties.Clear();
         penaltyCoroutines.Clear();
+    }
+
+    // ---- Применение временного бонуса от инвестиций ----
+    public void ApplyTemporaryBoost(float bonus)
+    {
+        temporaryBoost += bonus;
+        // Ограничим, чтобы не улететь в бесконечность
+        temporaryBoost = Mathf.Clamp(temporaryBoost, 0.5f, 3f);
+        UpdateDemand();
     }
 
     public void UpdateDemand()
@@ -103,7 +115,7 @@ public class DemandManager : MonoBehaviour
             if (demandPenalties.TryGetValue(car.carName, out float p))
                 penalty = p;
 
-            // ---- МАРКЕТИНГ И БРЕНД (НОВОЕ) ----
+            // ---- МАРКЕТИНГ И БРЕНД ----
             float marketingModifier = 1f;
             float brandModifier = 1f;
             if (MarketingManager.Instance != null)
@@ -112,9 +124,11 @@ public class DemandManager : MonoBehaviour
                 brandModifier = MarketingManager.Instance.GetBrandModifier();
             }
 
-            // ---- ИТОГОВЫЙ СПРОС ----
+            // ---- ИТОГОВЫЙ СПРОС с учётом temporaryBoost ----
             float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, 
-                baseWithTech * tuningDemandModifier * penalty * marketingModifier * brandModifier);
+                baseWithTech * tuningDemandModifier * penalty * marketingModifier * brandModifier)
+                * temporaryBoost;   // <-- ДОБАВЛЕНО УМНОЖЕНИЕ НА temporaryBoost
+
             car.demandMultiplier = finalDemand;
         }
 
@@ -125,10 +139,14 @@ public class DemandManager : MonoBehaviour
     private List<CarBlueprint> GetAllPossibleCars()
     {
         var all = new List<CarBlueprint>();
-        all.AddRange(tech.AvailableCars);
-        foreach (var t in tech.Technologies)
-            if (t != null && t.unlockedCar != null && !all.Contains(t.unlockedCar))
-                all.Add(t.unlockedCar);
+        if (tech.AvailableCars != null)
+            all.AddRange(tech.AvailableCars);
+        if (tech.Technologies != null)
+        {
+            foreach (var t in tech.Technologies)
+                if (t != null && t.unlockedCar != null && !all.Contains(t.unlockedCar))
+                    all.Add(t.unlockedCar);
+        }
         return all;
     }
 }

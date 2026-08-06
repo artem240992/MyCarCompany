@@ -7,7 +7,6 @@ public class UIMarketingController : MonoBehaviour
 {
     private VisualElement root;
 
-    // Основные элементы
     private Label brandQualityLabel;
     private Label brandModifierLabel;
     private ListView activeCampaignsList;
@@ -15,7 +14,6 @@ public class UIMarketingController : MonoBehaviour
     private Button closeButton1;
     private Button closeButton2;
 
-    // Элементы создания кампании
     private DropdownField carDropdown;
     private DropdownField campaignTypeDropdown;
     private IntegerField durationField;
@@ -24,12 +22,10 @@ public class UIMarketingController : MonoBehaviour
     private Button discountButton;
     private Label errorMessageLabel;
 
-    // Фильтры и сортировка
     private DropdownField filterStatusDropdown;
     private DropdownField filterTypeDropdown;
     private DropdownField sortDropdown;
 
-    // Статистика
     private Label totalSpentLabel;
     private Label totalProfitLabel;
 
@@ -38,8 +34,9 @@ public class UIMarketingController : MonoBehaviour
     private void Awake()
     {
         var doc = GetComponent<UIDocument>();
-        root = doc != null ? doc.rootVisualElement : null;
-        if (root == null)
+        if (doc != null)
+            root = doc.rootVisualElement;
+        else
             Debug.LogError("UIDocument не найден на объекте " + gameObject.name);
     }
 
@@ -47,7 +44,6 @@ public class UIMarketingController : MonoBehaviour
     {
         if (root == null) return;
 
-        // ---- Поиск элементов ----
         brandQualityLabel = root.Q<Label>("BrandQualityLabel");
         brandModifierLabel = root.Q<Label>("BrandModifierLabel");
         activeCampaignsList = root.Q<ListView>("ActiveCampaignsList");
@@ -63,16 +59,13 @@ public class UIMarketingController : MonoBehaviour
         discountButton = root.Q<Button>("ApplyDiscountButton");
         errorMessageLabel = root.Q<Label>("ErrorMessageLabel");
 
-        // Фильтры
         filterStatusDropdown = root.Q<DropdownField>("FilterStatusDropdown");
         filterTypeDropdown = root.Q<DropdownField>("FilterTypeDropdown");
         sortDropdown = root.Q<DropdownField>("SortDropdown");
 
-        // Статистика
         totalSpentLabel = root.Q<Label>("TotalSpentLabel");
         totalProfitLabel = root.Q<Label>("TotalProfitLabel");
 
-        // Настройка выпадающих списков фильтров
         if (filterStatusDropdown != null)
         {
             filterStatusDropdown.choices = new List<string> { "Все", "Активные", "Завершённые" };
@@ -92,22 +85,16 @@ public class UIMarketingController : MonoBehaviour
             sortDropdown.RegisterValueChangedCallback(_ => RefreshUI());
         }
 
-        // Заполнение списков машин и типов
         PopulateCarDropdown();
         PopulateCampaignTypeDropdown();
 
-        // Подписки на кнопки
         if (refreshButton != null) refreshButton.clicked += RefreshUI;
         if (startCampaignButton != null) startCampaignButton.clicked += OnStartCampaignClicked;
         if (discountButton != null) discountButton.clicked += OnApplyDiscount;
 
-        // Настройка ListView
         SetupCampaignsListView();
-
-        // Первичное обновление
         RefreshUI();
 
-        // Подписка на смену месяца для автообновления
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.OnMonthChanged += RefreshUI;
     }
@@ -118,24 +105,28 @@ public class UIMarketingController : MonoBehaviour
             GameTimeManager.Instance.OnMonthChanged -= RefreshUI;
     }
 
-    // ---- Заполнение выпадающих списков ----
     private void PopulateCarDropdown()
     {
-        if (CarCompanyManager.Instance?.TechManager != null && CarCompanyManager.Instance.TechManager.AvailableCars != null)
+        // ИСПРАВЛЕНО: проверяем, что TechManager инициализирован и AvailableCars не null
+        var techManager = CarCompanyManager.Instance?.TechManager;
+        if (techManager != null && techManager.AvailableCars != null)
         {
-            var cars = CarCompanyManager.Instance.TechManager.AvailableCars;
+            var cars = techManager.AvailableCars;
             availableCarNames = cars.Select(c => c.carName).ToList();
         }
         else
         {
             availableCarNames = new List<string>();
-            Debug.LogWarning("TechManager.AvailableCars ещё не инициализирован");
+            Debug.LogWarning("TechManager.AvailableCars ещё не инициализирован, список машин пуст");
         }
 
         if (carDropdown != null)
         {
             carDropdown.choices = availableCarNames;
-            carDropdown.value = availableCarNames.Count > 0 ? availableCarNames[0] : "Нет машин";
+            if (availableCarNames.Count > 0)
+                carDropdown.value = availableCarNames[0];
+            else
+                carDropdown.value = "Нет машин";
         }
     }
 
@@ -166,7 +157,6 @@ public class UIMarketingController : MonoBehaviour
         campaignTypeDropdown.value = availableTypes[0];
     }
 
-    // ---- Настройка списка кампаний ----
     private void SetupCampaignsListView()
     {
         if (activeCampaignsList == null) return;
@@ -216,16 +206,16 @@ public class UIMarketingController : MonoBehaviour
         };
     }
 
-    // ---- Основной метод обновления UI ----
     public void RefreshUI()
     {
-        // Обновить списки выбора
-        PopulateCarDropdown();
+        // Проверяем готовность TechManager перед заполнением списков
+        if (CarCompanyManager.Instance?.TechManager != null && CarCompanyManager.Instance.TechManager.AvailableCars != null)
+            PopulateCarDropdown();
+
         PopulateCampaignTypeDropdown();
 
         if (MarketingManager.Instance == null) return;
 
-        // Обновить бренд
         MarketingManager.Instance.UpdateBrandQuality();
 
         if (brandQualityLabel != null)
@@ -233,56 +223,41 @@ public class UIMarketingController : MonoBehaviour
         if (brandModifierLabel != null)
             brandModifierLabel.text = $"Модификатор спроса: {MarketingManager.Instance.GetBrandModifier():F2}x";
 
-        // ---- Фильтрация и сортировка кампаний ----
         var allCampaigns = MarketingManager.Instance.activeCampaigns;
         var filtered = allCampaigns.AsEnumerable();
 
-        // Фильтр по статусу
         if (filterStatusDropdown != null && filterStatusDropdown.value != "Все")
         {
             bool active = filterStatusDropdown.value == "Активные";
             filtered = filtered.Where(c => c.isActive == active);
         }
 
-        // Фильтр по типу
         if (filterTypeDropdown != null && filterTypeDropdown.value != "Все")
         {
             string type = filterTypeDropdown.value;
             filtered = filtered.Where(c => c.campaignType == type);
         }
 
-        // Сортировка
         if (sortDropdown != null)
         {
             switch (sortDropdown.value)
             {
-                case "Бюджет (возр.)":
-                    filtered = filtered.OrderBy(c => c.budget);
-                    break;
-                case "Бюджет (убыв.)":
-                    filtered = filtered.OrderByDescending(c => c.budget);
-                    break;
-                case "Длительность":
-                    filtered = filtered.OrderBy(c => c.durationMonths);
-                    break;
-                case "Эффект":
-                    filtered = filtered.OrderByDescending(c => c.GetCurrentModifier());
-                    break;
-                default:
-                    break;
+                case "Бюджет (возр.)": filtered = filtered.OrderBy(c => c.budget); break;
+                case "Бюджет (убыв.)": filtered = filtered.OrderByDescending(c => c.budget); break;
+                case "Длительность": filtered = filtered.OrderBy(c => c.durationMonths); break;
+                case "Эффект": filtered = filtered.OrderByDescending(c => c.GetCurrentModifier()); break;
+                default: break;
             }
         }
 
         var list = filtered.ToList();
 
-        // Обновить ListView
         if (activeCampaignsList != null)
         {
             activeCampaignsList.itemsSource = list;
             activeCampaignsList.Rebuild();
         }
 
-        // ---- Статистика ----
         if (totalSpentLabel != null)
         {
             double totalSpent = allCampaigns.Sum(c => c.budget);
@@ -290,8 +265,7 @@ public class UIMarketingController : MonoBehaviour
         }
         if (totalProfitLabel != null)
         {
-            // Приблизительная оценка прибыли от маркетинга (например, увеличение спроса × средняя цена)
-            double totalProfit = allCampaigns.Sum(c => (c.GetCurrentModifier() - 1f) * 100); // условно
+            double totalProfit = allCampaigns.Sum(c => (c.GetCurrentModifier() - 1f) * 100);
             totalProfitLabel.text = $"Оценочная прибыль: ${totalProfit:F0}";
         }
 
@@ -299,7 +273,6 @@ public class UIMarketingController : MonoBehaviour
             errorMessageLabel.text = "";
     }
 
-    // ---- Обработчики ----
     private void OnStartCampaignClicked()
     {
         if (errorMessageLabel != null)
@@ -364,7 +337,6 @@ public class UIMarketingController : MonoBehaviour
         UIManager.Instance?.ShowNotification("✅ Скидка 20% применена на 3 мес.");
     }
 
-    // ---- Закрытие (резерв) ----
     private void CloseWindow()
     {
         var overlay = root?.Q<VisualElement>("MarketingOverlay");

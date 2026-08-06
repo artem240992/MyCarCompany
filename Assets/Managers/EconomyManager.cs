@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using System.Collections.Generic; // <-- для List
 
 public class EconomyManager : MonoBehaviour
 {
@@ -30,6 +31,12 @@ public class EconomyManager : MonoBehaviour
 
     private int lastTaxYear;
 
+    // ---- История доходов для графика ----
+    public List<float> monthlyIncomeHistory = new List<float>();
+
+    // ---- Скидка на производство (от инвестиций) ----
+    private float productionDiscount = 0f;
+
     public event Action OnMoneyChanged;
 
     public void Initialize(float startMoney, float profitMultiplier)
@@ -46,6 +53,8 @@ public class EconomyManager : MonoBehaviour
         DiscountMultiplier = 1f;
         DiscountDuration = 0f;
         DifficultyTechCostMultiplier = 1f;
+        productionDiscount = 0f;
+        monthlyIncomeHistory.Clear();
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         else
@@ -100,7 +109,7 @@ public class EconomyManager : MonoBehaviour
 
     public void BuyConveyorUpgrade()
     {
-        int cost = Mathf.RoundToInt((15 + ConveyorLevel * 8) * CostMultiplier * basePriceMultiplier);// было 10 + level*5
+        int cost = Mathf.RoundToInt((15 + ConveyorLevel * 8) * CostMultiplier * basePriceMultiplier);
         if (SpendMoney(cost))
         {
             ConveyorLevel++;
@@ -116,7 +125,7 @@ public class EconomyManager : MonoBehaviour
 
     public void HireEngineer()
     {
-        int cost = Mathf.RoundToInt((40 + EngineerCount * 15) * CostMultiplier * basePriceMultiplier); // было 50 + count*20
+        int cost = Mathf.RoundToInt((40 + EngineerCount * 15) * CostMultiplier * basePriceMultiplier);
         if (SpendMoney(cost))
         {
             EngineerCount++;
@@ -152,7 +161,6 @@ public class EconomyManager : MonoBehaviour
         DiscountMultiplier = 1f - discount;
         DiscountDuration = months;
         RecalculateModifiers(null);
-        // Уведомить конкурентов
         CarCompanyManager.Instance.CompetitorManager.OnPlayerAppliesDiscount(discount);
         CarCompanyManager.Instance.UIManager?.UpdateMoneyLabels();
         CarCompanyManager.Instance.UIManager?.ShowNotification($"Скидка {discount * 100:F0}% на все машины на {months} мес.");
@@ -171,6 +179,21 @@ public class EconomyManager : MonoBehaviour
                 CarCompanyManager.Instance.UIManager?.ShowNotification("Скидка закончилась.");
             }
         }
+    }
+
+    // ---- Скидка на производство (от инвестиций) ----
+    public void ApplyProductionDiscount(float discount)
+    {
+        productionDiscount = Mathf.Clamp(discount, 0f, 0.3f);
+    }
+
+    // ---- Расчёт себестоимости производства с учётом скидки ----
+    public int GetProductionCostWithLevel(CarBlueprint car)
+    {
+        if (car == null || car.recipe == null) return 50; // базовое значение
+        int baseCost = car.recipe.assemblyCost + car.currentLevel * 20; // пример
+        float finalCost = baseCost * (1f - productionDiscount);
+        return Mathf.RoundToInt(finalCost);
     }
 
     public float GetSeasonalDemandModifier()
@@ -214,6 +237,7 @@ public class EconomyManager : MonoBehaviour
         data.lastTaxYear = lastTaxYear;
         data.discountMultiplier = DiscountMultiplier;
         data.discountDuration = DiscountDuration;
+        data.monthlyIncomeHistory = monthlyIncomeHistory;
     }
 
     public void LoadFromSave(SaveData data)
@@ -227,6 +251,7 @@ public class EconomyManager : MonoBehaviour
         lastTaxYear = data.lastTaxYear;
         DiscountMultiplier = data.discountMultiplier;
         DiscountDuration = data.discountDuration;
+        monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
         OnMoneyChanged?.Invoke();
     }
 
@@ -242,6 +267,8 @@ public class EconomyManager : MonoBehaviour
         DiscountMultiplier = 1f;
         DiscountDuration = 0f;
         DifficultyTechCostMultiplier = 1f;
+        productionDiscount = 0f;
+        monthlyIncomeHistory.Clear();
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         OnMoneyChanged?.Invoke();
@@ -277,6 +304,11 @@ public class EconomyManager : MonoBehaviour
         basePriceMultiplier *= (1f + inflationRate);
         UpdateDiscount();
         RecalculateModifiers(null);
+
+        // ---- Добавляем текущий доход в историю (для графика) ----
+        monthlyIncomeHistory.Add((float)PassiveIncome);
+        if (monthlyIncomeHistory.Count > 12)
+            monthlyIncomeHistory.RemoveAt(0);
 
         if (GameTimeManager.Instance != null)
         {

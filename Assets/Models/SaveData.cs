@@ -17,7 +17,12 @@ public class SaveData
 
     // ... остальные поля (warehouseLevel, partsInventory, money и т.д.)
 
-    
+    // ---- Кредиты и инвестиции ----
+    public List<LoanManager.Loan> loans = new List<LoanManager.Loan>();
+    public List<InvestmentManager.Investment> investments = new List<InvestmentManager.Investment>();
+
+    // ---- История доходов для графика ----
+    public List<float> monthlyIncomeHistory = new List<float>();
     public int warehouseLevel;
     public List<PartSaveData> partsInventory;
     public List<PartPriceSaveData> partPrices;

@@ -243,7 +243,87 @@ public class TechManager : MonoBehaviour
             }
         }
         technologies = techList.ToArray();
+
+        // ---- Новые технологии (электромобили, гибрид, автопилот) ----
+        string[] newTechs = { "Электромобиль", "Гибридный двигатель", "Автопилот" };
+        int[] costs = { 800, 600, 1200 };
+        int[] years = { 2026, 2025, 2027 };
+        int[] months = { 1, 7, 1 };
+        for (int i = 0; i < newTechs.Length; i++)
+        {
+            string techName = newTechs[i];
+            if (techList.Any(t => t != null && t.techName == techName)) continue;
+            Technology tech = new Technology();
+            tech.techName = techName;
+            tech.description = techName == "Электромобиль" ? "Позволяет производить электромобили (высокий спрос, дороже в производстве)" :
+                                techName == "Гибридный двигатель" ? "Позволяет производить гибридные машины (средний спрос, экономичные)" :
+                                "Повышает привлекательность всех машин на 30%";
+            tech.researchCost = costs[i];
+            tech.isResearched = false;
+            tech.requiredTechNames = techName == "Электромобиль" ? new string[] { "Гибридный двигатель" } : new string[0];
+            tech.priceModifier = techName == "Автопилот" ? 1.3f : 1f;
+            tech.demandModifier = techName == "Автопилот" ? 1.2f : 1f;
+            tech.unlockCarOnResearch = techName != "Автопилот";
+            tech.unlockedCar = techName == "Электромобиль" ? CreateElectricCar() : 
+                            techName == "Гибридный двигатель" ? CreateHybridCar() : null;
+            tech.availableYear = years[i];
+            tech.availableMonth = months[i];
+            techList.Add(tech);
+        }
     }
+
+    /// <summary>
+/// Создание электромобиля.
+/// </summary>
+private CarBlueprint CreateElectricCar()
+{
+    CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
+    car.carName = "Электромобиль";
+    car.basePrice = 400;
+    car.recipe = CreateRecipe(2, 2, 3, 4); // больше электроники
+    car.demandMultiplier = 1.5f;
+    car.currentLevel = 0;
+    return car;
+}
+
+/// <summary>
+/// Создание гибридного автомобиля.
+/// </summary>
+private CarBlueprint CreateHybridCar()
+{
+    CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
+    car.carName = "Гибрид";
+    car.basePrice = 300;
+    car.recipe = CreateRecipe(2, 2, 2, 2);
+    car.demandMultiplier = 1.2f;
+    car.currentLevel = 0;
+    return car;
+}
+
+/// <summary>
+/// Создание рецепта для машины.
+/// </summary>
+private CarRecipe CreateRecipe(int engine, int body, int wheels, int electronics)
+{
+    CarRecipe recipe = ScriptableObject.CreateInstance<CarRecipe>();
+    recipe.engineRequired = engine;
+    recipe.bodyRequired = body;
+    recipe.wheelsRequired = wheels;
+    recipe.electronicsRequired = electronics;
+    recipe.assemblyCost = 50 + (engine + body + wheels + electronics) * 10;
+    return recipe;
+}
+
+/// <summary>
+/// Применение скидки на исследования (для инвестиций).
+/// </summary>
+public void ApplyResearchDiscount(float discount)
+{
+    // Сохраняем текущую скидку в поле (добавить поле researchDiscount)
+    researchDiscount = Mathf.Clamp(discount, 0f, 0.3f);
+}
+
+private float researchDiscount = 0f;
 
     public bool IsAdTypeUnlocked(string adType)
     {
@@ -343,7 +423,7 @@ public class TechManager : MonoBehaviour
             }
         }
 
-        int actualCost = Mathf.RoundToInt(tech.researchCost * economy.TechCostMultiplier);
+        int actualCost = Mathf.RoundToInt(tech.researchCost * economy.TechCostMultiplier * (1f - researchDiscount));
         int currentYear = GameTimeManager.Instance.currentYear;
         int currentMonth = GameTimeManager.Instance.currentMonth;
         bool hasPenalty = !tech.IsAvailable(currentYear, currentMonth);
