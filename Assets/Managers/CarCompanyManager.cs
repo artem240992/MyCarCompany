@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections;
 
-
 public class CarCompanyManager : MonoBehaviour
 {
     public static CarCompanyManager Instance { get; private set; }
@@ -37,16 +36,20 @@ public class CarCompanyManager : MonoBehaviour
     public ActionLogManager ActionLogManager { get; private set; }
     public AchievementManager AchievementManager { get; private set; }
 
-    // ---- НОВЫЕ МЕНЕДЖЕРЫ ДЛЯ ЗАПЧАСТЕЙ ----
+    // ---- Менеджеры запчастей и маркетинга ----
     public WarehouseManager WarehouseManager { get; private set; }
     public PartsMarketManager PartsMarketManager { get; private set; }
     public PartsProductionManager PartsProductionManager { get; private set; }
+    public MarketingManager MarketingManager { get; private set; }
+
+    // ===== НОВЫЕ МЕНЕДЖЕРЫ (релиз 1.13.0) =====
+    public LoanManager LoanManager { get; private set; }
+    public InvestmentManager InvestmentManager { get; private set; }
 
     public CarBlueprint[] StartCars => startCars;
     public string BulkProductionTechName => bulkProductionTechName;
     public string CarUpgradeTechName => carUpgradeTechName;
     public TechnologyAsset[] AdditionalTechnologies => additionalTechnologies;
-    public MarketingManager MarketingManager { get; private set; }
 
     private void Awake()
     {
@@ -76,11 +79,15 @@ public class CarCompanyManager : MonoBehaviour
         ActionLogManager = GetComponent<ActionLogManager>() ?? gameObject.AddComponent<ActionLogManager>();
         AchievementManager = GetComponent<AchievementManager>() ?? gameObject.AddComponent<AchievementManager>();
 
-        // ---- СОЗДАЁМ НОВЫЕ МЕНЕДЖЕРЫ ----
+        // ---- Менеджеры запчастей и маркетинга ----
         WarehouseManager = GetComponent<WarehouseManager>() ?? gameObject.AddComponent<WarehouseManager>();
         PartsMarketManager = GetComponent<PartsMarketManager>() ?? gameObject.AddComponent<PartsMarketManager>();
         PartsProductionManager = GetComponent<PartsProductionManager>() ?? gameObject.AddComponent<PartsProductionManager>();
         MarketingManager = GetComponent<MarketingManager>() ?? gameObject.AddComponent<MarketingManager>();
+
+        // ===== НОВЫЕ МЕНЕДЖЕРЫ =====
+        LoanManager = GetComponent<LoanManager>() ?? gameObject.AddComponent<LoanManager>();
+        InvestmentManager = GetComponent<InvestmentManager>() ?? gameObject.AddComponent<InvestmentManager>();
     }
 
     private void Start()

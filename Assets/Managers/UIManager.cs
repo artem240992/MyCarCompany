@@ -7,6 +7,8 @@ using System.Linq;
 
 public class UIManager : MonoBehaviour
 {
+    public static UIManager Instance { get; private set; }
+
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;
@@ -17,19 +19,16 @@ public class UIManager : MonoBehaviour
     private Label savedDifficultyLabel;
     private Label versionLabel;
 
-    // ---- Лейблы для деталей склада ----
     private Label engineLabel;
     private Label bodyLabel;
     private Label wheelsLabel;
     private Label electronicsLabel;
 
-    // ---- Лейблы для дополнительной информации ----
     private Label dateLabel;
     private Label inflationLabel;
     private Label reputationLabel;
     private Label seasonLabel;
 
-    // ---- Окна и элементы ----
     private VisualElement carsOverlay;
     private VisualElement carsContainer;
     private VisualElement techOverlay;
@@ -40,15 +39,15 @@ public class UIManager : MonoBehaviour
     private VisualElement competitorsContent;
     private VisualElement welcomeOverlay;
 
-    // ---- Достижения ----
     private VisualElement achievementsOverlay;
     private ScrollView achievementsContainer;
     private Button closeAchievementsButton;
 
-    // ---- МАРКЕТИНГ ----
     private VisualElement marketingOverlay;
+    private VisualElement marketVisOverlay;
+    private VisualElement loansOverlay;
+    private VisualElement investmentsOverlay;
 
-    // ---- Вкладки конкурентов ----
     private Button competitorsTabButton;
     private Button actionLogTabButton;
     private VisualElement actionLogContent;
@@ -66,13 +65,11 @@ public class UIManager : MonoBehaviour
     private Button hireEngineerButton;
     private Button buyPartsButton;
 
-    // ---- НОВЫЕ ПОЛЯ ДЛЯ ВКЛАДОК УЛУЧШЕНИЙ ----
     private Button upgradeTabFactoryButton;
     private Button upgradeTabPartsButton;
     private VisualElement upgradeFactoryContent;
     private VisualElement upgradePartsContent;
 
-    // ---- Требования по деталям для улучшений (назначаются в инспекторе) ----
     [Header("Требования для улучшения конвейера")]
     public int conveyorEngineRequired = 2;
     public int conveyorBodyRequired = 1;
@@ -94,14 +91,12 @@ public class UIManager : MonoBehaviour
 
     private List<CarCardData> carCards = new List<CarCardData>();
     private List<(Competitor competitor, DropdownField dropdown)> competitorActionRows = new List<(Competitor, DropdownField)>();
-
     private Dictionary<string, int> selectedActions = new Dictionary<string, int>();
 
     public enum Difficulty { Easy, Normal, Hard }
     private Difficulty currentDifficulty = Difficulty.Normal;
     public Difficulty GetCurrentDifficulty() => currentDifficulty;
 
-    // ---- Цвета для выбора ----
     private Color[] carColors = new Color[]
     {
         new Color(0.2f, 0.8f, 0.2f),
@@ -112,19 +107,10 @@ public class UIManager : MonoBehaviour
     };
     private string[] colorNames = { "Зелёный", "Красный", "Чёрный", "Мокрый асфальт", "Белый" };
 
-    public static UIManager Instance { get; private set; }
-
-    private void Awake()
-    {
-        if (Instance == null)
-            Instance = this;
-        else
-            Debug.LogWarning("Дублирующийся UIManager");
-    }
-
     private class CarCardData
     {
         public CarBlueprint car;
+        public Label profitDetailsLabel; // для отображения деталей
         public VisualElement card;
         public Label profitLabel;
         public Label demandLabel;
@@ -146,6 +132,12 @@ public class UIManager : MonoBehaviour
     private string[] tuningParamDisplay = { "Мощность", "Экономичность", "Дизайн", "Безопасность" };
     private const int TUNING_MAX_LEVEL = 10;
     private VisualElement techGraphRoot;
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Debug.LogWarning("Дублирующийся UIManager");
+    }
 
     private int GetMaxTuning(CarBlueprint car, string param)
     {
@@ -219,10 +211,6 @@ public class UIManager : MonoBehaviour
         techOverlay = root.Q<VisualElement>("TechOverlay");
         techScrollView = root.Q<ScrollView>("TechContainer");
         upgradeOverlay = root.Q<VisualElement>("UpgradeOverlay");
-        upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
-        upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
-        upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
-        upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
         settingsOverlay = root.Q<VisualElement>("SettingsOverlay");
         competitorsOverlay = root.Q<VisualElement>("CompetitorsOverlay");
         welcomeOverlay = root.Q<VisualElement>("WelcomeOverlay");
@@ -236,16 +224,20 @@ public class UIManager : MonoBehaviour
         hireEngineerButton = root.Q<Button>("HireEngineerButton");
         buyPartsButton = root.Q<Button>("BuyPartsButton");
 
-        // ---- Лейблы склада ----
         engineLabel = root.Q<Label>("EngineLabel");
         bodyLabel = root.Q<Label>("BodyLabel");
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
-        // ---- МАРКЕТИНГ ----
         marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
+        marketVisOverlay = root.Q<VisualElement>("MarketVisOverlay");
+        loansOverlay = root.Q<VisualElement>("LoansOverlay");
+        investmentsOverlay = root.Q<VisualElement>("InvestmentsOverlay");
+        SetupLoansUI();
+        SetupInvestmentsUI();
+        SetupLoansListView();
+        SetupInvestmentsListView();
 
-        // ---- НАХОДИМ ЭЛЕМЕНТЫ ВКЛАДОК УЛУЧШЕНИЙ ----
         upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
         upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
         upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
@@ -264,6 +256,7 @@ public class UIManager : MonoBehaviour
         if (hamburgerButton != null && menuContainer != null)
             hamburgerButton.clicked += () => menuContainer.style.display = (menuContainer.style.display == DisplayStyle.Flex) ? DisplayStyle.None : DisplayStyle.Flex;
 
+        // ---- Подписки ----
         SubscribeButton("OpenCarsButton", OpenCarsWindow);
         SubscribeButton("OpenTechButton", OpenTechWindow);
         SubscribeButton("OpenUpgradeButton", OpenUpgradeWindow);
@@ -271,25 +264,20 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenCompetitorsButton", OpenCompetitorsWindow);
         SubscribeButton("OpenAchievementsButton", OpenAchievementsWindow);
         SubscribeButton("CloseCarsButton", CloseCarsWindow);
-        SubscribeButton("SellEngineButton", () => TrySellPart(PartType.Engine));
         SubscribeButton("CloseTechButton", CloseTechWindow);
         SubscribeButton("CloseUpgradeButton", CloseUpgradeWindow);
         SubscribeButton("CloseSettingsButton", CloseSettingsWindow);
         SubscribeButton("CloseCompetitorsButton", CloseCompetitorsWindow);
-        SubscribeButton("SaveSlot1", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(0));
-        SubscribeButton("SaveSlot2", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(1));
-        SubscribeButton("SaveSlot3", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame(2));
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
-        SubscribeButton("ProduceEngineButton", () => TryProducePart(PartType.Engine));
-        SubscribeButton("ProduceBodyButton", () => TryProducePart(PartType.Body));
-        SubscribeButton("ProduceWheelsButton", () => TryProducePart(PartType.Wheels));
-        SubscribeButton("ProduceElectronicsButton", () => TryProducePart(PartType.Electronics));
         SubscribeButton("RefreshCompetitorsButton", () =>
         {
             ExecuteAllCompetitorActions();
             competitor.RefreshCompetitorsList();
+            // Если активна вкладка журнала, обновляем её
+            if (actionLogContent != null && actionLogContent.style.display == DisplayStyle.Flex)
+                RefreshActionLogs();
         });
 
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
@@ -305,7 +293,7 @@ public class UIManager : MonoBehaviour
         SubscribeButton("WelcomeEasyButton", () => OnDifficultySelected(Difficulty.Easy));
         SubscribeButton("WelcomeNormalButton", () => OnDifficultySelected(Difficulty.Normal));
         SubscribeButton("WelcomeHardButton", () => OnDifficultySelected(Difficulty.Hard));
-        
+
         if (competitorsTabButton != null)
             competitorsTabButton.clicked += () => SwitchCompetitorTab(true);
         if (actionLogTabButton != null)
@@ -313,12 +301,7 @@ public class UIManager : MonoBehaviour
 
         if (closeAchievementsButton != null)
             closeAchievementsButton.clicked += CloseAchievementsWindow;
-        if (upgradeTabFactoryButton != null)
-            upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
-        if (upgradeTabPartsButton != null)
-            upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
-        // ---- Подписка кнопок улучшений с проверкой ----
         if (buyConveyorButton != null)
             buyConveyorButton.clicked += TryBuyConveyorUpgrade;
         if (hireEngineerButton != null)
@@ -328,11 +311,37 @@ public class UIManager : MonoBehaviour
         if (increaseCountBtn != null) increaseCountBtn.clicked += production.IncreaseCount;
         if (buyPartsButton != null) buyPartsButton.clicked += TryBuyParts;
 
-        // ---- Подписка кнопок вкладок улучшений ----
         if (upgradeTabFactoryButton != null)
             upgradeTabFactoryButton.clicked += () => SwitchUpgradeTab(true);
         if (upgradeTabPartsButton != null)
             upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
+
+        // ---- ПОДПИСКИ НОВЫХ КНОПОК (релиз 1.13.0) ----
+        SubscribeButton("OpenMarketVisualizationButton", OpenMarketVisualizationWindow);
+        SubscribeButton("CloseMarketVisButton", CloseMarketVisWindow);
+        SubscribeButton("OpenLoansButton", OpenLoansWindow);
+        SubscribeButton("CloseLoansButton", CloseLoansWindow);
+        SubscribeButton("OpenInvestmentsButton", OpenInvestmentsWindow);
+        SubscribeButton("CloseInvestmentsButton", CloseInvestmentsWindow);
+        SubscribeButton("TakeLoanButton", OnTakeLoan);
+        SubscribeButton("MakeInvestmentButton", OnMakeInvestment);
+
+        SubscribeButton("SaveSlot1", () => CarCompanyManager.Instance.SaveLoadManager.SaveSlot1());
+        SubscribeButton("SaveSlot2", () => CarCompanyManager.Instance.SaveLoadManager.SaveSlot2());
+        SubscribeButton("SaveSlot3", () => CarCompanyManager.Instance.SaveLoadManager.SaveSlot3());
+        SubscribeButton("LoadSlot1", () => CarCompanyManager.Instance.SaveLoadManager.LoadSlot1());
+        SubscribeButton("LoadSlot2", () => CarCompanyManager.Instance.SaveLoadManager.LoadSlot2());
+        SubscribeButton("LoadSlot3", () => CarCompanyManager.Instance.SaveLoadManager.LoadSlot3());
+
+        // ---- Кнопки продажи и производства деталей ----
+        SubscribeButton("SellEngineButton", () => TrySellPart(PartType.Engine));
+        SubscribeButton("SellBodyButton", () => TrySellPart(PartType.Body));
+        SubscribeButton("SellWheelsButton", () => TrySellPart(PartType.Wheels));
+        SubscribeButton("SellElectronicsButton", () => TrySellPart(PartType.Electronics));
+        SubscribeButton("ProduceEngineButton", () => TryProducePart(PartType.Engine));
+        SubscribeButton("ProduceBodyButton", () => TryProducePart(PartType.Body));
+        SubscribeButton("ProduceWheelsButton", () => TryProducePart(PartType.Wheels));
+        SubscribeButton("ProduceElectronicsButton", () => TryProducePart(PartType.Electronics));
 
         HideAllOverlays();
         UpdateMoneyLabels();
@@ -340,6 +349,18 @@ public class UIManager : MonoBehaviour
         UpdateUpgradeUI();
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
+
+        // ---- ИНИЦИАЛИЗАЦИЯ КОНТРОЛЛЕРА ВИЗУАЛИЗАЦИИ ----
+        var visController = GetComponent<MarketVisualizationController>();
+        if (visController != null)
+        {
+            visController.Initialize();
+            Debug.Log("MarketVisualizationController инициализирован");
+        }
+        else
+        {
+            Debug.LogWarning("MarketVisualizationController не найден на объекте. Визуализация рынка недоступна.");
+        }
 
         int saved = PlayerPrefs.GetInt("Difficulty", 1);
         currentDifficulty = (Difficulty)saved;
@@ -355,9 +376,10 @@ public class UIManager : MonoBehaviour
             Debug.LogWarning("GameTimeManager не найден! Дата не будет обновляться.");
         }
 
-        // Скрыть маркетинговое окно при старте
-        if (marketingOverlay != null)
-            marketingOverlay.style.display = DisplayStyle.None;
+        if (marketingOverlay != null) marketingOverlay.style.display = DisplayStyle.None;
+        if (marketVisOverlay != null) marketVisOverlay.style.display = DisplayStyle.None;
+        if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
+        if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
     }
 
     private void SubscribeButton(string name, Action action)
@@ -367,7 +389,7 @@ public class UIManager : MonoBehaviour
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
 
-    // ---- Производство базовой машины (кнопка "Произвести авто") ----
+    // ---- Производство базовой машины ----
     private void TryProduceBasicCar()
     {
         var availableCars = tech.AvailableCars;
@@ -392,7 +414,7 @@ public class UIManager : MonoBehaviour
         ShowNotification($"✅ {car.GetDisplayName()} произведена!");
     }
 
-    // ---- Производство конкретной машины (по клику на карточку) ----
+    // ---- Производство конкретной машины ----
     private void TryProduceSpecificCar(CarBlueprint car)
     {
         if (car == null) return;
@@ -417,7 +439,9 @@ public class UIManager : MonoBehaviour
             defaultRecipe.bodyRequired = 1;
             defaultRecipe.wheelsRequired = 1;
             defaultRecipe.electronicsRequired = 1;
-            CarBlueprint dummy = new CarBlueprint();
+
+            // ИСПРАВЛЕНО: используем CreateInstance вместо new
+            CarBlueprint dummy = ScriptableObject.CreateInstance<CarBlueprint>();
             dummy.recipe = defaultRecipe;
             produceButton.SetEnabled(HasRequiredParts(dummy));
         }
@@ -467,8 +491,7 @@ public class UIManager : MonoBehaviour
             electronicsLabel.text = warehouse.GetPartCount(PartType.Electronics).ToString();
     }
 
-    // ========== УЛУЧШЕНИЯ С ПРОВЕРКОЙ ПОЛЕЙ (без CarRecipe) ==========
-
+    // ---- Улучшения (без требований деталей) ----
     private bool HasRequiredPartsForUpgrade(int engine, int body, int wheels, int electronics)
     {
         if (warehouse == null) return false;
@@ -487,30 +510,54 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Electronics, -electronics);
     }
 
-   private void TryBuyConveyorUpgrade()
+    private void TryBuyConveyorUpgrade()
     {
-        // Проверяем только деньги (внутри BuyConveyorUpgrade уже есть проверка SpendMoney)
         economy.BuyConveyorUpgrade();
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
-        ShowNotification("✅ Конвейер улучшен!");
-        // Уведомление уже показывается внутри BuyConveyorUpgrade (через UIManager.ShowNotification)
     }
 
     private void TryHireEngineer()
     {
-        // Проверяем только деньги (внутри HireEngineer уже есть проверка SpendMoney)
         economy.HireEngineer();
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
-        ShowNotification("✅ Инженер нанят!");
-        // Уведомление уже показывается внутри HireEngineer
     }
 
-    // ========== КОНЕЦ УЛУЧШЕНИЙ ==========
+    // ---- Производство деталей ----
+    private void TryProducePart(PartType type)
+    {
+        int count = 1;
+        if (WarehouseManager.Instance.ProduceParts(type, count))
+        {
+            // всё уже обновлено внутри
+        }
+    }
 
+    // ---- Продажа деталей ----
+    private void TrySellPart(PartType type)
+    {
+        int count = 1;
+        float price = GetMarketPrice(type);
+        WarehouseManager.Instance.SellParts(type, count, price);
+    }
+
+    private float GetMarketPrice(PartType type)
+    {
+        float basePrice = type switch
+        {
+            PartType.Engine => 30f,
+            PartType.Body => 25f,
+            PartType.Wheels => 20f,
+            PartType.Electronics => 35f,
+            _ => 20f
+        };
+        return basePrice * economy.TotalPriceModifier;
+    }
+
+    // ---- Переключение вкладок ----
     private void SwitchCompetitorTab(bool showCompetitors)
     {
         if (competitorsContent != null)
@@ -524,6 +571,15 @@ public class UIManager : MonoBehaviour
             RefreshActionLogs();
     }
 
+    private void SwitchUpgradeTab(bool showFactory)
+    {
+        if (upgradeFactoryContent != null)
+            upgradeFactoryContent.style.display = showFactory ? DisplayStyle.Flex : DisplayStyle.None;
+        if (upgradePartsContent != null)
+            upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
+    }
+
+    // ---- Достижения ----
     private void OpenAchievementsWindow()
     {
         HideAllOverlays();
@@ -669,43 +725,44 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void TryProducePart(PartType type)
-    {
-        int count = 1; // можно сделать выбор количества
-        if (WarehouseManager.Instance.ProduceParts(type, count))
-        {
-            // всё уже обновлено внутри
-        }
-    }
+    // ---- Журнал действий ----
     private void RefreshActionLogs()
     {
         if (actionLogContent == null) return;
         actionLogContent.Clear();
+        actionLogContent.style.display = DisplayStyle.Flex;
 
         var logManager = CarCompanyManager.Instance.ActionLogManager;
         if (logManager == null)
         {
-            actionLogContent.Add(new Label("Менеджер логов не найден."));
+            actionLogContent.Add(new Label("Менеджер логов не найден.") 
+            { 
+                style = { color = Color.white, fontSize = 14, unityTextAlign = TextAnchor.MiddleCenter } 
+            });
             return;
         }
 
         var logs = logManager.GetLogsForCurrentYear();
-        if (logs.Count == 0)
+        if (logs == null || logs.Count == 0)
         {
-            actionLogContent.Add(new Label("За текущий год не было действий конкурентов."));
+            actionLogContent.Add(new Label("За текущий год не было действий конкурентов.") 
+            { 
+                style = { color = Color.white, fontSize = 14, unityTextAlign = TextAnchor.MiddleCenter, marginTop = 20 } 
+            });
             return;
         }
 
+        // Заголовок
         var headerRow = new VisualElement();
         headerRow.style.flexDirection = FlexDirection.Row;
-        headerRow.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+        headerRow.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
         headerRow.style.paddingTop = 4;
         headerRow.style.paddingBottom = 4;
-        headerRow.style.paddingLeft = 4;
-        headerRow.style.paddingRight = 4;
+        headerRow.style.paddingLeft = 8;
+        headerRow.style.paddingRight = 8;
         headerRow.style.marginBottom = 4;
         headerRow.style.borderBottomWidth = 1;
-        headerRow.style.borderBottomColor = new StyleColor(Color.gray);
+        headerRow.style.borderBottomColor = Color.gray;
 
         string[] headers = { "Месяц", "Компания", "Действие", "Результат" };
         float[] widths = { 50, 100, 120, 1f };
@@ -714,6 +771,7 @@ public class UIManager : MonoBehaviour
             Label lbl = new Label(headers[i]);
             lbl.style.color = Color.white;
             lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lbl.style.fontSize = 14;
             if (i < headers.Length - 1)
                 lbl.style.width = widths[i];
             else
@@ -722,6 +780,7 @@ public class UIManager : MonoBehaviour
         }
         actionLogContent.Add(headerRow);
 
+        // Строки логов
         foreach (var entry in logs)
         {
             VisualElement row = new VisualElement();
@@ -729,30 +788,44 @@ public class UIManager : MonoBehaviour
             row.style.marginBottom = 2;
             row.style.paddingTop = 4;
             row.style.paddingBottom = 4;
-            row.style.paddingLeft = 4;
-            row.style.paddingRight = 4;
-            row.style.backgroundColor = entry.success ? new StyleColor(new Color(0.2f, 0.3f, 0.2f)) : new StyleColor(new Color(0.3f, 0.2f, 0.2f));
+            row.style.paddingLeft = 8;
+            row.style.paddingRight = 8;
+            row.style.backgroundColor = entry.success ? new Color(0.2f, 0.3f, 0.2f) : new Color(0.3f, 0.2f, 0.2f);
+            // Исправлено: вместо borderRadius используем отдельные свойства
+            row.style.borderTopLeftRadius = 3;
+            row.style.borderTopRightRadius = 3;
+            row.style.borderBottomLeftRadius = 3;
+            row.style.borderBottomRightRadius = 3;
 
             Label dateLabel = new Label($"{entry.gameMonth:D2}/{entry.gameYear}");
             dateLabel.style.width = 50;
+            dateLabel.style.color = Color.white;
+            dateLabel.style.fontSize = 13;
             row.Add(dateLabel);
 
             Label compLabel = new Label(entry.competitorName);
             compLabel.style.width = 100;
+            compLabel.style.color = Color.white;
+            compLabel.style.fontSize = 13;
             row.Add(compLabel);
 
             Label actionLabel = new Label(entry.actionType);
             actionLabel.style.width = 120;
+            actionLabel.style.color = Color.white;
+            actionLabel.style.fontSize = 13;
             row.Add(actionLabel);
 
             Label resultLabel = new Label(entry.resultDescription);
             resultLabel.style.flexGrow = 1;
+            resultLabel.style.color = Color.white;
+            resultLabel.style.fontSize = 13;
             row.Add(resultLabel);
 
             actionLogContent.Add(row);
         }
     }
 
+    // ---- Основные методы обновления UI ----
     public void ShowWelcomeScreen()
     {
         if (welcomeOverlay != null)
@@ -895,8 +968,7 @@ public class UIManager : MonoBehaviour
         return $"\nЦена: ${actualCost} (базовая ${baseCost}){penaltyInfo}";
     }
 
-    // ============================== КАРТОЧКИ МАШИН ==============================
-
+    // ---- Карточки машин ----
     public void CreateCarCards(CarBlueprint[] availableCars)
     {
         if (carsContainer == null) return;
@@ -957,17 +1029,14 @@ public class UIManager : MonoBehaviour
             textContainer.style.flexDirection = FlexDirection.Column;
             textContainer.style.flexGrow = 1;
 
-            // ---- Получение рецепта текущего уровня ----
             CarRecipe currentRecipe = car.recipe;
             var req = GetRequirements(currentRecipe);
 
-            // ---- Лейбл с требованиями к деталям ----
             Label partsLabel = new Label($"Требуется: 🔧{req.engine} 🔩{req.body} ⚙️{req.wheels} 💻{req.electronics}");
             partsLabel.style.fontSize = 10;
             partsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
             textContainer.Add(partsLabel);
 
-            // ---- (Опционально) стоимость сборки ----
             int assemblyCost = (currentRecipe != null) ? currentRecipe.assemblyCost : 0;
             Label costLabel = new Label($"Сборка: ${assemblyCost}");
             costLabel.style.fontSize = 10;
@@ -990,6 +1059,16 @@ public class UIManager : MonoBehaviour
             profitLabel.style.fontSize = 13;
             profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+            // ========== НОВОЕ: детализация прибыли ==========
+            Label profitDetailsLabel = new Label();
+            profitDetailsLabel.style.fontSize = 10;
+            profitDetailsLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
+            profitDetailsLabel.style.marginTop = 2;
+            profitDetailsLabel.style.display = DisplayStyle.Flex; // всегда показываем
+            // ... добавьте его в textContainer
+            textContainer.Add(profitDetailsLabel);
+            // =================================================
 
             Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
             demandLabel.style.fontSize = 11;
@@ -1016,6 +1095,7 @@ public class UIManager : MonoBehaviour
             textContainer.Add(nameLabel);
             textContainer.Add(detailsLabel);
             textContainer.Add(profitLabel);
+            textContainer.Add(profitDetailsLabel); // <-- добавлено
             textContainer.Add(demandLabel);
             textContainer.Add(levelLabel);
             textContainer.Add(trendLabel);
@@ -1054,6 +1134,7 @@ public class UIManager : MonoBehaviour
             cardData.car = car;
             cardData.card = card;
             cardData.profitLabel = profitLabel;
+            cardData.profitDetailsLabel = profitDetailsLabel; // <-- сохраняем ссылку
             cardData.demandLabel = demandLabel;
             cardData.trendLabel = trendLabel;
             cardData.levelLabel = levelLabel;
@@ -1227,7 +1308,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void UpdateCarCards()
+   public void UpdateCarCards()
     {
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
 
@@ -1236,15 +1317,36 @@ public class UIManager : MonoBehaviour
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
+            // ---- Расчёт чистой прибыли (как в производстве) ----
+            float partCost = economy.GetPartCostForCar(car);
+            float productionCost = car.GetProductionCostWithLevel() + partCost;
             int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-            int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-            double profit = modPrice - modCost;
+            double profitBeforeTax = modPrice - productionCost;
+            float taxRate = economy.GetTaxRate(car);
+            double finalProfit = profitBeforeTax * (1f - taxRate);
+
+            // Обновляем лейбл прибыли
             if (cardData.profitLabel != null)
             {
-                cardData.profitLabel.text = $"Прибыль: {profit:F0}";
-                cardData.profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
+                cardData.profitLabel.text = $"Прибыль: {finalProfit:F0}";
+                cardData.profitLabel.style.color = finalProfit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             }
 
+            // Детализация прибыли
+            if (cardData.profitDetailsLabel != null)
+            {
+                string details = $"Цена: {modPrice:F0}  |  Себ: {productionCost:F0} (вкл. детали)  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
+                cardData.profitDetailsLabel.text = details;
+                cardData.profitDetailsLabel.style.display = DisplayStyle.Flex;
+            }
+
+            // Tooltip на прибыль
+            if (cardData.profitLabel != null)
+            {
+                cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
+            }
+
+            // ---- Остальные обновления (без изменений) ----
             float demandValue = car.demandMultiplier;
             if (cardData.demandLabel != null)
             {
@@ -1266,16 +1368,16 @@ public class UIManager : MonoBehaviour
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
                 bool canUpgrade = !hasHigherLevel
-                                  && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
-                                      && car.currentLevel < car.levelPrefabs.Length - 1)
-                                  && upgradeUnlocked;
+                                && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
+                                    && car.currentLevel < car.levelPrefabs.Length - 1)
+                                && upgradeUnlocked;
 
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             }
 
             if (cardData.taxRateLabel != null)
-                cardData.taxRateLabel.text = $"Налог: {economy.GetTaxRate(car):P0}";
+                cardData.taxRateLabel.text = $"Налог: {taxRate:P0}";
 
             if (cardData.graphContainer != null && MarketSystem.Instance != null)
                 MarketSystem.Instance.DrawDemandGraph(cardData.graphContainer, car.carName);
@@ -1394,8 +1496,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ========== КОНКУРЕНТЫ ==========
-
+    // ---- Конкуренты ----
     public void RefreshCompetitorsList(List<Competitor> competitors, int playerReputation)
     {
         if (competitorsContent == null)
@@ -1559,8 +1660,7 @@ public class UIManager : MonoBehaviour
             ShowNotification($"Выполнено {executedCount} действий над конкурентами.");
     }
 
-    // ========== ТЕХНОЛОГИИ ==========
-
+    // ---- Технологии ----
     public void CreateTechTree(List<Technology> technologies, float techCostMultiplier)
     {
         if (techScrollView == null)
@@ -1719,8 +1819,10 @@ public class UIManager : MonoBehaviour
         CloseSettingsWindow();
         CloseCompetitorsWindow();
         CloseAchievementsWindow();
-        // Закрыть маркетинг (если открыт)
         CloseMarketingWindow();
+        CloseMarketVisWindow();
+        CloseLoansWindow();
+        CloseInvestmentsWindow();
     }
 
     // ========== МЕТОДЫ ДЛЯ ОКОН (открытие/закрытие) ==========
@@ -1736,11 +1838,8 @@ public class UIManager : MonoBehaviour
             demand.UpdateDemand();
             UpdateCarCards();
 
-            // ---- ЗАПУСК ТУТОРИАЛА ПО МАШИНАМ (только первый раз) ----
             if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("cars"))
-            {
                 TutorialManager.Instance.StartModuleTutorial("cars");
-            }
         }
     }
 
@@ -1760,11 +1859,8 @@ public class UIManager : MonoBehaviour
             AnimateWindowOpen(techOverlay);
             RefreshTechButtons();
 
-            // ---- ЗАПУСК ТУТОРИАЛА ПО ТЕХНОЛОГИЯМ ----
             if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("tech"))
-            {
                 TutorialManager.Instance.StartModuleTutorial("tech");
-            }
         }
     }
 
@@ -1774,7 +1870,7 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(techOverlay, () => { techOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
     }
 
-   private void OpenUpgradeWindow()
+    private void OpenUpgradeWindow()
     {
         HideAllOverlays();
         if (upgradeOverlay != null)
@@ -1785,11 +1881,8 @@ public class UIManager : MonoBehaviour
             UpdateUpgradeUI();
             SwitchUpgradeTab(true);
 
-            // ---- ЗАПУСК ТУТОРИАЛА ПО УЛУЧШЕНИЯМ ----
             if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("upgrade"))
-            {
                 TutorialManager.Instance.StartModuleTutorial("upgrade");
-            }
         }
     }
 
@@ -1827,11 +1920,8 @@ public class UIManager : MonoBehaviour
             competitor.RefreshCompetitorsList();
             SwitchCompetitorTab(true);
 
-            // ---- ЗАПУСК ТУТОРИАЛА ПО КОНКУРЕНТАМ ----
             if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("competitors"))
-            {
                 TutorialManager.Instance.StartModuleTutorial("competitors");
-            }
         }
     }
 
@@ -1841,7 +1931,6 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(competitorsOverlay, () => { competitorsOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
     }
 
-    // ---- МАРКЕТИНГ (НОВЫЕ МЕТОДЫ) ----
     private void OpenMarketingWindow()
     {
         HideAllOverlays();
@@ -1853,11 +1942,8 @@ public class UIManager : MonoBehaviour
             var marketingCtrl = GetComponent<UIMarketingController>();
             if (marketingCtrl != null) marketingCtrl.RefreshUI();
 
-            // ---- ЗАПУСК ТУТОРИАЛА ПО МАРКЕТИНГУ ----
             if (TutorialManager.Instance != null && !TutorialManager.Instance.IsModuleTutorialCompleted("marketing"))
-            {
                 TutorialManager.Instance.StartModuleTutorial("marketing");
-            }
         }
     }
 
@@ -1871,7 +1957,354 @@ public class UIManager : MonoBehaviour
             });
     }
 
-    // ---- Вспомогательные методы скрытия ----
+    // ---- НОВЫЕ ОКНА (релиз 1.13.0) ----
+    private void OpenMarketVisualizationWindow()
+    {
+        HideAllOverlays();
+        if (marketVisOverlay != null)
+        {
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(marketVisOverlay);
+            var visController = GetComponent<MarketVisualizationController>();
+            if (visController != null)
+            {
+                // Используем столбчатую диаграмму вместо круговой
+                visController.UpdateBarChart(competitor.Competitors, competitor.CalculatePlayerMarketShare());
+                visController.DrawIncomeGraph(economy.monthlyIncomeHistory);
+            }
+            else
+            {
+                Debug.LogWarning("MarketVisualizationController не найден на объекте");
+            }
+        }
+    }
+
+    private void CloseMarketVisWindow()
+    {
+        if (marketVisOverlay != null)
+            AnimateWindowClose(marketVisOverlay, () => 
+            { 
+                marketVisOverlay.style.display = DisplayStyle.None; 
+                mainPanel.style.display = DisplayStyle.Flex; 
+            });
+    }
+
+    private void OpenLoansWindow()
+    {
+        HideAllOverlays();
+        if (loansOverlay != null)
+        {
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(loansOverlay);
+            UpdateLoansUI();
+        }
+    }
+
+    private void CloseLoansWindow()
+    {
+        if (loansOverlay != null)
+            AnimateWindowClose(loansOverlay, () => 
+            { 
+                loansOverlay.style.display = DisplayStyle.None; 
+                mainPanel.style.display = DisplayStyle.Flex; 
+            });
+    }
+
+    private void OpenInvestmentsWindow()
+    {
+        HideAllOverlays();
+        if (investmentsOverlay != null)
+        {
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(investmentsOverlay);
+            UpdateInvestmentsUI();
+        }
+    }
+
+    private void CloseInvestmentsWindow()
+    {
+        if (investmentsOverlay != null)
+            AnimateWindowClose(investmentsOverlay, () => 
+            { 
+                investmentsOverlay.style.display = DisplayStyle.None; 
+                mainPanel.style.display = DisplayStyle.Flex; 
+            });
+    }
+
+    // ---- Обновление списков ----
+    private void UpdateLoansUI()
+    {
+        var listView = root.Q<ListView>("LoansListView");
+        if (listView == null) return;
+        var loans = LoanManager.Instance?.GetActiveLoans() ?? new List<LoanManager.Loan>();
+        listView.itemsSource = loans;
+        listView.Rebuild();
+    }
+
+    private void UpdateInvestmentsUI()
+    {
+        var listView = root.Q<ListView>("InvestmentsListView");
+        if (listView == null) return;
+        var inv = InvestmentManager.Instance?.GetActiveInvestments() ?? new List<InvestmentManager.Investment>();
+        listView.itemsSource = inv;
+        listView.Rebuild();
+    }
+
+
+    private void SetupLoansUI()
+    {
+        var container = loansOverlay?.Q<VisualElement>("LoansContainer");
+        if (container == null) return;
+        
+        // Удаляем старый заголовок, если есть
+        var oldHeader = container.Q<VisualElement>("LoansHeader");
+        if (oldHeader != null) oldHeader.RemoveFromHierarchy();
+
+        // Создаём заголовок
+        var header = new VisualElement { name = "LoansHeader" };
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.paddingLeft = 5;
+        header.style.paddingRight = 5;
+        header.style.paddingTop = 4;
+        header.style.paddingBottom = 4;
+        header.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        header.style.marginBottom = 4;
+
+        string[] headers = { "Сумма", "Ставка", "Осталось", "Платёж" };
+        float[] widths = { 80, 60, 70, 80 };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            Label lbl = new Label(headers[i]);
+            lbl.style.width = widths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lbl.style.fontSize = 14;
+            header.Add(lbl);
+        }
+        container.Insert(0, header);
+
+        // Настраиваем ListView
+        SetupLoansListView();
+    }
+
+    private void SetupInvestmentsUI()
+    {
+        var container = investmentsOverlay?.Q<VisualElement>("InvestmentsContainer");
+        if (container == null) return;
+        
+        var oldHeader = container.Q<VisualElement>("InvestmentsHeader");
+        if (oldHeader != null) oldHeader.RemoveFromHierarchy();
+
+        var header = new VisualElement { name = "InvestmentsHeader" };
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.paddingLeft = 5;
+        header.style.paddingRight = 5;
+        header.style.paddingTop = 4;
+        header.style.paddingBottom = 4;
+        header.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        header.style.marginBottom = 4;
+
+        string[] headers = { "Тип", "Сумма", "Осталось", "Бонус" };
+        float[] widths = { 80, 80, 70, 60 };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            Label lbl = new Label(headers[i]);
+            lbl.style.width = widths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lbl.style.fontSize = 14;
+            header.Add(lbl);
+        }
+        container.Insert(0, header);
+
+        SetupInvestmentsListView();
+    }
+
+
+    private void SetupLoansListView()
+    {
+        var listView = root.Q<ListView>("LoansListView");
+        if (listView == null) return;
+        listView.makeItem = () =>
+        {
+            var container = new VisualElement();
+            container.style.flexDirection = FlexDirection.Row;
+            container.style.paddingLeft = 5;
+            container.style.paddingRight = 5;
+            container.style.paddingTop = 4;
+            container.style.paddingBottom = 4;
+            container.style.borderBottomWidth = 1;
+            container.style.borderBottomColor = Color.gray;
+
+            var amountLabel = new Label { name = "LoanAmount" };
+            amountLabel.style.width = 80;
+            amountLabel.style.color = Color.white;
+            amountLabel.style.fontSize = 14;
+            var rateLabel = new Label { name = "LoanRate" };
+            rateLabel.style.width = 60;
+            rateLabel.style.color = Color.white;
+            rateLabel.style.fontSize = 14;
+            var remainingLabel = new Label { name = "LoanRemaining" };
+            remainingLabel.style.width = 70;
+            remainingLabel.style.color = Color.white;
+            remainingLabel.style.fontSize = 14;
+            var paymentLabel = new Label { name = "LoanPayment" };
+            paymentLabel.style.width = 80;
+            paymentLabel.style.color = Color.white;
+            paymentLabel.style.fontSize = 14;
+
+            container.Add(amountLabel);
+            container.Add(rateLabel);
+            container.Add(remainingLabel);
+            container.Add(paymentLabel);
+            return container;
+        };
+        listView.bindItem = (element, index) =>
+        {
+            var loans = listView.itemsSource as List<LoanManager.Loan>;
+            if (loans == null || index >= loans.Count) return;
+            var loan = loans[index];
+            element.Q<Label>("LoanAmount").text = $"${loan.amount:F0}";
+            element.Q<Label>("LoanRate").text = $"{loan.interestRate * 100:F0}%";
+            element.Q<Label>("LoanRemaining").text = $"{loan.remainingMonths} мес.";
+            element.Q<Label>("LoanPayment").text = $"${loan.monthlyPayment:F2}";
+        };
+    }
+
+    private void SetupInvestmentsListView()
+    {
+        var listView = root.Q<ListView>("InvestmentsListView");
+        if (listView == null) return;
+        listView.makeItem = () =>
+        {
+            var container = new VisualElement();
+            container.style.flexDirection = FlexDirection.Row;
+            container.style.paddingLeft = 5;
+            container.style.paddingRight = 5;
+            container.style.paddingTop = 4;
+            container.style.paddingBottom = 4;
+            container.style.borderBottomWidth = 1;
+            container.style.borderBottomColor = Color.gray;
+
+            var typeLabel = new Label { name = "InvestmentType" };
+            typeLabel.style.width = 80;
+            typeLabel.style.color = Color.white;
+            typeLabel.style.fontSize = 14;
+            var amountLabel = new Label { name = "InvestmentAmount" };
+            amountLabel.style.width = 80;
+            amountLabel.style.color = Color.white;
+            amountLabel.style.fontSize = 14;
+            var remainingLabel = new Label { name = "InvestmentRemaining" };
+            remainingLabel.style.width = 70;
+            remainingLabel.style.color = Color.white;
+            remainingLabel.style.fontSize = 14;
+            var bonusLabel = new Label { name = "InvestmentBonus" };
+            bonusLabel.style.width = 60;
+            bonusLabel.style.color = Color.white;
+            bonusLabel.style.fontSize = 14;
+
+            container.Add(typeLabel);
+            container.Add(amountLabel);
+            container.Add(remainingLabel);
+            container.Add(bonusLabel);
+            return container;
+        };
+        listView.bindItem = (element, index) =>
+        {
+            var inv = listView.itemsSource as List<InvestmentManager.Investment>;
+            if (inv == null || index >= inv.Count) return;
+            var investment = inv[index];
+            element.Q<Label>("InvestmentType").text = investment.type;
+            element.Q<Label>("InvestmentAmount").text = $"${investment.amount:F0}";
+            element.Q<Label>("InvestmentRemaining").text = $"{investment.remainingMonths} мес.";
+            element.Q<Label>("InvestmentBonus").text = $"+{investment.monthlyBonus * 100:F0}%";
+        };
+    }
+
+
+    // ---- Обработчики действий ----
+    private void OnTakeLoan()
+    {
+        var amountField = root.Q<FloatField>("LoanAmountField");
+        var monthsField = root.Q<IntegerField>("LoanMonthsField");
+        var rateField = root.Q<FloatField>("LoanRateField");
+
+        if (amountField == null || monthsField == null || rateField == null)
+        {
+            ShowNotification("Ошибка: не найдены поля ввода кредита");
+            return;
+        }
+
+        float amount = amountField.value;
+        int months = monthsField.value;
+        float rate = rateField.value / 100f;
+
+        if (amount <= 0 || months <= 0 || rate <= 0)
+        {
+            ShowNotification("Заполните все поля корректными значениями");
+            return;
+        }
+
+        bool success = LoanManager.Instance?.TakeLoan(amount, months, rate) ?? false;
+        if (success)
+        {
+            UpdateLoansUI();
+            UpdateMoneyLabels();
+            ShowNotification($"Кредит на ${amount} взят на {months} мес. под {rate*100:F0}%");
+        }
+        else
+        {
+            ShowNotification("Не удалось взять кредит. Проверьте наличие менеджера кредитов.");
+        }
+    }
+
+    private void OnMakeInvestment()
+    {
+        var typeDropdown = root.Q<DropdownField>("InvestmentTypeDropdown");
+        var amountField = root.Q<FloatField>("InvestmentAmountField");
+        var monthsField = root.Q<IntegerField>("InvestmentMonthsField");
+
+        if (typeDropdown == null || amountField == null || monthsField == null)
+        {
+            ShowNotification("Ошибка: не найдены поля ввода инвестиций");
+            return;
+        }
+
+        string type = typeDropdown.value;
+        float amount = amountField.value;
+        int months = monthsField.value;
+
+        if (amount <= 0 || months <= 0)
+        {
+            ShowNotification("Сумма и срок должны быть больше 0");
+            return;
+        }
+
+        string invType = type switch
+        {
+            "Маркетинг" => "Marketing",
+            "Исследования" => "Research",
+            "Производство" => "Production",
+            _ => "Marketing"
+        };
+
+        bool success = InvestmentManager.Instance?.MakeInvestment(invType, amount, months) ?? false;
+        if (success)
+        {
+            UpdateInvestmentsUI();
+            UpdateMoneyLabels();
+            ShowNotification($"Инвестиция в {type} на ${amount} на {months} мес. выполнена");
+        }
+        else
+        {
+            ShowNotification("Не удалось сделать инвестицию. Проверьте наличие менеджера инвестиций.");
+        }
+    }
+
+    // ---- Вспомогательные методы ----
     private void HideAllOverlays()
     {
         if (carsOverlay != null) carsOverlay.style.display = DisplayStyle.None;
@@ -1882,6 +2315,9 @@ public class UIManager : MonoBehaviour
         if (welcomeOverlay != null) welcomeOverlay.style.display = DisplayStyle.None;
         if (achievementsOverlay != null) achievementsOverlay.style.display = DisplayStyle.None;
         if (marketingOverlay != null) marketingOverlay.style.display = DisplayStyle.None;
+        if (marketVisOverlay != null) marketVisOverlay.style.display = DisplayStyle.None;
+        if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
+        if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -1906,7 +2342,6 @@ public class UIManager : MonoBehaviour
         }).ExecuteLater(150);
     }
 
-    // ---- Вспомогательные методы ----
     private Sprite LoadCarIcon(string carName)
     {
         if (string.IsNullOrEmpty(carName)) return null;
@@ -2036,8 +2471,7 @@ public class UIManager : MonoBehaviour
         public int level;
     }
 
-    // ========== МЕТОДЫ ДЛЯ СЛОЖНОСТИ ==========
-
+    // ---- Сложность ----
     public void SetDifficulty(Difficulty newDifficulty)
     {
         currentDifficulty = newDifficulty;
@@ -2079,7 +2513,7 @@ public class UIManager : MonoBehaviour
         if (reputationLabel != null && economy != null)
             reputationLabel.text = economy.Reputation.ToString();
     }
-    
+
     private void OnDifficultySelected(Difficulty diff)
     {
         Debug.Log($"OnDifficultySelected: {diff}");
@@ -2134,35 +2568,4 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Wheels, -req.wheels);
         warehouse.AddParts(PartType.Electronics, -req.electronics);
     }
-
-    // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК УЛУЧШЕНИЙ ==========
-    private void SwitchUpgradeTab(bool showFactory)
-    {
-        if (upgradeFactoryContent != null)
-            upgradeFactoryContent.style.display = showFactory ? DisplayStyle.Flex : DisplayStyle.None;
-        if (upgradePartsContent != null)
-            upgradePartsContent.style.display = showFactory ? DisplayStyle.None : DisplayStyle.Flex;
-    }
-
-    private void TrySellPart(PartType type)
-    {
-        int count = 1; // или можно сделать слайдер
-        float price = GetMarketPrice(type); // определяем цену в зависимости от типа
-        WarehouseManager.Instance.SellParts(type, count, price);
-    }
-
-    private float GetMarketPrice(PartType type)
-    {
-        // Базовая цена + модификаторы (спрос, инфляция)
-        float basePrice = type switch
-        {
-            PartType.Engine => 30f,
-            PartType.Body => 25f,
-            PartType.Wheels => 20f,
-            PartType.Electronics => 35f,
-            _ => 20f
-        };
-        return basePrice * economy.TotalPriceModifier;
-    }
-
 }

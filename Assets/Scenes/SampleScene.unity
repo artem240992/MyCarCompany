@@ -696,6 +696,7 @@ GameObject:
   - component: {fileID: 2044430356}
   - component: {fileID: 2044430359}
   - component: {fileID: 2044430361}
+  - component: {fileID: 2044430362}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Player
@@ -777,6 +778,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f880b97a2ac6254c96d6dd2f9f14165, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIMarketingController
+--- !u!114 &2044430362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044430355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da3f584fe583ede44aea1106a4dd0cf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MarketVisualizationController
 --- !u!1 &2144086935
 GameObject:
   m_ObjectHideFlags: 0

@@ -9,9 +9,8 @@ public class SaveLoadManager : MonoBehaviour
     private int currentSlot = 0;
     private SaveData currentSaveData;
 
-    // Автосохранение
     private Coroutine autoSaveCoroutine;
-    [SerializeField] private float autoSaveInterval = 30f; // секунд
+    [SerializeField] private float autoSaveInterval = 30f;
 
     private string GetSavePath(int slot) => Application.persistentDataPath + $"/save_{slot}.json";
 
@@ -23,7 +22,6 @@ public class SaveLoadManager : MonoBehaviour
         return File.Exists(GetSavePath(slot));
     }
 
-    // ---- Сохранение ----
     public void SaveGame(int slot = -1)
     {
         if (slot < 0) slot = currentSlot;
@@ -45,15 +43,16 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.AchievementManager.FillSaveData(data);
         CarCompanyManager.Instance.WarehouseManager.FillSaveData(data);
         CarCompanyManager.Instance.PartsMarketManager.FillSaveData(data);
-
-        // Маркетинг
         MarketingManager.Instance?.FillSaveData(data);
+
+        // ---- СОХРАНЕНИЕ НОВЫХ ДАННЫХ ----
+        LoanManager.Instance?.FillSaveData(data);
+        InvestmentManager.Instance?.FillSaveData(data);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null)
             data.difficulty = (int)ui.GetCurrentDifficulty();
 
-        // Туториалы – флаги уже сохраняются через SaveData, но добавим прогресс
         data.tutorialProgress = TutorialManager.Instance?.CurrentStep ?? -1;
 
         string json = JsonUtility.ToJson(data, true);
@@ -62,7 +61,6 @@ public class SaveLoadManager : MonoBehaviour
         Debug.Log($"Игра сохранена в слот {slot} ({GetSavePath(slot)})");
     }
 
-    // ---- Загрузка ----
     public void LoadGame(int slot = -1)
     {
         if (slot < 0) slot = currentSlot;
@@ -85,7 +83,6 @@ public class SaveLoadManager : MonoBehaviour
 
         currentSaveData = data;
 
-        // Загружаем данные во все менеджеры
         CarCompanyManager.Instance.CompetitorManager.Initialize();
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);
@@ -96,6 +93,10 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.WarehouseManager.LoadFromSave(data);
         CarCompanyManager.Instance.PartsMarketManager.LoadFromSave(data);
         MarketingManager.Instance?.LoadFromSave(data);
+
+        // ---- ЗАГРУЗКА НОВЫХ ДАННЫХ ----
+        LoanManager.Instance?.LoadFromSave(data);
+        InvestmentManager.Instance?.LoadFromSave(data);
 
         var ui = CarCompanyManager.Instance.UIManager;
         if (ui != null && data.difficulty >= 0 && data.difficulty <= 2)
@@ -111,7 +112,6 @@ public class SaveLoadManager : MonoBehaviour
         Debug.Log($"Игра загружена из слота {slot}");
     }
 
-    // ---- Новая игра ----
     public void NewGame()
     {
         int slot = currentSlot;
@@ -126,8 +126,10 @@ public class SaveLoadManager : MonoBehaviour
             GameTimeManager.Instance.LoadFromSave(1, 2025);
         CarCompanyManager.Instance.ActionLogManager.ClearLogs();
         CarCompanyManager.Instance.AchievementManager.ResetProgress();
-        CarCompanyManager.Instance.WarehouseManager.LoadFromSave(new SaveData()); // сброс
+        CarCompanyManager.Instance.WarehouseManager.LoadFromSave(new SaveData());
         MarketingManager.Instance?.LoadFromSave(new SaveData());
+        LoanManager.Instance?.LoadFromSave(new SaveData());
+        InvestmentManager.Instance?.LoadFromSave(new SaveData());
 
         TutorialManager.Instance?.ResetProgress();
 
@@ -139,7 +141,6 @@ public class SaveLoadManager : MonoBehaviour
         Debug.Log("Новая игра начата в слоте " + slot);
     }
 
-    // ---- Автосохранение ----
     public void StartAutoSave()
     {
         StopAutoSave();
@@ -171,7 +172,6 @@ public class SaveLoadManager : MonoBehaviour
         StopAutoSave();
     }
 
-    // ---- Утилиты для UI ----
     public void SaveSlot1() => SaveGame(0);
     public void SaveSlot2() => SaveGame(1);
     public void SaveSlot3() => SaveGame(2);
@@ -179,14 +179,11 @@ public class SaveLoadManager : MonoBehaviour
     public void LoadSlot2() => LoadGame(1);
     public void LoadSlot3() => LoadGame(2);
 
-    // Для совместимости со старыми вызовами (без параметра)
     public void SaveGame() => SaveGame(currentSlot);
     public void LoadGame() => LoadGame(currentSlot);
 
-    // ---- Инициализация (если нужна) ----
     public void Initialize()
     {
-        // Можно добавить логику инициализации, если потребуется
         Debug.Log("SaveLoadManager инициализирован");
     }
 }
