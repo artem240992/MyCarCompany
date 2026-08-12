@@ -64,6 +64,11 @@ public class SaveData
     // ---- Скидки ----
     public float discountMultiplier = 1f;
     public float discountDuration = 0f;
+
+    // ---- Международная экспансия и интеллектуальная собственность ----
+    public List<OfficeData> offices = new List<OfficeData>();
+    public List<PatentData> patents = new List<PatentData>();
+    public List<LicenseData> licenses = new List<LicenseData>();
 }
 
 [Serializable]

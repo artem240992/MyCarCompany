@@ -35,6 +35,9 @@ public class SaveLoadManager : MonoBehaviour
 
         SaveData data = new SaveData();
 
+        InternationalManager.Instance?.FillSaveData(data);
+        IPManager.Instance?.FillSaveData(data);
+
         CarCompanyManager.Instance.EconomyManager.FillSaveData(data);
         CarCompanyManager.Instance.TechManager.FillSaveData(data);
         if (GameTimeManager.Instance != null)
@@ -83,6 +86,8 @@ public class SaveLoadManager : MonoBehaviour
 
         currentSaveData = data;
 
+        InternationalManager.Instance?.FillSaveData(data);
+        IPManager.Instance?.FillSaveData(data);
         CarCompanyManager.Instance.CompetitorManager.Initialize();
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);

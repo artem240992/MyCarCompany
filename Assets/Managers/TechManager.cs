@@ -73,7 +73,7 @@ public class TechManager : MonoBehaviour
                 Technology tech = new Technology();
                 tech.techName = $"{param}_{level}";
                 tech.description = $"Улучшает {display} до уровня {level}";
-                tech.researchCost = 40 + level * 25; // было 50 + level * 30
+                tech.researchCost = 40 + level * 25;
                 tech.isResearched = false;
                 tech.requiredTechNames = (level > 1) ? new string[] { $"{param}_{level - 1}" } : new string[0];
                 tech.priceModifier = 1f;
@@ -134,6 +134,7 @@ public class TechManager : MonoBehaviour
         if (technologies == null) return;
         List<Technology> techList = technologies.ToList();
 
+        // ---- Bulk Production ----
         string bulkName = CarCompanyManager.Instance.BulkProductionTechName;
         if (!techList.Any(t => t != null && t.techName == bulkName))
         {
@@ -150,9 +151,9 @@ public class TechManager : MonoBehaviour
             bulkTech.availableYear = 2025;
             bulkTech.availableMonth = 1;
             techList.Add(bulkTech);
-            Debug.Log($"Добавлена технология: {bulkName}");
         }
 
+        // ---- Car Upgrade ----
         string upgradeName = CarCompanyManager.Instance.CarUpgradeTechName;
         if (!techList.Any(t => t != null && t.techName == upgradeName))
         {
@@ -169,9 +170,9 @@ public class TechManager : MonoBehaviour
             upgradeTech.availableYear = 2025;
             upgradeTech.availableMonth = 1;
             techList.Add(upgradeTech);
-            Debug.Log($"Добавлена технология: {upgradeName}");
         }
 
+        // ---- Производство деталей ----
         string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
         foreach (string part in partTypes)
         {
@@ -194,7 +195,7 @@ public class TechManager : MonoBehaviour
             }
         }
 
-        // Улучшение склада (до 5 уровней)
+        // ---- Улучшение склада (до 5 уровней) ----
         for (int i = 1; i <= 5; i++)
         {
             string techName = $"Улучшение склада {i}";
@@ -242,7 +243,6 @@ public class TechManager : MonoBehaviour
                 techList.Add(tech);
             }
         }
-        technologies = techList.ToArray();
 
         // ---- Новые технологии (электромобили, гибрид, автопилот) ----
         string[] newTechs = { "Электромобиль", "Гибридный двигатель", "Автопилот" };
@@ -270,60 +270,89 @@ public class TechManager : MonoBehaviour
             tech.availableMonth = months[i];
             techList.Add(tech);
         }
+
+        // ========== НОВЫЕ ТЕХНОЛОГИИ ДЛЯ РЕЛИЗА 1.14.0 ==========
+        // ---- Технологии для международной экспансии и патентов ----
+        string[] specialTechs = { "Международная экспансия", "Патентное право" };
+        int[] specialCosts = { 600, 500 };
+        int[] specialYears = { 2025, 2025 };
+        int[] specialMonths = { 1, 1 };
+        for (int i = 0; i < specialTechs.Length; i++)
+        {
+            string techName = specialTechs[i];
+            if (!techList.Any(t => t != null && t.techName == techName))
+            {
+                Technology tech = new Technology();
+                tech.techName = techName;
+                tech.description = techName == "Международная экспансия" ? "Позволяет открывать представительства за рубежом" :
+                                    "Позволяет патентовать технологии и выдавать лицензии";
+                tech.researchCost = specialCosts[i];
+                tech.isResearched = false;
+                tech.requiredTechNames = new string[0];
+                tech.priceModifier = 1f;
+                tech.demandModifier = 1f;
+                tech.unlockCarOnResearch = false;
+                tech.unlockedCar = null;
+                tech.availableYear = specialYears[i];
+                tech.availableMonth = specialMonths[i];
+                techList.Add(tech);
+            }
+        }
+
+        technologies = techList.ToArray();
     }
 
     /// <summary>
-/// Создание электромобиля.
-/// </summary>
-private CarBlueprint CreateElectricCar()
-{
-    CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
-    car.carName = "Электромобиль";
-    car.basePrice = 400;
-    car.recipe = CreateRecipe(2, 2, 3, 4); // больше электроники
-    car.demandMultiplier = 1.5f;
-    car.currentLevel = 0;
-    return car;
-}
+    /// Создание электромобиля.
+    /// </summary>
+    private CarBlueprint CreateElectricCar()
+    {
+        CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
+        car.carName = "Электромобиль";
+        car.basePrice = 400;
+        car.recipe = CreateRecipe(2, 2, 3, 4);
+        car.demandMultiplier = 1.5f;
+        car.currentLevel = 0;
+        return car;
+    }
 
-/// <summary>
-/// Создание гибридного автомобиля.
-/// </summary>
-private CarBlueprint CreateHybridCar()
-{
-    CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
-    car.carName = "Гибрид";
-    car.basePrice = 300;
-    car.recipe = CreateRecipe(2, 2, 2, 2);
-    car.demandMultiplier = 1.2f;
-    car.currentLevel = 0;
-    return car;
-}
+    /// <summary>
+    /// Создание гибридного автомобиля.
+    /// </summary>
+    private CarBlueprint CreateHybridCar()
+    {
+        CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
+        car.carName = "Гибрид";
+        car.basePrice = 300;
+        car.recipe = CreateRecipe(2, 2, 2, 2);
+        car.demandMultiplier = 1.2f;
+        car.currentLevel = 0;
+        return car;
+    }
 
-/// <summary>
-/// Создание рецепта для машины.
-/// </summary>
-private CarRecipe CreateRecipe(int engine, int body, int wheels, int electronics)
-{
-    CarRecipe recipe = ScriptableObject.CreateInstance<CarRecipe>();
-    recipe.engineRequired = engine;
-    recipe.bodyRequired = body;
-    recipe.wheelsRequired = wheels;
-    recipe.electronicsRequired = electronics;
-    recipe.assemblyCost = 50 + (engine + body + wheels + electronics) * 10;
-    return recipe;
-}
+    /// <summary>
+    /// Создание рецепта для машины.
+    /// </summary>
+    private CarRecipe CreateRecipe(int engine, int body, int wheels, int electronics)
+    {
+        CarRecipe recipe = ScriptableObject.CreateInstance<CarRecipe>();
+        recipe.engineRequired = engine;
+        recipe.bodyRequired = body;
+        recipe.wheelsRequired = wheels;
+        recipe.electronicsRequired = electronics;
+        recipe.assemblyCost = 50 + (engine + body + wheels + electronics) * 10;
+        return recipe;
+    }
 
-/// <summary>
-/// Применение скидки на исследования (для инвестиций).
-/// </summary>
-public void ApplyResearchDiscount(float discount)
-{
-    // Сохраняем текущую скидку в поле (добавить поле researchDiscount)
-    researchDiscount = Mathf.Clamp(discount, 0f, 0.3f);
-}
+    /// <summary>
+    /// Применение скидки на исследования (для инвестиций).
+    /// </summary>
+    public void ApplyResearchDiscount(float discount)
+    {
+        researchDiscount = Mathf.Clamp(discount, 0f, 0.3f);
+    }
 
-private float researchDiscount = 0f;
+    private float researchDiscount = 0f;
 
     public bool IsAdTypeUnlocked(string adType)
     {
@@ -369,14 +398,12 @@ private float researchDiscount = 0f;
     {
         HashSet<CarBlueprint> uniqueCars = new HashSet<CarBlueprint>();
 
-        // 1. Добавляем все стартовые машины
         if (startCars != null)
         {
             foreach (var car in startCars)
                 if (car != null) uniqueCars.Add(car);
         }
 
-        // 2. Добавляем машины, открытые через технологии
         if (technologies != null)
         {
             foreach (var tech in technologies)
@@ -384,7 +411,6 @@ private float researchDiscount = 0f;
                     uniqueCars.Add(tech.unlockedCar);
         }
 
-        // 3. Добавляем все созданные улучшенные версии
         if (createdCars != null)
         {
             foreach (var car in createdCars)
@@ -723,11 +749,9 @@ private float researchDiscount = 0f;
     // ---- Загрузка из сохранения (ИСПРАВЛЕНО) ----
     public void LoadFromSave(SaveData data)
     {
-        // ---- Сброс текущих технологий ----
         if (technologies != null)
             foreach (var tech in technologies) if (tech != null) tech.isResearched = false;
 
-        // ---- Загрузка технологий ----
         if (data.technologyData != null)
         {
             foreach (var savedTech in data.technologyData)
@@ -750,7 +774,6 @@ private float researchDiscount = 0f;
             }
         }
 
-        // ---- Восстановление тюнинга для всех машин (без уровней) ----
         List<CarBlueprint> allCars = GetAllPossibleCars();
         foreach (var car in allCars)
         {
@@ -765,7 +788,6 @@ private float researchDiscount = 0f;
             car.currentSafety = 0;
         }
 
-        // Применяем исследованные тюнинг-технологии
         if (technologies != null)
         {
             foreach (var tech in technologies)
@@ -779,7 +801,6 @@ private float researchDiscount = 0f;
             }
         }
 
-        // ---- Загрузка созданных улучшенных машин ----
         if (data.createdCarsData != null)
         {
             LoadCreatedCars(data.createdCarsData);
@@ -789,12 +810,10 @@ private float researchDiscount = 0f;
             BuildAvailableCars();
         }
 
-        // ---- Восстановление уровней и цветов ТОЛЬКО для стартовых машин ----
         if (data.carLevels != null && startCars != null)
         {
             foreach (CarLevelData lvl in data.carLevels)
             {
-                // Ищем только среди стартовых машин
                 CarBlueprint car = startCars.FirstOrDefault(c => c != null && c.carName == lvl.carName);
                 if (car != null)
                 {
@@ -807,11 +826,9 @@ private float researchDiscount = 0f;
                     car.hasTint = lvl.hasTint;
                 }
             }
-            // Пересобираем список, чтобы обновить стартовые машины в availableCars
             BuildAvailableCars();
         }
 
-        // ---- Пересчёт модификаторов и обновление UI ----
         economy.RecalculateModifiers(technologies);
         ui.CreateTechTree(technologies.ToList(), economy.TechCostMultiplier);
         ui.CreateCarCards(availableCars);
@@ -820,7 +837,6 @@ private float researchDiscount = 0f;
 
     public void FillSaveData(SaveData data)
     {
-        // ---- Технологии ----
         data.technologyData = new List<TechnologySaveData>();
         List<string> researched = new List<string>();
         if (technologies != null)
@@ -842,7 +858,6 @@ private float researchDiscount = 0f;
         }
         data.researchedTechNames = researched.ToArray();
 
-        // ---- Машины (уровни, тюнинг, цвета) ----
         data.carLevels = new List<CarLevelData>();
         List<CarBlueprint> allCars = GetAllPossibleCars();
         foreach (CarBlueprint car in allCars)
@@ -861,7 +876,6 @@ private float researchDiscount = 0f;
                     hasTint = car.hasTint
                 });
 
-        // ---- Созданные улучшенные версии машин ----
         data.createdCarsData = GetCreatedCarsData();
     }
 
@@ -984,6 +998,7 @@ private float researchDiscount = 0f;
             }
         }
     }
+
     public bool IsTechResearched(string techName)
     {
         if (technologies == null) return false;
