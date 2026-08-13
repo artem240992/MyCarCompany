@@ -14,6 +14,11 @@ public class UIManager : MonoBehaviour
     private VisualElement mainPanel;
     private VisualElement notificationContainer;
     private Label eventLabel;
+
+    // ---- Демо-версия ----
+    private Label demoTimerLabel;
+    private Label demoProgressLabel;
+
     // ---- Оверлеи для международной экспансии и патентов ----
     private VisualElement officesOverlay;
     private VisualElement patentsOverlay;
@@ -177,6 +182,29 @@ public class UIManager : MonoBehaviour
         }
     }
 
+
+    private void UpdateDemoUI()
+    {
+        #if DEMO_BUILD
+        if (DemoManager.Instance == null) return;
+
+        if (demoTimerLabel != null)
+        {
+            float time = DemoManager.Instance.TimeRemaining;
+            int minutes = Mathf.FloorToInt(time / 60);
+            int seconds = Mathf.FloorToInt(time % 60);
+            demoTimerLabel.text = $"⏱️ {minutes:D2}:{seconds:D2}";
+        }
+
+        if (demoProgressLabel != null)
+        {
+            int researched = DemoManager.Instance.TechnologiesResearched;
+            int max = DemoManager.Instance.MaxTechnologiesToResearch;
+            demoProgressLabel.text = $"🔬 Технологий: {researched}/{max}";
+        }
+        #endif
+    }
+
     public void Initialize(UIDocument document)
     {
         uiDoc = document;
@@ -238,6 +266,8 @@ public class UIManager : MonoBehaviour
         investmentsOverlay = root.Q<VisualElement>("InvestmentsOverlay");
         officesOverlay = root.Q<VisualElement>("OfficesOverlay");
         patentsOverlay = root.Q<VisualElement>("PatentsOverlay");
+        demoTimerLabel = root.Q<Label>("DemoTimerLabel");
+        demoProgressLabel = root.Q<Label>("DemoProgressLabel");
         SetupLoansUI();
         SetupInvestmentsUI();
         SetupLoansListView();
@@ -289,7 +319,6 @@ public class UIManager : MonoBehaviour
         {
             ExecuteAllCompetitorActions();
             competitor.RefreshCompetitorsList();
-            // Если активна вкладка журнала, обновляем её
             if (actionLogContent != null && actionLogContent.style.display == DisplayStyle.Flex)
                 RefreshActionLogs();
         });
@@ -297,7 +326,25 @@ public class UIManager : MonoBehaviour
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
         SubscribeButton("LoadButton", () => CarCompanyManager.Instance.SaveLoadManager.LoadGame());
         SubscribeButton("NewGameButton", () => CarCompanyManager.Instance.SaveLoadManager.NewGame());
+        if (DemoManager.IsDemoBuild)
+        {
+            // Деактивируем все кнопки, связанные с сохранением
+            var saveButton = root.Q<Button>("SaveButton");
+            if (saveButton != null) saveButton.SetEnabled(false);
+            var loadButton = root.Q<Button>("LoadButton");
+            if (loadButton != null) loadButton.SetEnabled(false);
+            var newGameButton = root.Q<Button>("NewGameButton");
+            if (newGameButton != null) newGameButton.SetEnabled(false);
 
+            // Кнопки слотов
+            for (int i = 1; i <= 3; i++)
+            {
+                var saveSlot = root.Q<Button>($"SaveSlot{i}");
+                if (saveSlot != null) saveSlot.SetEnabled(false);
+                var loadSlot = root.Q<Button>($"LoadSlot{i}");
+                if (loadSlot != null) loadSlot.SetEnabled(false);
+            }
+        }
         SubscribeButton("ProduceButton", TryProduceBasicCar);
 
         SubscribeButton("EasyButton", () => { SetDifficulty(Difficulty.Easy); CloseSettingsWindow(); });
@@ -395,6 +442,36 @@ public class UIManager : MonoBehaviour
         if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
         if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
 
+        // ========== НОВОЕ: СОЗДАНИЕ ДЕМО-ЛЕЙБЛОВ ==========
+        #if DEMO_BUILD
+        // Ищем или создаём таймер
+        demoTimerLabel = root.Q<Label>("DemoTimerLabel");
+        if (demoTimerLabel == null)
+        {
+            demoTimerLabel = new Label();
+            demoTimerLabel.name = "DemoTimerLabel";
+            demoTimerLabel.style.position = Position.Absolute;
+            demoTimerLabel.style.left = 10;
+            demoTimerLabel.style.top = 10;
+            demoTimerLabel.style.color = Color.yellow;
+            demoTimerLabel.style.fontSize = 16;
+            demoTimerLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            root.Add(demoTimerLabel);
+        }
+
+        demoProgressLabel = root.Q<Label>("DemoProgressLabel");
+        if (demoProgressLabel == null)
+        {
+            demoProgressLabel = new Label();
+            demoProgressLabel.name = "DemoProgressLabel";
+            demoProgressLabel.style.position = Position.Absolute;
+            demoProgressLabel.style.left = 10;
+            demoProgressLabel.style.top = 35;
+            demoProgressLabel.style.color = Color.cyan;
+            demoProgressLabel.style.fontSize = 14;
+            root.Add(demoProgressLabel);
+        }
+        #endif
     }
 
     private void SubscribeButton(string name, Action action)
@@ -532,6 +609,13 @@ public class UIManager : MonoBehaviour
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
     }
+
+
+    private void Update()
+    {
+        UpdateDemoUI();
+    }
+
 
     private void TryHireEngineer()
     {
@@ -997,9 +1081,9 @@ public class UIManager : MonoBehaviour
 
             bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
             bool canUpgrade = !hasHigherLevel
-                              && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
-                                  && car.currentLevel < car.levelPrefabs.Length - 1)
-                              && upgradeUnlocked;
+                && (car.levels != null && car.levels.Length > 0
+                    && car.currentLevel < car.levels.Length - 1)
+                && upgradeUnlocked;
 
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
@@ -1383,9 +1467,9 @@ public class UIManager : MonoBehaviour
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
                 bool canUpgrade = !hasHigherLevel
-                                && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
-                                    && car.currentLevel < car.levelPrefabs.Length - 1)
-                                && upgradeUnlocked;
+                && (car.levels != null && car.levels.Length > 0
+                    && car.currentLevel < car.levels.Length - 1)
+                && upgradeUnlocked;
 
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";

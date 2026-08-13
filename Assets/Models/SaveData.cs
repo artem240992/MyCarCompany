@@ -69,6 +69,10 @@ public class SaveData
     public List<OfficeData> offices = new List<OfficeData>();
     public List<PatentData> patents = new List<PatentData>();
     public List<LicenseData> licenses = new List<LicenseData>();
+
+    // ---- Демо-версия ----
+    public float demoTimeRemaining = 1800f;
+    public int demoTechsResearched = 0;
 }
 
 [Serializable]

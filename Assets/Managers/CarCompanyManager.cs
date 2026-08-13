@@ -95,6 +95,12 @@ public class CarCompanyManager : MonoBehaviour
 
         InternationalManager = GetComponent<InternationalManager>() ?? gameObject.AddComponent<InternationalManager>();
         IPManager = GetComponent<IPManager>() ?? gameObject.AddComponent<IPManager>();
+
+        #if DEMO_BUILD
+        if (DemoManager.Instance == null)
+            gameObject.AddComponent<DemoManager>();
+        #endif
+
     }
 
     private void Start()

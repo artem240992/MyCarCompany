@@ -177,33 +177,25 @@ public class ProductionManager : MonoBehaviour
 
     private void SpawnCar(CarBlueprint car)
     {
-        if (car == null) { ui.ShowNotification("Ошибка: нет данных о машине!"); return; }
-
-        GameObject prefabToSpawn = null;
-        if (car.levelPrefabs != null && car.levelPrefabs.Length > 0)
+        if (car == null || car.carPrefab == null)
         {
-            int level = Mathf.Clamp(car.currentLevel, 0, car.levelPrefabs.Length - 1);
-            prefabToSpawn = car.levelPrefabs[level];
-        }
-        if (prefabToSpawn == null) prefabToSpawn = car.carPrefab;
-        if (prefabToSpawn == null)
-        {
-            string prefabPath = $"Prefabs/{car.carName}";
-            prefabToSpawn = Resources.Load<GameObject>(prefabPath);
-        }
-        if (prefabToSpawn == null)
-        {
-            Debug.LogWarning($"У машины {car.carName} нет префаба! Создаю временный куб.");
-            prefabToSpawn = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Destroy(prefabToSpawn.GetComponent<Collider>());
-            prefabToSpawn.name = "TempCar";
+            ui.ShowNotification("Ошибка: нет префаба для отображения!");
+            return;
         }
 
-        if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
+        if (isProductionInProgress)
+        {
+            ui.ShowNotification("Производство занято!");
+            return;
+        }
 
-        if (currentCarInstance != null) Destroy(currentCarInstance);
+        if (currentCarInstance != null)
+            Destroy(currentCarInstance);
+
         isProductionInProgress = true;
 
+        // Используем carPrefab для визуализации
+        GameObject prefabToSpawn = car.carPrefab;
         currentCarInstance = Instantiate(prefabToSpawn, carDisplay.transform);
         currentCarInstance.transform.localPosition = Vector3.zero;
         currentCarInstance.transform.localRotation = Quaternion.identity;
@@ -212,7 +204,8 @@ public class ProductionManager : MonoBehaviour
         ApplyCarColor(currentCarInstance, car);
 
         CarAnimation anim = currentCarInstance.GetComponent<CarAnimation>();
-        if (anim == null) anim = currentCarInstance.AddComponent<CarAnimation>();
+        if (anim == null)
+            anim = currentCarInstance.AddComponent<CarAnimation>();
         anim.startPoint = startPoint;
         anim.endPoint = endPoint;
         anim.duration = 2f;

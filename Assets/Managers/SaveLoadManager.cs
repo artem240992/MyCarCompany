@@ -18,12 +18,20 @@ public class SaveLoadManager : MonoBehaviour
 
     public bool HasSaveFile(int slot = -1)
     {
+        if (DemoManager.IsDemoBuild)
+            return false; // в демо всегда говорим, что нет сохранений
         if (slot < 0) slot = currentSlot;
         return File.Exists(GetSavePath(slot));
     }
 
     public void SaveGame(int slot = -1)
     {
+  
+        if (DemoManager.IsDemoBuild)
+        {
+            UIManager.Instance?.ShowNotification("Сохранение недоступно в демо-версии.");
+            return;
+        }
         if (slot < 0) slot = currentSlot;
         currentSlot = slot;
 
@@ -66,6 +74,11 @@ public class SaveLoadManager : MonoBehaviour
 
     public void LoadGame(int slot = -1)
     {
+        if (DemoManager.IsDemoBuild)
+        {
+            UIManager.Instance?.ShowNotification("Загрузка недоступна в демо-версии.");
+            return;
+        }
         if (slot < 0) slot = currentSlot;
         currentSlot = slot;
 

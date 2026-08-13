@@ -5,15 +5,16 @@ public class CarBlueprint : ScriptableObject
 {
     [Header("Основные параметры")]
     public string carName;
-    public GameObject carPrefab;
-    public GameObject[] levelPrefabs;
+    public GameObject carPrefab;                // визуальный префаб для спавна (базовый)
     public int basePrice;
     public int productionCost;
     public float demandMultiplier = 1f;
     public int currentLevel = 0;
     public Sprite carIcon;
-    public CarRecipe recipe; // ссылка на ScriptableObject
-    public CarRecipe[] levelRecipes;
+    public CarRecipe recipe;                    // рецепт (fallback)
+
+    [Header("Настройки уровней (LevelData)")]
+    public LevelData[] levels;                  // массив данных для каждого уровня
 
     [Header("Тюнинг (максимальные значения)")]
     public int tuningPower = 0;
@@ -30,51 +31,117 @@ public class CarBlueprint : ScriptableObject
     [Header("Цвет и тонировка")]
     public Color bodyColor = Color.white;
     public int bodyColorIndex = 0;
-    public float tintLevel = 0f;          // 0..1 – уровень затемнения
-    public bool hasTint = false;          // наличие тонировки (используется в некоторых скриптах)
+    public float tintLevel = 0f;
+    public bool hasTint = false;
 
     [Header("Экономика")]
-    public int currentPrice;              // актуальная цена (меняется с уровнем)
+    public int currentPrice; // актуальная цена (если 0, берётся basePrice)
 
     public string GetDisplayName()
     {
         return currentLevel > 0 ? $"{carName} v{currentLevel + 1}" : carName;
     }
 
+    // ---------- Клонирование ----------
     public CarBlueprint Clone()
     {
-        CarBlueprint clone = CreateInstance<CarBlueprint>();
-        clone.carName = this.carName;
-        clone.carPrefab = this.carPrefab;
-        clone.levelPrefabs = this.levelPrefabs;
-        clone.basePrice = this.basePrice;
-        clone.recipe = this.recipe;
-        clone.productionCost = this.productionCost;
-        clone.demandMultiplier = this.demandMultiplier;
-        clone.currentLevel = this.currentLevel;
-        clone.carIcon = this.carIcon;
+        CarBlueprint newCar = ScriptableObject.CreateInstance<CarBlueprint>();
 
-        clone.tuningPower = this.tuningPower;
-        clone.tuningEconomy = this.tuningEconomy;
-        clone.tuningDesign = this.tuningDesign;
-        clone.tuningSafety = this.tuningSafety;
+        // Копирование простых полей
+        newCar.carName = this.carName;
+        newCar.carPrefab = this.carPrefab;
+        newCar.basePrice = this.basePrice;
+        newCar.productionCost = this.productionCost;
+        newCar.currentPrice = this.currentPrice;
+        newCar.demandMultiplier = this.demandMultiplier;
+        newCar.currentLevel = this.currentLevel;
+        newCar.tuningPower = this.tuningPower;
+        newCar.tuningEconomy = this.tuningEconomy;
+        newCar.tuningDesign = this.tuningDesign;
+        newCar.tuningSafety = this.tuningSafety;
+        newCar.currentPower = this.currentPower;
+        newCar.currentEconomy = this.currentEconomy;
+        newCar.currentDesign = this.currentDesign;
+        newCar.currentSafety = this.currentSafety;
+        newCar.bodyColor = this.bodyColor;
+        newCar.bodyColorIndex = this.bodyColorIndex;
+        newCar.tintLevel = this.tintLevel;
+        newCar.hasTint = this.hasTint;
+        newCar.carIcon = this.carIcon;
 
-        clone.currentPower = this.currentPower;
-        clone.currentEconomy = this.currentEconomy;
-        clone.currentDesign = this.currentDesign;
-        clone.currentSafety = this.currentSafety;
+        // Клонирование основного рецепта
+        if (this.recipe != null)
+        {
+            newCar.recipe = ScriptableObject.CreateInstance<CarRecipe>();
+            CopyRecipe(this.recipe, newCar.recipe);
+        }
 
-        clone.bodyColor = this.bodyColor;
-        clone.bodyColorIndex = this.bodyColorIndex;
-        clone.tintLevel = this.tintLevel;
-        clone.hasTint = this.hasTint;
-        clone.currentPrice = this.currentPrice;
+        // Клонирование массива уровней (глубокое копирование LevelData)
+        if (this.levels != null)
+        {
+            newCar.levels = new LevelData[this.levels.Length];
+            for (int i = 0; i < this.levels.Length; i++)
+            {
+                if (this.levels[i] != null)
+                {
+                    LevelData original = this.levels[i];
+                    LevelData copy = new LevelData();
 
-        return clone;
+                    copy.prefab = original.prefab;
+                    copy.levelPrice = original.levelPrice;
+                    copy.productionCost = original.productionCost;
+                    copy.demandMultiplier = original.demandMultiplier;
+                    copy.tuningPower = original.tuningPower;
+                    copy.tuningEconomy = original.tuningEconomy;
+                    copy.tuningDesign = original.tuningDesign;
+                    copy.tuningSafety = original.tuningSafety;
+
+                    if (original.recipe != null)
+                    {
+                        copy.recipe = ScriptableObject.CreateInstance<CarRecipe>();
+                        CopyRecipe(original.recipe, copy.recipe);
+                    }
+
+                    newCar.levels[i] = copy;
+                }
+            }
+        }
+
+        return newCar;
     }
 
-    // ---- Модификаторы ----
+    private void CopyRecipe(CarRecipe source, CarRecipe target)
+    {
+        target.engineRequired = source.engineRequired;
+        target.bodyRequired = source.bodyRequired;
+        target.wheelsRequired = source.wheelsRequired;
+        target.electronicsRequired = source.electronicsRequired;
+        target.assemblyCost = source.assemblyCost;
+        target.enginePrice = source.enginePrice;
+        target.bodyPrice = source.bodyPrice;
+        target.wheelsPrice = source.wheelsPrice;
+        target.electronicsPrice = source.electronicsPrice;
+    }
 
+    // ---------- Применение рецепта ----------
+    public void ApplyRecipe(CarRecipe newRecipe)
+    {
+        if (newRecipe == null) return;
+        if (recipe == null)
+            recipe = ScriptableObject.CreateInstance<CarRecipe>();
+
+        recipe.engineRequired = newRecipe.engineRequired;
+        recipe.bodyRequired = newRecipe.bodyRequired;
+        recipe.wheelsRequired = newRecipe.wheelsRequired;
+        recipe.electronicsRequired = newRecipe.electronicsRequired;
+        recipe.assemblyCost = newRecipe.assemblyCost;
+        recipe.enginePrice = newRecipe.enginePrice;
+        recipe.bodyPrice = newRecipe.bodyPrice;
+        recipe.wheelsPrice = newRecipe.wheelsPrice;
+        recipe.electronicsPrice = newRecipe.electronicsPrice;
+    }
+
+    // ---------- Расчётные методы ----------
     public float GetTuningPriceModifier()
     {
         int total = currentPower + currentEconomy + currentDesign + currentSafety;
@@ -95,12 +162,15 @@ public class CarBlueprint : ScriptableObject
 
     public int GetProductionCostWithLevel()
     {
-        return Mathf.RoundToInt(productionCost * (1f + currentLevel * 0.1f));
+        if (levels != null && currentLevel >= 0 && currentLevel < levels.Length)
+            return Mathf.RoundToInt(levels[currentLevel].productionCost * (1f + currentLevel * 0.1f));
+        return productionCost;
     }
 
     public int GetModifiedPrice(float priceModifier)
     {
-        float tuningPrice = currentPrice * GetTuningPriceModifier();
+        int baseForPrice = (currentPrice != 0) ? currentPrice : basePrice;
+        float tuningPrice = baseForPrice * GetTuningPriceModifier();
         float finalPrice = tuningPrice * priceModifier * GetDemandPriceModifier();
         return Mathf.RoundToInt(finalPrice);
     }
@@ -118,11 +188,32 @@ public class CarBlueprint : ScriptableObject
         currentSafety = tuningSafety;
     }
 
-    // Получить рецепт для текущего уровня машины
     public CarRecipe GetCurrentRecipe()
     {
-        if (levelRecipes != null && currentLevel >= 0 && currentLevel < levelRecipes.Length && levelRecipes[currentLevel] != null)
-            return levelRecipes[currentLevel];
+        if (levels != null && currentLevel >= 0 && currentLevel < levels.Length && levels[currentLevel].recipe != null)
+            return levels[currentLevel].recipe;
         return recipe;
     }
+}
+
+// ---------- Класс LevelData ----------
+[System.Serializable]
+public class LevelData
+{
+    [Header("Визуал")]
+    public GameObject prefab;              // префаб модели для этого уровня
+
+    [Header("Экономика")]
+    public int levelPrice;                 // базовая цена на этом уровне
+    public int productionCost;             // стоимость производства
+    public float demandMultiplier = 1f;
+
+    [Header("Рецепт")]
+    public CarRecipe recipe;               // рецепт для этого уровня
+
+    [Header("Тюнинг (максимум)")]
+    public int tuningPower = 0;
+    public int tuningEconomy = 0;
+    public int tuningDesign = 0;
+    public int tuningSafety = 0;
 }

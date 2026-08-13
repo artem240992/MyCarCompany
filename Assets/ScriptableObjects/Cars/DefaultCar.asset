@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bb3d48a39f9b10b46b3bb74129bd0a68, type: 3}
-  m_Name: N_Muscle Car_10
+  m_Name: DefaultCar
   m_EditorClassIdentifier: Assembly-CSharp::CarRecipe
-  engineRequired: 4
-  bodyRequired: 3
+  engineRequired: 1
+  bodyRequired: 1
   wheelsRequired: 4
-  electronicsRequired: 1
+  electronicsRequired: 2
   assemblyCost: 20

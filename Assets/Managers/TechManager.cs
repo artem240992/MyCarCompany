@@ -426,7 +426,7 @@ public class TechManager : MonoBehaviour
         ui.CreateCarCards(availableCars);
     }
 
-    // ---- Исследование ----
+    // ---- Исследование (с демо-ограничениями) ----
     public void ResearchTechnology(Technology tech)
     {
         if (tech == null) return;
@@ -435,6 +435,14 @@ public class TechManager : MonoBehaviour
             ui.ShowNotification($"{tech.techName} уже исследована.");
             return;
         }
+
+        // ---- ДЕМО-ОГРАНИЧЕНИЕ: проверка лимита технологий ----
+        #if DEMO_BUILD
+        if (DemoManager.Instance != null && !DemoManager.Instance.CanResearchTechnology())
+        {
+            return; // Демо не позволяет исследовать больше технологий
+        }
+        #endif
 
         if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
         {
@@ -466,6 +474,11 @@ public class TechManager : MonoBehaviour
 
         tech.isResearched = true;
         ui.ShowNotification($"Технология '{tech.techName}' исследована!");
+
+        // ---- ДЕМО-ОГРАНИЧЕНИЕ: регистрация исследования ----
+        #if DEMO_BUILD
+        DemoManager.Instance?.RegisterTechnologyResearched();
+        #endif
 
         string techName = tech.techName;
         for (int i = 0; i < tuningParamNames.Length; i++)
@@ -639,52 +652,91 @@ public class TechManager : MonoBehaviour
     public void UpgradeCar(CarBlueprint car)
     {
         if (car == null) return;
+
         if (!IsCarUpgradeUnlocked())
         {
             ui.ShowNotification($"Для улучшения машин изучите технологию '{CarCompanyManager.Instance.CarUpgradeTechName}'");
             return;
         }
-        if (car.levelPrefabs == null || car.levelPrefabs.Length == 0)
+
+        if (car.levels == null || car.levels.Length == 0)
         {
-            ui.ShowNotification("Эту машину нельзя улучшить!");
+            ui.ShowNotification("Эту машину нельзя улучшить: нет данных об уровнях.");
             return;
         }
-        int maxLevel = car.levelPrefabs.Length - 1;
-        if (car.currentLevel >= maxLevel)
+
+        int nextLevel = car.currentLevel + 1;
+        if (nextLevel >= car.levels.Length)
         {
             ui.ShowNotification("Машина уже максимально улучшена!");
             return;
         }
-        int cost = 100 * (car.currentLevel + 1);
-        if (!economy.SpendMoney(cost))
+
+        LevelData nextLevelData = car.levels[nextLevel];
+        if (nextLevelData == null)
         {
-            ui.ShowNotification($"Не хватает денег! Нужно ещё ${cost - economy.Money:F0}");
+            ui.ShowNotification("Данные для следующего уровня отсутствуют!");
             return;
         }
 
+        // Стоимость улучшения (можно брать из nextLevelData или отдельно)
+        int upgradeCost = 100 * (car.currentLevel + 1);
+        if (!economy.SpendMoney(upgradeCost))
+        {
+            ui.ShowNotification($"Не хватает денег! Нужно ещё ${upgradeCost - economy.Money:F0}");
+            return;
+        }
+
+        // ---- Создаём клон текущей машины ----
         CarBlueprint upgradedCar = car.Clone();
-        upgradedCar.currentLevel = car.currentLevel + 1;
+        if (upgradedCar == null)
+        {
+            ui.ShowNotification("Ошибка клонирования машины!");
+            return;
+        }
 
-        int priceIncrease = Mathf.RoundToInt(car.basePrice * 0.2f);
-        upgradedCar.currentPrice = car.currentPrice + priceIncrease;
+        // ---- Применяем параметры следующего уровня к клону ----
+        upgradedCar.currentLevel = nextLevel;
 
-        upgradedCar.tuningPower = car.tuningPower;
-        upgradedCar.tuningEconomy = car.tuningEconomy;
-        upgradedCar.tuningDesign = car.tuningDesign;
-        upgradedCar.tuningSafety = car.tuningSafety;
-        upgradedCar.currentPower = car.currentPower;
-        upgradedCar.currentEconomy = car.currentEconomy;
-        upgradedCar.currentDesign = car.currentDesign;
-        upgradedCar.currentSafety = car.currentSafety;
+        // Модель
+        if (nextLevelData.prefab != null)
+            upgradedCar.carPrefab = nextLevelData.prefab;
 
+        // Экономика
+        upgradedCar.currentPrice = nextLevelData.levelPrice;
+        upgradedCar.productionCost = nextLevelData.productionCost;
+        upgradedCar.demandMultiplier = nextLevelData.demandMultiplier;
+
+        // Тюнинг (максимальные значения)
+        upgradedCar.tuningPower = nextLevelData.tuningPower;
+        upgradedCar.tuningEconomy = nextLevelData.tuningEconomy;
+        upgradedCar.tuningDesign = nextLevelData.tuningDesign;
+        upgradedCar.tuningSafety = nextLevelData.tuningSafety;
+
+        // Сброс текущих значений тюнинга
+        upgradedCar.currentPower = 0;
+        upgradedCar.currentEconomy = 0;
+        upgradedCar.currentDesign = 0;
+        upgradedCar.currentSafety = 0;
+
+        // Рецепт
+        if (nextLevelData.recipe != null)
+            upgradedCar.ApplyRecipe(nextLevelData.recipe);
+
+        // Цвет и тонировка остаются как у старой машины (уже скопированы через Clone)
+
+        // ---- Добавляем клон в список и обновляем ----
         createdCars.Add(upgradedCar);
         BuildAvailableCars();
 
+        // ---- Обновление UI ----
         ui.ShowNotification($"Новая версия {upgradedCar.GetDisplayName()} создана! Цена: ${upgradedCar.currentPrice}");
         ui.UpdateMoneyLabels();
         ui.UpdateCarCards();
         demand.UpdateDemand();
     }
+
+
 
     // ---- Проверки ----
     public bool IsCarUpgradeUnlocked()
