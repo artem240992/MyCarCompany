@@ -28,14 +28,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
   - {fileID: 11400000, guid: 4faa01681feaf6f4387cefeb1140f075, type: 2}
   - {fileID: 11400000, guid: da5d5c5ed03c70f41b240e255b643417, type: 2}
-  tuningPower: 0
-  tuningEconomy: 0
-  tuningDesign: 0
-  tuningSafety: 0
-  currentPower: 0
-  currentEconomy: 0
-  currentDesign: 0
-  currentSafety: 0
+  tuningPower: 10
+  tuningEconomy: 10
+  tuningDesign: 10
+  tuningSafety: 10
+  currentPower: 1
+  currentEconomy: 1
+  currentDesign: 1
+  currentSafety: 1
   bodyColor: {r: 1, g: 1, b: 1, a: 1}
   bodyColorIndex: 0
   tintLevel: 0

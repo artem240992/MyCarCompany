@@ -46,6 +46,10 @@ public class CarCompanyManager : MonoBehaviour
     public LoanManager LoanManager { get; private set; }
     public InvestmentManager InvestmentManager { get; private set; }
 
+    // ---- НОВЫЕ МЕНЕДЖЕРЫ ДЛЯ РЕЛИЗА 1.14.0 ----
+    public InternationalManager InternationalManager { get; private set; }
+    public IPManager IPManager { get; private set; }
+
     public CarBlueprint[] StartCars => startCars;
     public string BulkProductionTechName => bulkProductionTechName;
     public string CarUpgradeTechName => carUpgradeTechName;
@@ -88,6 +92,15 @@ public class CarCompanyManager : MonoBehaviour
         // ===== НОВЫЕ МЕНЕДЖЕРЫ =====
         LoanManager = GetComponent<LoanManager>() ?? gameObject.AddComponent<LoanManager>();
         InvestmentManager = GetComponent<InvestmentManager>() ?? gameObject.AddComponent<InvestmentManager>();
+
+        InternationalManager = GetComponent<InternationalManager>() ?? gameObject.AddComponent<InternationalManager>();
+        IPManager = GetComponent<IPManager>() ?? gameObject.AddComponent<IPManager>();
+
+        #if DEMO_BUILD
+        if (DemoManager.Instance == null)
+            gameObject.AddComponent<DemoManager>();
+        #endif
+
     }
 
     private void Start()

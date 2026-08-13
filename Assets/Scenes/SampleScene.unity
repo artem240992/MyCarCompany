@@ -697,6 +697,7 @@ GameObject:
   - component: {fileID: 2044430359}
   - component: {fileID: 2044430361}
   - component: {fileID: 2044430362}
+  - component: {fileID: 2044430363}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Player
@@ -790,6 +791,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da3f584fe583ede44aea1106a4dd0cf8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MarketVisualizationController
+--- !u!114 &2044430363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044430355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 477012957e2459640a8992929f96536e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AchievementManager
+  allAchievements:
+  - {fileID: 11400000, guid: 0658b862ea549cd41b003dbdb4eca71b, type: 2}
+  - {fileID: 11400000, guid: 0ab77b6e9cb0e4e4fb03b07533f0cdcd, type: 2}
+  - {fileID: 11400000, guid: 201983ba58b2446449837ce86374a66d, type: 2}
+  - {fileID: 11400000, guid: 98ca3f6cd84092f438b8eec0a111a732, type: 2}
+  - {fileID: 11400000, guid: 79088c90fe9f4f045a6fba0fecb2fda4, type: 2}
+  - {fileID: 11400000, guid: d1617588907e7524c896c9679b36d8cf, type: 2}
+  - {fileID: 11400000, guid: 57da3a42003ba254ba084a372c774277, type: 2}
 --- !u!1 &2144086935
 GameObject:
   m_ObjectHideFlags: 0

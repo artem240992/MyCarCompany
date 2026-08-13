@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb3d48a39f9b10b46b3bb74129bd0a68, type: 3}
   m_Name: N Van_10
   m_EditorClassIdentifier: Assembly-CSharp::CarRecipe
-  engineRequired: 1
-  bodyRequired: 1
+  engineRequired: 5
+  bodyRequired: 3
   wheelsRequired: 4
   electronicsRequired: 14
   assemblyCost: 20

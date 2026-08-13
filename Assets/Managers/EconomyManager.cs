@@ -220,10 +220,20 @@ public class EconomyManager : MonoBehaviour
         return Mathf.Min(baseTax + levelBonus + tuningBonus, 0.5f);
     }
 
+    
     public float GetPartCostForCar(CarBlueprint car)
     {
         if (car == null || car.recipe == null) return 0f;
-        return CarCompanyManager.Instance.PartsMarketManager.GetProductionCost(car.recipe);
+        var recipe = car.recipe;
+        var partsMarket = CarCompanyManager.Instance.PartsMarketManager;
+        float total = 0f;
+
+        total += (recipe.enginePrice >= 0 ? recipe.enginePrice : partsMarket.GetPartPrice(PartType.Engine)) * recipe.engineRequired;
+        total += (recipe.bodyPrice >= 0 ? recipe.bodyPrice : partsMarket.GetPartPrice(PartType.Body)) * recipe.bodyRequired;
+        total += (recipe.wheelsPrice >= 0 ? recipe.wheelsPrice : partsMarket.GetPartPrice(PartType.Wheels)) * recipe.wheelsRequired;
+        total += (recipe.electronicsPrice >= 0 ? recipe.electronicsPrice : partsMarket.GetPartPrice(PartType.Electronics)) * recipe.electronicsRequired;
+
+        return total;
     }
 
     public void FillSaveData(SaveData data)

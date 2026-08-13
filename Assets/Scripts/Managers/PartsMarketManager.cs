@@ -10,6 +10,12 @@ public class PartsMarketManager : MonoBehaviour
     public float basePriceBody = 40f;
     public float basePriceWheels = 15f;
     public float basePriceElectronics = 30f;
+    
+    [Header("Цены деталей")]
+    public float enginePrice = 15f;
+    public float bodyPrice = 12f;
+    public float wheelsPrice = 10f;
+    public float electronicsPrice = 18f;
 
     private Dictionary<PartType, float> currentPrices = new Dictionary<PartType, float>();
     private float priceVolatility = 0.15f; // ±15% в месяц
@@ -18,6 +24,20 @@ public class PartsMarketManager : MonoBehaviour
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+    }
+
+
+    // PartsMarketManager.cs
+    public float GetPartPrice(PartType type)
+    {
+        switch (type)
+        {
+            case PartType.Engine: return enginePrice; // предполагается, что есть поля
+            case PartType.Body: return bodyPrice;
+            case PartType.Wheels: return wheelsPrice;
+            case PartType.Electronics: return electronicsPrice;
+            default: return 10f;
+        }
     }
 
     private void Start()

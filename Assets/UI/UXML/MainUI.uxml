@@ -3,7 +3,7 @@
     <ui:VisualElement name="MainInterface" class="main-interface">
         <!-- Main Panel -->
         <ui:VisualElement name="MainPanel" class="main-panel">
-            <!-- Верхняя панель ресурсов (восстановлена) -->
+            <!-- Верхняя панель ресурсов (без изменений) -->
             <ui:VisualElement class="top-bar">
                 <ui:VisualElement class="resource-block money-block">
                     <ui:Label text="💰" class="resource-icon" tooltip="Текущий баланс денег"/>
@@ -23,7 +23,6 @@
                         <ui:Label text="" name="IncomeLabel" class="resource-value" tooltip="Количество автомобилей, производимых в секунду"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <!-- Детали склада -->
                 <ui:VisualElement class="resource-block parts-block">
                     <ui:Label text="🔧" class="resource-icon" tooltip="Двигатели на складе"/>
                     <ui:VisualElement class="resource-info">
@@ -54,45 +53,73 @@
                     <ui:Label text="" name="SeasonLabel" class="season-display top-label" tooltip="Текущий сезон (влияет на спрос)"/>
                     <ui:Label text="" name="InflationLabel" class="inflation-display top-label" tooltip="Текущий уровень инфляции"/>
                     <ui:VisualElement class="hamburger-wrapper">
-                        <ui:Button text="☰" name="HamburgerButton" class="hamburger" tooltip="Открыть/закрыть главное меню"/>
+                        <ui:Button text="☰" name="HamburgerButton" class="hamburger" tooltip="Открыть главное меню"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
 
             <ui:Button text="Произвести авто" name="ProduceButton" class="produce-button" tooltip="Произвести одну базовую машину"/>
-            <!-- Главное меню -->
-            <ui:VisualElement name="MenuContainer" class="menu-container">
-                <!-- Существующие кнопки -->
-                <ui:Button text="Маркетинг" name="OpenMarketingButton" class="menu-button" tooltip="Открыть окно маркетинговых кампаний"/>
-                <ui:Button text="Машины" name="OpenCarsButton" class="menu-button" tooltip="Открыть окно производства машин"/>
-                <ui:Button text="Технологии" name="OpenTechButton" class="menu-button" tooltip="Открыть дерево технологий"/>
-                <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button" tooltip="Открыть окно улучшений завода"/>
-                <ui:Button text="Настройки" name="OpenSettingsButton" class="menu-button" tooltip="Открыть настройки сложности"/>
-                <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button" tooltip="Открыть окно достижений"/>
-                <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button" tooltip="Открыть окно конкурентов"/>
-
-                <!-- НОВЫЕ КНОПКИ ДЛЯ РЕЛИЗА 1.13.0 -->
-                <ui:Button text="📊 Рынок" name="OpenMarketVisualizationButton" class="menu-button" tooltip="Открыть окно рыночной аналитики (графики, доли)"/>
-                <ui:Button text="💰 Кредиты" name="OpenLoansButton" class="menu-button" tooltip="Управление кредитами"/>
-                <ui:Button text="📈 Инвестиции" name="OpenInvestmentsButton" class="menu-button" tooltip="Инвестиции в маркетинг, исследования, производство"/>
-
-                <!-- Кнопки сохранения слотов -->
-                <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 4px; margin-top: 8px; border-top-width: 1px; border-top-color: #444; padding-top: 6px;">
-                    <ui:Button text="💾 Слот 1" name="SaveSlot1" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 1"/>
-                    <ui:Button text="💾 Слот 2" name="SaveSlot2" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 2"/>
-                    <ui:Button text="💾 Слот 3" name="SaveSlot3" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Сохранить игру в слот 3"/>
-                    <ui:Button text="📂 Слот 1" name="LoadSlot1" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 1"/>
-                    <ui:Button text="📂 Слот 2" name="LoadSlot2" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 2"/>
-                    <ui:Button text="📂 Слот 3" name="LoadSlot3" class="menu-button" style="flex-grow: 1; min-width: 60px;" tooltip="Загрузить игру из слота 3"/>
-                </ui:VisualElement>
-                <ui:Button text="Сохранить" name="SaveButton" class="menu-button" tooltip="Сохранить игру (текущий слот)"/>
-                <ui:Button text="Загрузить" name="LoadButton" class="menu-button" tooltip="Загрузить игру (текущий слот)"/>
-                <ui:Button text="Новая игра" name="NewGameButton" class="menu-button menu-button-last" tooltip="Начать новую игру (текущий слот будет перезаписан)"/>
-            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- ====== ОСТАЛЬНЫЕ ОВЕРЛЕИ ====== -->
+    <!-- ===== ОВЕРЛЕЙ МЕНЮ (ИСПРАВЛЕН) ===== -->
+    <ui:VisualElement name="MenuOverlay" class="overlay">
+        <ui:VisualElement style="width: 80%; max-width: 600px; height: 80%; max-height: 700px; background-color: rgb(40,40,40); padding:20px; border-radius:10px; flex-direction:column;">
+            <ui:VisualElement style="flex-direction:row; justify-content:space-between; margin-bottom:10px; flex-shrink:0;">
+                <ui:Label text="📋 Главное меню" style="font-size:20px; color:white;"/>
+                <ui:Button text="✕" name="CloseMenuButton" style="font-size:20px; background-color:transparent; border-width:0; color:white;"/>
+            </ui:VisualElement>
+
+            <ui:ScrollView style="flex-grow:1; flex-shrink:1;">
+                <!-- ИСПРАВЛЕНО: убран класс menu-container, добавлен display: flex -->
+                <ui:VisualElement name="MenuContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px; background-color: rgba(0,0,0,0.3); border-radius: 6px; width: 100%;">
+                    <!-- Колонка 1 -->
+                    <ui:VisualElement style="flex-direction: column; gap: 4px; flex-grow: 1; min-width: 120px;">
+                        <ui:Label text="🚗 Производство" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-bottom: 2px;"/>
+                        <ui:Button text="Машины" name="OpenCarsButton" class="menu-button-compact" tooltip="Открыть окно производства машин"/>
+                        <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button-compact" tooltip="Открыть окно улучшений завода"/>
+                        <ui:Button text="Произвести авто" name="ProduceButton" class="menu-button-compact" tooltip="Произвести одну базовую машину"/>
+
+                        <ui:Label text="📈 Маркетинг и продажи" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
+                        <ui:Button text="Маркетинг" name="OpenMarketingButton" class="menu-button-compact" tooltip="Открыть окно маркетинговых кампаний"/>
+                        <ui:Button text="Рынок" name="OpenMarketVisualizationButton" class="menu-button-compact" tooltip="Рыночная аналитика (доли, графики)"/>
+                        <ui:Button text="Кредиты" name="OpenLoansButton" class="menu-button-compact" tooltip="Управление кредитами"/>
+                        <ui:Button text="Инвестиции" name="OpenInvestmentsButton" class="menu-button-compact" tooltip="Инвестиции в маркетинг, исследования, производство"/>
+                    </ui:VisualElement>
+
+                    <!-- Колонка 2 -->
+                    <ui:VisualElement style="flex-direction: column; gap: 4px; flex-grow: 1; min-width: 120px;">
+                        <ui:Label text="🌍 Международная экспансия" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-bottom: 2px;"/>
+                        <ui:Button text="Рынки" name="OpenOfficesButton" class="menu-button-compact" tooltip="Управление зарубежными представительствами"/>
+                        <ui:Button text="Патенты" name="OpenPatentsButton" class="menu-button-compact" tooltip="Патентование и лицензирование технологий"/>
+
+                        <ui:Label text="🏆 Прогресс" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
+                        <ui:Button text="Технологии" name="OpenTechButton" class="menu-button-compact" tooltip="Открыть дерево технологий"/>
+                        <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button-compact" tooltip="Открыть окно достижений"/>
+                        <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button-compact" tooltip="Открыть окно конкурентов"/>
+
+                        <ui:Label text="💾 Сохранение" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
+                        <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 2px;">
+                            <ui:Button text="С1💾" name="SaveSlot1" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 1"/>
+                            <ui:Button text="С2💾" name="SaveSlot2" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 2"/>
+                            <ui:Button text="С3💾" name="SaveSlot3" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 3"/>
+                            <ui:Button text="С1📂" name="LoadSlot1" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 1"/>
+                            <ui:Button text="С2📂" name="LoadSlot2" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 2"/>
+                            <ui:Button text="С3📂" name="LoadSlot3" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 3"/>
+                        </ui:VisualElement>
+                        <ui:Button text="Сохранить" name="SaveButton" class="menu-button-compact" tooltip="Сохранить (текущий слот)"/>
+                        <ui:Button text="Загрузить" name="LoadButton" class="menu-button-compact" tooltip="Загрузить (текущий слот)"/>
+                        <ui:Button text="Новая игра" name="NewGameButton" class="menu-button-compact" tooltip="Начать новую игру"/>
+
+                        <ui:Label text="⚙️ Настройки" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
+                        <ui:Button text="Настройки" name="OpenSettingsButton" class="menu-button-compact" tooltip="Открыть настройки сложности"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:ScrollView>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== ОСТАЛЬНЫЕ ОВЕРЛЕИ (без изменений) ===== -->
     <!-- Welcome -->
     <ui:VisualElement name="WelcomeOverlay" class="overlay">
         <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
@@ -268,32 +295,54 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- НОВЫЕ ОВЕРЛЕИ (релиз 1.13.0) -->
-    <!-- Окно рынка -->
+    <!-- ===== НОВЫЕ ОВЕРЛЕИ (релиз 1.14.0) ===== -->
+    <!-- Окно зарубежных рынков -->
+    <ui:VisualElement name="OfficesOverlay" class="overlay">
+        <ui:VisualElement style="width: 80%; max-width: 800px; height: 80%; max-height: 700px; background-color: rgb(40,40,40); padding:20px; border-radius:10px; flex-direction:column;">
+            <ui:VisualElement style="flex-direction:row; justify-content:space-between; margin-bottom:10px; flex-shrink:0;">
+                <ui:Label text="🌍 Зарубежные рынки" style="font-size:20px; color:white;"/>
+                <ui:Button text="✕" name="CloseOfficesButton" style="font-size:20px; background-color:transparent; border-width:0; color:white;"/>
+            </ui:VisualElement>
+            <ui:ScrollView style="flex-grow:1;">
+                <ui:VisualElement name="OfficesListContainer" style="flex-direction:column;"/>
+            </ui:ScrollView>
+            <ui:VisualElement style="flex-direction:row; justify-content:flex-end; margin-top:10px; flex-shrink:0;">
+                <ui:Button name="RefreshOfficesButton" text="Обновить" style="background-color:#444; color:white; padding:4px 14px;"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Окно патентного бюро -->
+    <ui:VisualElement name="PatentsOverlay" class="overlay">
+        <ui:VisualElement style="width: 80%; max-width: 800px; height: 80%; max-height: 700px; background-color: rgb(40,40,40); padding:20px; border-radius:10px; flex-direction:column;">
+            <ui:VisualElement style="flex-direction:row; justify-content:space-between; margin-bottom:10px; flex-shrink:0;">
+                <ui:Label text="📜 Патентное бюро" style="font-size:20px; color:white;"/>
+                <ui:Button text="✕" name="ClosePatentsButton" style="font-size:20px; background-color:transparent; border-width:0; color:white;"/>
+            </ui:VisualElement>
+            <ui:ScrollView style="flex-grow:1;">
+                <ui:VisualElement name="PatentsListContainer" style="flex-direction:column;"/>
+            </ui:ScrollView>
+            <ui:VisualElement style="flex-direction:row; justify-content:flex-end; margin-top:10px; flex-shrink:0;">
+                <ui:Button name="RefreshPatentsButton" text="Обновить" style="background-color:#444; color:white; padding:4px 14px;"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Окно рынка (из релиза 1.13.0) -->
     <ui:VisualElement name="MarketVisOverlay" class="overlay">
         <ui:VisualElement style="width: 85%; max-width: 900px; height: 85%; max-height: 750px; background-color: rgb(40, 40, 40); padding: 24px; border-radius: 12px; flex-direction: column;">
-            <!-- Заголовок -->
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0;">
                 <ui:Label text="📊 Рыночная аналитика" style="font-size: 26px; color: white; -unity-font-style: bold;" tooltip="Визуализация рыночной доли и доходов"/>
                 <ui:Button text="✕" name="CloseMarketVisButton" style="font-size: 22px; background-color: transparent; border-width: 0; color: white; padding: 0 8px;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
-
-            <!-- Основной контент (диаграмма + легенда) -->
             <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 20px; margin-bottom: 16px; flex-shrink: 0;">
-                <!-- Круговая диаграмма -->
                 <ui:VisualElement style="flex-direction: column; align-items: center; flex-grow: 1; min-width: 250px;">
                     <ui:Label text="Рыночная доля" style="color: white; font-size: 18px; -unity-font-style: bold; margin-bottom: 8px;"/>
                     <ui:VisualElement name="PieChartContainer" style="width: 100%; height: auto; align-self: stretch; margin-top: 4px;"/>
                 </ui:VisualElement>
-
-                <!-- Легенда -->
                 <ui:VisualElement name="LegendContainer" style="flex-direction: column; justify-content: center; gap: 4px; min-width: 150px;"/>
             </ui:VisualElement>
-
-            <!-- Разделитель -->
             <ui:VisualElement style="height: 2px; background-color: #555; margin: 8px 0; flex-shrink: 0;"/>
-
-            <!-- График доходов -->
             <ui:VisualElement style="flex-direction: column; flex-grow: 1;">
                 <ui:Label text="График доходов (за последние 12 месяцев)" style="color: white; font-size: 16px; -unity-font-style: bold; margin-bottom: 6px;"/>
                 <ui:VisualElement name="IncomeGraphContainer" style="width: 100%; height: 120px; background-color: rgba(0,0,0,0.4); border-radius: 4px;"/>
@@ -301,7 +350,7 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- 2. Кредиты -->
+    <!-- Кредиты -->
     <ui:VisualElement name="LoansOverlay" class="overlay">
         <ui:VisualElement style="width: 80%; max-width: 700px; height: 80%; max-height: 600px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -328,7 +377,7 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- 3. Инвестиции -->
+    <!-- Инвестиции -->
     <ui:VisualElement name="InvestmentsOverlay" class="overlay">
         <ui:VisualElement style="width: 80%; max-width: 700px; height: 80%; max-height: 600px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
@@ -366,6 +415,12 @@
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
+
+    <!-- Демо-интерфейс (таймер и счётчик технологий) -->
+ <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
+    <ui:Label name="DemoTimerLabel" style="color: #ffd700; font-size: 16px; -unity-font-style: bold;" text="⏱️ 30:00"/>
+    <ui:Label name="DemoProgressLabel" style="color: #00d4ff; font-size: 14px; margin-top: 4px;" text="🔬 Технологий: 0/5"/>
+</ui:VisualElement>
 
     <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>

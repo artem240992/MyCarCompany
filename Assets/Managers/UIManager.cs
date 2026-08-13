@@ -14,6 +14,14 @@ public class UIManager : MonoBehaviour
     private VisualElement mainPanel;
     private VisualElement notificationContainer;
     private Label eventLabel;
+
+    // ---- Демо-версия ----
+    private Label demoTimerLabel;
+    private Label demoProgressLabel;
+
+    // ---- Оверлеи для международной экспансии и патентов ----
+    private VisualElement officesOverlay;
+    private VisualElement patentsOverlay;
     private Label moneyLabel;
     private Label incomeLabel;
     private Label savedDifficultyLabel;
@@ -174,6 +182,29 @@ public class UIManager : MonoBehaviour
         }
     }
 
+
+    private void UpdateDemoUI()
+    {
+        #if DEMO_BUILD
+        if (DemoManager.Instance == null) return;
+
+        if (demoTimerLabel != null)
+        {
+            float time = DemoManager.Instance.TimeRemaining;
+            int minutes = Mathf.FloorToInt(time / 60);
+            int seconds = Mathf.FloorToInt(time % 60);
+            demoTimerLabel.text = $"⏱️ {minutes:D2}:{seconds:D2}";
+        }
+
+        if (demoProgressLabel != null)
+        {
+            int researched = DemoManager.Instance.TechnologiesResearched;
+            int max = DemoManager.Instance.MaxTechnologiesToResearch;
+            demoProgressLabel.text = $"🔬 Технологий: {researched}/{max}";
+        }
+        #endif
+    }
+
     public void Initialize(UIDocument document)
     {
         uiDoc = document;
@@ -233,6 +264,10 @@ public class UIManager : MonoBehaviour
         marketVisOverlay = root.Q<VisualElement>("MarketVisOverlay");
         loansOverlay = root.Q<VisualElement>("LoansOverlay");
         investmentsOverlay = root.Q<VisualElement>("InvestmentsOverlay");
+        officesOverlay = root.Q<VisualElement>("OfficesOverlay");
+        patentsOverlay = root.Q<VisualElement>("PatentsOverlay");
+        demoTimerLabel = root.Q<Label>("DemoTimerLabel");
+        demoProgressLabel = root.Q<Label>("DemoProgressLabel");
         SetupLoansUI();
         SetupInvestmentsUI();
         SetupLoansListView();
@@ -253,8 +288,8 @@ public class UIManager : MonoBehaviour
         if (savedDifficultyLabel != null)
             savedDifficultyLabel.AddToClassList("difficulty-display");
 
-        if (hamburgerButton != null && menuContainer != null)
-            hamburgerButton.clicked += () => menuContainer.style.display = (menuContainer.style.display == DisplayStyle.Flex) ? DisplayStyle.None : DisplayStyle.Flex;
+        if (hamburgerButton != null)
+            hamburgerButton.clicked += OpenMenuWindow;
 
         // ---- Подписки ----
         SubscribeButton("OpenCarsButton", OpenCarsWindow);
@@ -270,12 +305,20 @@ public class UIManager : MonoBehaviour
         SubscribeButton("CloseCompetitorsButton", CloseCompetitorsWindow);
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
+        SubscribeButton("CloseMenuButton", CloseMenuWindow);
+
+        SubscribeButton("OpenOfficesButton", OpenOfficesWindow);
+        SubscribeButton("CloseOfficesButton", CloseOfficesWindow);
+        SubscribeButton("OpenPatentsButton", OpenPatentsWindow);
+        SubscribeButton("ClosePatentsButton", ClosePatentsWindow);
+        SubscribeButton("RefreshOfficesButton", UpdateOfficesUI);
+        SubscribeButton("RefreshPatentsButton", UpdatePatentsUI);
+
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
         SubscribeButton("RefreshCompetitorsButton", () =>
         {
             ExecuteAllCompetitorActions();
             competitor.RefreshCompetitorsList();
-            // Если активна вкладка журнала, обновляем её
             if (actionLogContent != null && actionLogContent.style.display == DisplayStyle.Flex)
                 RefreshActionLogs();
         });
@@ -283,7 +326,25 @@ public class UIManager : MonoBehaviour
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
         SubscribeButton("LoadButton", () => CarCompanyManager.Instance.SaveLoadManager.LoadGame());
         SubscribeButton("NewGameButton", () => CarCompanyManager.Instance.SaveLoadManager.NewGame());
+        if (DemoManager.IsDemoBuild)
+        {
+            // Деактивируем все кнопки, связанные с сохранением
+            var saveButton = root.Q<Button>("SaveButton");
+            if (saveButton != null) saveButton.SetEnabled(false);
+            var loadButton = root.Q<Button>("LoadButton");
+            if (loadButton != null) loadButton.SetEnabled(false);
+            var newGameButton = root.Q<Button>("NewGameButton");
+            if (newGameButton != null) newGameButton.SetEnabled(false);
 
+            // Кнопки слотов
+            for (int i = 1; i <= 3; i++)
+            {
+                var saveSlot = root.Q<Button>($"SaveSlot{i}");
+                if (saveSlot != null) saveSlot.SetEnabled(false);
+                var loadSlot = root.Q<Button>($"LoadSlot{i}");
+                if (loadSlot != null) loadSlot.SetEnabled(false);
+            }
+        }
         SubscribeButton("ProduceButton", TryProduceBasicCar);
 
         SubscribeButton("EasyButton", () => { SetDifficulty(Difficulty.Easy); CloseSettingsWindow(); });
@@ -380,6 +441,37 @@ public class UIManager : MonoBehaviour
         if (marketVisOverlay != null) marketVisOverlay.style.display = DisplayStyle.None;
         if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
         if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
+
+        // ========== НОВОЕ: СОЗДАНИЕ ДЕМО-ЛЕЙБЛОВ ==========
+        #if DEMO_BUILD
+        // Ищем или создаём таймер
+        demoTimerLabel = root.Q<Label>("DemoTimerLabel");
+        if (demoTimerLabel == null)
+        {
+            demoTimerLabel = new Label();
+            demoTimerLabel.name = "DemoTimerLabel";
+            demoTimerLabel.style.position = Position.Absolute;
+            demoTimerLabel.style.left = 10;
+            demoTimerLabel.style.top = 10;
+            demoTimerLabel.style.color = Color.yellow;
+            demoTimerLabel.style.fontSize = 16;
+            demoTimerLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            root.Add(demoTimerLabel);
+        }
+
+        demoProgressLabel = root.Q<Label>("DemoProgressLabel");
+        if (demoProgressLabel == null)
+        {
+            demoProgressLabel = new Label();
+            demoProgressLabel.name = "DemoProgressLabel";
+            demoProgressLabel.style.position = Position.Absolute;
+            demoProgressLabel.style.left = 10;
+            demoProgressLabel.style.top = 35;
+            demoProgressLabel.style.color = Color.cyan;
+            demoProgressLabel.style.fontSize = 14;
+            root.Add(demoProgressLabel);
+        }
+        #endif
     }
 
     private void SubscribeButton(string name, Action action)
@@ -517,6 +609,13 @@ public class UIManager : MonoBehaviour
         UpdateProductionButtonsState();
         UpdateUpgradeUI();
     }
+
+
+    private void Update()
+    {
+        UpdateDemoUI();
+    }
+
 
     private void TryHireEngineer()
     {
@@ -982,9 +1081,9 @@ public class UIManager : MonoBehaviour
 
             bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
             bool canUpgrade = !hasHigherLevel
-                              && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
-                                  && car.currentLevel < car.levelPrefabs.Length - 1)
-                              && upgradeUnlocked;
+                && (car.levels != null && car.levels.Length > 0
+                    && car.currentLevel < car.levels.Length - 1)
+                && upgradeUnlocked;
 
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
@@ -1368,9 +1467,9 @@ public class UIManager : MonoBehaviour
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
                 bool canUpgrade = !hasHigherLevel
-                                && (car.levelPrefabs != null && car.levelPrefabs.Length > 0
-                                    && car.currentLevel < car.levelPrefabs.Length - 1)
-                                && upgradeUnlocked;
+                && (car.levels != null && car.levels.Length > 0
+                    && car.currentLevel < car.levels.Length - 1)
+                && upgradeUnlocked;
 
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
@@ -1829,6 +1928,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenCarsWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (carsOverlay != null)
         {
@@ -1851,6 +1951,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenTechWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (techOverlay != null)
         {
@@ -1872,6 +1973,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenUpgradeWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (upgradeOverlay != null)
         {
@@ -1894,6 +1996,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenSettingsWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (settingsOverlay != null)
         {
@@ -1911,6 +2014,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenCompetitorsWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (competitorsOverlay != null)
         {
@@ -1933,6 +2037,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenMarketingWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (marketingOverlay != null)
         {
@@ -1960,6 +2065,7 @@ public class UIManager : MonoBehaviour
     // ---- НОВЫЕ ОКНА (релиз 1.13.0) ----
     private void OpenMarketVisualizationWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (marketVisOverlay != null)
         {
@@ -1992,6 +2098,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenLoansWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (loansOverlay != null)
         {
@@ -2014,6 +2121,7 @@ public class UIManager : MonoBehaviour
 
     private void OpenInvestmentsWindow()
     {
+        CloseMenuWindow();
         HideAllOverlays();
         if (investmentsOverlay != null)
         {
@@ -2502,6 +2610,289 @@ public class UIManager : MonoBehaviour
         };
     }
 
+    // ---- ОКНО ЗАРУБЕЖНЫХ РЫНКОВ ----
+    private void OpenOfficesWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (officesOverlay != null)
+        {
+            if (!InternationalManager.Instance.IsOfficeTechUnlocked())
+            {
+                ShowNotification("Изучите технологию 'Международная экспансия' для доступа к этому окну.");
+                return;
+            }
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(officesOverlay);
+            UpdateOfficesUI();
+        }
+    }
+
+    private void CloseOfficesWindow()
+    {
+        if (officesOverlay != null)
+            AnimateWindowClose(officesOverlay, () => { officesOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
+    }
+
+    // ---- ОКНО ПАТЕНТНОГО БЮРО ----
+    private void OpenPatentsWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (patentsOverlay != null)
+        {
+            if (!IPManager.Instance.IsPatentTechUnlocked())
+            {
+                ShowNotification("Изучите технологию 'Патентное право' для доступа к этому окну.");
+                return;
+            }
+            menuContainer.style.display = DisplayStyle.None;
+            mainPanel.style.display = DisplayStyle.None;
+            AnimateWindowOpen(patentsOverlay);
+            UpdatePatentsUI();
+        }
+    }
+
+    private void ClosePatentsWindow()
+    {
+        if (patentsOverlay != null)
+            AnimateWindowClose(patentsOverlay, () => { patentsOverlay.style.display = DisplayStyle.None; mainPanel.style.display = DisplayStyle.Flex; });
+    }
+
+
+    // ---- ОБНОВЛЕНИЕ UI ДЛЯ ОФИСОВ ----
+    public void UpdateOfficesUI()
+    {
+        if (officesOverlay == null) return;
+        var container = officesOverlay.Q<VisualElement>("OfficesListContainer");
+        if (container == null) return;
+        container.Clear();
+
+        var manager = InternationalManager.Instance;
+        if (manager == null) return;
+
+        var definitions = manager.regionDefinitions;
+        var offices = manager.GetOffices();
+
+        foreach (var def in definitions)
+        {
+            var office = offices.FirstOrDefault(o => o.regionId == def.id);
+            bool isOpen = office != null && office.isActive;
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.justifyContent = Justify.SpaceBetween;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 4;
+            row.style.paddingBottom = 4;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = Color.gray;
+
+            var nameLabel = new Label(def.displayName);
+            nameLabel.style.width = 80;
+            nameLabel.style.color = Color.white;
+            row.Add(nameLabel);
+
+            var statusLabel = new Label(isOpen ? "✅ Открыто" : "🔒 Закрыто");
+            statusLabel.style.width = 80;
+            statusLabel.style.color = isOpen ? Color.green : Color.red;
+            row.Add(statusLabel);
+
+            if (isOpen)
+            {
+                var levelLabel = new Label($"Ур. {office.level + 1}");
+                levelLabel.style.width = 50;
+                levelLabel.style.color = Color.white;
+                row.Add(levelLabel);
+
+                var revenueLabel = new Label($"${office.monthlyRevenue:F0}");
+                revenueLabel.style.width = 70;
+                revenueLabel.style.color = Color.yellow;
+                row.Add(revenueLabel);
+            }
+            else
+            {
+                var emptyLabel = new Label("-");
+                emptyLabel.style.width = 120;
+                emptyLabel.style.color = Color.gray;
+                row.Add(emptyLabel);
+            }
+
+            // Контейнер для кнопок
+            var buttonContainer = new VisualElement();
+            buttonContainer.style.flexDirection = FlexDirection.Row;
+            // Убираем gap, добавляем margin к каждой кнопке
+
+            if (!isOpen)
+            {
+                var openBtn = new Button(() =>
+                {
+                    float rent = def.baseRent * 1.2f;
+                    float salaries = def.baseSalaries * 1.2f;
+                    manager.OpenOffice(def.id, rent, salaries);
+                    UpdateOfficesUI();
+                });
+                openBtn.text = "Открыть";
+                openBtn.style.width = 60;
+                openBtn.style.height = 20;
+                openBtn.style.fontSize = 10;
+                openBtn.style.marginRight = 4; // вместо gap
+                buttonContainer.Add(openBtn);
+            }
+            else
+            {
+                var upgradeBtn = new Button(() =>
+                {
+                    manager.UpgradeOffice(def.id);
+                    UpdateOfficesUI();
+                });
+                upgradeBtn.text = "Улучшить";
+                upgradeBtn.style.width = 60;
+                upgradeBtn.style.height = 20;
+                upgradeBtn.style.fontSize = 10;
+                upgradeBtn.style.marginRight = 4;
+                buttonContainer.Add(upgradeBtn);
+
+                var closeBtn = new Button(() =>
+                {
+                    manager.CloseOffice(def.id);
+                    UpdateOfficesUI();
+                });
+                closeBtn.text = "Закрыть";
+                closeBtn.style.width = 60;
+                closeBtn.style.height = 20;
+                closeBtn.style.fontSize = 10;
+                closeBtn.style.backgroundColor = new Color(0.6f, 0.1f, 0.1f);
+                closeBtn.style.marginRight = 4;
+                buttonContainer.Add(closeBtn);
+            }
+
+            row.Add(buttonContainer);
+            container.Add(row);
+        }
+    }
+
+    // ---- ОБНОВЛЕНИЕ UI ДЛЯ ПАТЕНТОВ ----
+    public void UpdatePatentsUI()
+    {
+        if (patentsOverlay == null) return;
+        var container = patentsOverlay.Q<VisualElement>("PatentsListContainer");
+        if (container == null) return;
+        container.Clear();
+
+        var manager = IPManager.Instance;
+        if (manager == null) return;
+
+        var techManager = CarCompanyManager.Instance.TechManager;
+        if (techManager == null) return;
+
+        // Заголовок
+        var header = new Label("📜 Патенты и лицензии");
+        header.style.color = Color.white;
+        header.style.fontSize = 16;
+        header.style.unityFontStyleAndWeight = FontStyle.Bold;
+        header.style.marginBottom = 8;
+        container.Add(header);
+
+        // Список технологий, доступных для патентования
+        var techs = techManager.Technologies;
+        if (techs != null && techs.Length > 0)
+        {
+            foreach (var tech in techs)
+            {
+                if (tech == null || !tech.isResearched) continue;
+                bool isPatented = manager.IsTechnologyPatented(tech.techName);
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.justifyContent = Justify.SpaceBetween;
+                row.style.alignItems = Align.Center;
+                row.style.paddingTop = 2;
+                row.style.paddingBottom = 2;
+                row.style.borderBottomWidth = 1;
+                row.style.borderBottomColor = new Color(0.3f, 0.3f, 0.3f);
+
+                var nameLabel = new Label(tech.techName);
+                nameLabel.style.width = 150;
+                nameLabel.style.color = Color.white;
+                row.Add(nameLabel);
+
+                var statusLabel = new Label(isPatented ? "Запатентовано" : "Не запатентовано");
+                statusLabel.style.width = 120;
+                statusLabel.style.color = isPatented ? Color.green : Color.gray;
+                row.Add(statusLabel);
+
+                var button = new Button(() =>
+                {
+                    if (!isPatented)
+                    {
+                        manager.PatentTechnology(tech.techName);
+                        UpdatePatentsUI();
+                    }
+                    else
+                    {
+                        manager.RenewPatent(tech.techName);
+                        UpdatePatentsUI();
+                    }
+                });
+                button.text = isPatented ? "Продлить" : "Запатентовать";
+                button.style.width = 100;
+                button.style.height = 22;
+                button.style.fontSize = 11;
+                row.Add(button);
+
+                container.Add(row);
+            }
+        }
+
+        // Список активных лицензий
+        var licenses = manager.GetLicenses();
+        if (licenses != null && licenses.Count > 0)
+        {
+            var licenseHeader = new Label("Активные лицензии");
+            licenseHeader.style.color = Color.white;
+            licenseHeader.style.fontSize = 14;
+            licenseHeader.style.unityFontStyleAndWeight = FontStyle.Bold;
+            licenseHeader.style.marginTop = 12;
+            container.Add(licenseHeader);
+
+            foreach (var license in licenses)
+            {
+                if (!license.isActive) continue;
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.justifyContent = Justify.SpaceBetween;
+                row.style.alignItems = Align.Center;
+                row.style.paddingTop = 2;
+                row.style.paddingBottom = 2;
+                row.style.borderBottomWidth = 1;
+                row.style.borderBottomColor = new Color(0.3f, 0.3f, 0.3f);
+
+                var label = new Label($"{license.techName} → {license.licensee}");
+                label.style.color = Color.white;
+                row.Add(label);
+
+                var royaltyLabel = new Label($"Роялти: {license.royaltyRate * 100:F0}%");
+                royaltyLabel.style.color = Color.yellow;
+                row.Add(royaltyLabel);
+
+                container.Add(row);
+            }
+        }
+    }
+
+    // ---- ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ ВЫЗОВА ИЗ МЕНЕДЖЕРОВ ----
+    public void UpdateInternationalUI()
+    {
+        UpdateOfficesUI();
+    }
+
+    public void UpdatePatentUI()
+    {
+        UpdatePatentsUI();
+    }
+
+
     private void OnDestroy()
     {
         if (GameTimeManager.Instance != null)
@@ -2567,5 +2958,43 @@ public class UIManager : MonoBehaviour
         warehouse.AddParts(PartType.Body, -req.body);
         warehouse.AddParts(PartType.Wheels, -req.wheels);
         warehouse.AddParts(PartType.Electronics, -req.electronics);
+    }
+
+    private void OpenMenuWindow()
+    {
+        HideAllOverlays();
+        var overlay = root.Q<VisualElement>("MenuOverlay");
+        if (overlay != null)
+        {
+            // Убедимся, что MenuContainer отображается и имеет детей
+            var menuContainer = overlay.Q<VisualElement>("MenuContainer");
+            if (menuContainer != null)
+            {
+                menuContainer.style.display = DisplayStyle.Flex;
+                menuContainer.style.opacity = 1;
+                Debug.Log($"MenuContainer найден, детей: {menuContainer.childCount}");
+                if (menuContainer.childCount == 0)
+                {
+                    Debug.LogError("MenuContainer пуст! Проверьте UXML.");
+                }
+            }
+            else
+            {
+                Debug.LogError("MenuContainer не найден внутри MenuOverlay!");
+            }
+
+            AnimateWindowOpen(overlay);
+        }
+        else
+        {
+            Debug.LogError("MenuOverlay не найден!");
+        }
+    }
+
+    private void CloseMenuWindow()
+    {
+        var overlay = root.Q<VisualElement>("MenuOverlay");
+        if (overlay != null)
+            AnimateWindowClose(overlay, () => overlay.style.display = DisplayStyle.None);
     }
 }
