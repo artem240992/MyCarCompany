@@ -1217,7 +1217,12 @@ public class UIManager : MonoBehaviour
             partsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
             textContainer.Add(partsLabel);
 
-            int assemblyCost = (currentRecipe != null) ? currentRecipe.assemblyCost : 0;
+            Label typeLabel = new Label(car.carType != null ? car.carType.typeName : "Без типа");
+            typeLabel.style.fontSize = 11;
+            typeLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+            textContainer.Add(typeLabel);
+
+            int assemblyCost = car.GetModifiedAssemblyCost(); // вместо car.recipe.assemblyCost
             Label costLabel = new Label($"Сборка: ${assemblyCost}");
             costLabel.style.fontSize = 10;
             costLabel.style.color = new Color(0.9f, 0.7f, 0.3f);

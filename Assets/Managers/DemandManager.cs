@@ -65,7 +65,8 @@ public class DemandManager : MonoBehaviour
 
     public void UpdateDemand()
     {
-        UpdateNewsMultipliers(); // обновляем множители новостей
+        // Обновляем множители новостей (устанавливаем car.newsMultiplier)
+        UpdateNewsMultipliers();
 
         List<CarBlueprint> allCars = GetAllPossibleCars();
         if (allCars == null || allCars.Count == 0) return;
@@ -76,14 +77,13 @@ public class DemandManager : MonoBehaviour
         // 2. Средняя цена по рынку
         float avgPrice = CalculateAverageMarketPrice(allCars);
 
-        // 3. Сезонный множитель
-        float seasonModifier = economy.GetSeasonalDemandModifier();
+        // Сезонность теперь НЕ используется отдельно – она уже учтена в CurrentDemandMultiplier
 
         foreach (CarBlueprint car in allCars)
         {
             if (car == null) continue;
 
-            // ----- БАЗОВЫЙ СПРОС (из LevelData или резервного поля) -----
+            // ----- БАЗОВЫЙ СПРОС (уже включает сезонность и новости) -----
             float baseDemand = car.CurrentDemandMultiplier;
 
             // ----- ЦЕНОВОЙ ФАКТОР -----
@@ -106,18 +106,17 @@ public class DemandManager : MonoBehaviour
             if (demandPenalties.TryGetValue(car.carName, out float p))
                 penalty = p;
 
-            // ----- ТЮНИНГ (мощность, экономичность, дизайн, безопасность) -----
+            // ----- ТЮНИНГ -----
             float tuningModifier = car.GetTuningDemandModifier();
 
             // ----- ВРЕМЕННЫЙ БОНУС (инвестиции) -----
             float boost = temporaryBoost;
 
-            // ----- НОВОЕ: БОНУС ЗА УРОВЕНЬ УЛУЧШЕНИЯ (двигатель, трансмиссия и т.д.) -----
+            // ----- БОНУС ЗА УРОВЕНЬ УЛУЧШЕНИЯ -----
             float levelBonus = 1f + car.currentLevel * demandBonusPerLevel;
 
             // ----- ИТОГОВЫЙ СПРОС -----
             float finalDemand = baseDemand
-                * seasonModifier
                 * priceFactor
                 * marketingBonus
                 * brandModifier
@@ -131,11 +130,17 @@ public class DemandManager : MonoBehaviour
             // Ограничиваем разумными пределами
             finalDemand = Mathf.Clamp(finalDemand, 0.3f, 2.5f);
 
-            // Сохраняем в правильное место
-            if (car.levels != null && car.currentLevel >= 0 && car.currentLevel < car.levels.Length)
-                car.levels[car.currentLevel].demandMultiplier = finalDemand;
+            // Сохраняем спрос в правильное место
+            // Для уровня 0 – в резервное поле demandMultiplier
+            // Для уровней > 0 – в LevelData с индексом (currentLevel - 1)
+            if (car.currentLevel > 0 && car.levels != null && car.currentLevel - 1 < car.levels.Length)
+            {
+                car.levels[car.currentLevel - 1].demandMultiplier = finalDemand;
+            }
             else
+            {
                 car.demandMultiplier = finalDemand;
+            }
         }
 
         ui.UpdateCarCards();

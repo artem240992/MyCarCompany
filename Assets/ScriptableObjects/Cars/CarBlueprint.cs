@@ -12,6 +12,9 @@ public class CarBlueprint : ScriptableObject
     public Sprite carIcon;
     public CarRecipe recipe;
 
+    [Header("Тип автомобиля")]
+    public CarType carType; // если не задан, используется своя сезонность
+
     [Header("Настройки уровней")]
     public LevelData[] levels;
 
@@ -36,12 +39,18 @@ public class CarBlueprint : ScriptableObject
     [Header("Экономика")]
     public int currentPrice;
 
-    [Header("Спрос (резервный для машин без уровней)")]
+    [Header("Спрос (резервный)")]
     public float demandMultiplier = 1f;
 
     [Header("Настройки влияния новостей")]
-    public DemandRange[] newsDemandRanges; // 0-Easy, 1-Normal, 2-Hard
+    public DemandRange[] newsDemandRanges;
     public float newsMultiplier = 1f;
+
+    [Header("Сезонные множители спроса (по месяцам, январь-декабрь)")]
+    public float[] seasonalDemandMultipliers = new float[12]
+    {
+        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+    };
 
     // ------------------------------------------------------------
 
@@ -56,6 +65,7 @@ public class CarBlueprint : ScriptableObject
 
         newCar.carName = this.carName;
         newCar.carPrefab = this.carPrefab;
+        newCar.carType = this.carType;
         newCar.basePrice = this.basePrice;
         newCar.productionCost = this.productionCost;
         newCar.currentPrice = this.currentPrice;
@@ -83,12 +93,14 @@ public class CarBlueprint : ScriptableObject
                 newCar.newsDemandRanges[i] = this.newsDemandRanges[i];
         }
 
+        // Клонирование основного рецепта
         if (this.recipe != null)
         {
             newCar.recipe = ScriptableObject.CreateInstance<CarRecipe>();
             CopyRecipe(this.recipe, newCar.recipe);
         }
 
+        // Копирование уровней (LevelData)
         if (this.levels != null)
         {
             newCar.levels = new LevelData[this.levels.Length];
@@ -108,6 +120,7 @@ public class CarBlueprint : ScriptableObject
                     copy.tuningDesign = original.tuningDesign;
                     copy.tuningSafety = original.tuningSafety;
 
+                    // Клонирование рецепта уровня
                     if (original.recipe != null)
                     {
                         copy.recipe = ScriptableObject.CreateInstance<CarRecipe>();
@@ -133,6 +146,17 @@ public class CarBlueprint : ScriptableObject
         target.bodyPrice = source.bodyPrice;
         target.wheelsPrice = source.wheelsPrice;
         target.electronicsPrice = source.electronicsPrice;
+
+        // Копирование сезонных множителей
+        if (source.seasonalCostMultipliers != null)
+        {
+            target.seasonalCostMultipliers = (float[])source.seasonalCostMultipliers.Clone();
+        }
+        else
+        {
+            target.seasonalCostMultipliers = new float[12];
+            for (int i = 0; i < 12; i++) target.seasonalCostMultipliers[i] = 1f;
+        }
     }
 
     public void ApplyRecipe(CarRecipe newRecipe)
@@ -150,6 +174,12 @@ public class CarBlueprint : ScriptableObject
         recipe.bodyPrice = newRecipe.bodyPrice;
         recipe.wheelsPrice = newRecipe.wheelsPrice;
         recipe.electronicsPrice = newRecipe.electronicsPrice;
+
+        // Копируем сезонные множители
+        if (newRecipe.seasonalCostMultipliers != null)
+        {
+            recipe.seasonalCostMultipliers = (float[])newRecipe.seasonalCostMultipliers.Clone();
+        }
     }
 
     // ------------------------------------------------------------
@@ -171,16 +201,25 @@ public class CarBlueprint : ScriptableObject
 
     public float GetDemandPriceModifier()
     {
-        if (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1] != null)
-            return 0.8f + 0.4f * levels[currentLevel - 1].demandMultiplier;
-        return 0.8f + 0.4f * demandMultiplier;
+        // Используем CurrentDemandMultiplier, который уже включает сезонность спроса
+        float demand = CurrentDemandMultiplier;
+        return 0.8f + 0.4f * demand;
+    }
+
+    // Получение модифицированной стоимости сборки (учитывает сезонность рецепта)
+    public int GetModifiedAssemblyCost()
+    {
+        CarRecipe currentRecipe = GetCurrentRecipe();
+        if (currentRecipe == null) return 0;
+        return currentRecipe.GetModifiedAssemblyCost();
     }
 
     public int GetProductionCostWithLevel()
     {
-        if (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1] != null)
-            return Mathf.RoundToInt(levels[currentLevel - 1].productionCost * (1f + currentLevel * 0.1f));
-        return productionCost;
+        float baseCost = (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1] != null)
+            ? levels[currentLevel - 1].productionCost
+            : productionCost;
+        return Mathf.RoundToInt(baseCost * (1f + currentLevel * 0.1f));
     }
 
     public int GetModifiedPrice(float priceModifier)
@@ -215,8 +254,22 @@ public class CarBlueprint : ScriptableObject
     {
         get
         {
-            float baseDemand = (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length) ? levels[currentLevel - 1].demandMultiplier : demandMultiplier;
-            return baseDemand * newsMultiplier;
+            float baseDemand = (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length) 
+                ? levels[currentLevel - 1].demandMultiplier 
+                : demandMultiplier;
+
+            // Определяем массив сезонных множителей:
+            // если задан carType и у него есть массив, берём оттуда, иначе из своих seasonalDemandMultipliers
+            float[] seasonalArray = (carType != null && carType.seasonalDemandMultipliers != null && carType.seasonalDemandMultipliers.Length == 12)
+                ? carType.seasonalDemandMultipliers
+                : seasonalDemandMultipliers;
+
+            int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
+            float seasonalFactor = 1.0f;
+            if (seasonalArray != null && seasonalArray.Length == 12)
+                seasonalFactor = seasonalArray[currentMonth - 1];
+
+            return baseDemand * newsMultiplier * seasonalFactor;
         }
     }
 }

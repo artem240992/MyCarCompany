@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db755e9b27954c84394c67f4c7a8f1cf, type: 3}
-  m_Name: carUpgradeTechName
+  m_Name: HachbekCarUnlocket
   m_EditorClassIdentifier: Assembly-CSharp::TechnologyAsset
-  techName: "\u0423\u043B\u0443\u0447\u0448\u0438\u0442\u044C \u0430\u0432\u0442\u043E"
-  description: "\u041F\u043E\u0437\u0432\u043E\u043B\u044F\u0435\u0442 \u0443\u043B\u0443\u0447\u0448\u0430\u0442\u044C
-    \u043C\u0430\u0448\u0438\u043D\u044B \u043D\u0430 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"
-  researchCost: 150
+  techName: Hachbek Unloack
+  description: 
+  researchCost: 500
   requiredTechNames:
-  - 
+  - "\u0420\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C
+    \u0441\u043F\u043E\u0440\u0442\u043A\u0430\u0440"
   priceModifier: 1
   demandModifier: 1
-  unlockCarOnResearch: 0
-  unlockedCar: {fileID: 0}
+  unlockCarOnResearch: 1
+  unlockedCar: {fileID: 11400000, guid: 3445588d9f3cb1b46b084da1c824bed4, type: 2}
   availableYear: 2025

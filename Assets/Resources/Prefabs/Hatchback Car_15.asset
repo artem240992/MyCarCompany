@@ -17,3 +17,20 @@ MonoBehaviour:
   wheelsRequired: 4
   electronicsRequired: 2
   assemblyCost: 20
+  enginePrice: -1
+  bodyPrice: -1
+  wheelsPrice: -1
+  electronicsPrice: -1
+  seasonalCostMultipliers:
+  - 10
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 6
+  - 1
+  - 1
+  - 1

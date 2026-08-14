@@ -37,6 +37,9 @@ public class EconomyManager : MonoBehaviour
     // ---- Скидка на производство (от инвестиций) ----
     private float productionDiscount = 0f;
 
+    // ---- Достижения по продаже машин ----
+    private int totalCarsSold = 0;
+
     public event Action OnMoneyChanged;
 
     public void Initialize(float startMoney, float profitMultiplier)
@@ -55,6 +58,7 @@ public class EconomyManager : MonoBehaviour
         DifficultyTechCostMultiplier = 1f;
         productionDiscount = 0f;
         monthlyIncomeHistory.Clear();
+        totalCarsSold = 0; // <-- добавлено для достижений
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         else
@@ -248,6 +252,7 @@ public class EconomyManager : MonoBehaviour
         data.discountMultiplier = DiscountMultiplier;
         data.discountDuration = DiscountDuration;
         data.monthlyIncomeHistory = monthlyIncomeHistory;
+        data.totalCarsSold = totalCarsSold; // <-- добавлено
     }
 
     public void LoadFromSave(SaveData data)
@@ -262,6 +267,7 @@ public class EconomyManager : MonoBehaviour
         DiscountMultiplier = data.discountMultiplier;
         DiscountDuration = data.discountDuration;
         monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
+        totalCarsSold = data.totalCarsSold; // <-- добавлено
         OnMoneyChanged?.Invoke();
     }
 
@@ -279,6 +285,7 @@ public class EconomyManager : MonoBehaviour
         DifficultyTechCostMultiplier = 1f;
         productionDiscount = 0f;
         monthlyIncomeHistory.Clear();
+        totalCarsSold = 0; // <-- добавлено
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         OnMoneyChanged?.Invoke();
@@ -295,6 +302,17 @@ public class EconomyManager : MonoBehaviour
                 OnMoneyChanged?.Invoke();
             }
         }
+    }
+
+    // ---- Достижения по продаже машин ----
+    /// <summary>
+    /// Регистрирует продажу машин (вызывать при списании машин со склада)
+    /// </summary>
+    public void RegisterCarSold(int count)
+    {
+        if (count <= 0) return;
+        totalCarsSold += count;
+        CarCompanyManager.Instance.AchievementManager?.UpdateProgress("carsProduced", totalCarsSold);
     }
 
     private void Awake()

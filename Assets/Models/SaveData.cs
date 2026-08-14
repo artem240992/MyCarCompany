@@ -10,6 +10,9 @@ public class SaveData
 
     // НОВЫЕ ФЛАГИ ДЛЯ МОДУЛЬНЫХ ТУТОРИАЛОВ
     public bool tutorialCarsCompleted;
+
+    public int totalCarsSold;
+    
     public bool tutorialTechCompleted;
     public bool tutorialMarketingCompleted;
     public bool tutorialUpgradeCompleted;
