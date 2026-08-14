@@ -5,24 +5,23 @@ public class CarBlueprint : ScriptableObject
 {
     [Header("Основные параметры")]
     public string carName;
-    public GameObject carPrefab;                // визуальный префаб для спавна (базовый)
+    public GameObject carPrefab;
     public int basePrice;
     public int productionCost;
-    public float demandMultiplier = 1f;
     public int currentLevel = 0;
     public Sprite carIcon;
-    public CarRecipe recipe;                    // рецепт (fallback)
+    public CarRecipe recipe;
 
-    [Header("Настройки уровней (LevelData)")]
-    public LevelData[] levels;                  // массив данных для каждого уровня
+    [Header("Настройки уровней")]
+    public LevelData[] levels;
 
-    [Header("Тюнинг (максимальные значения)")]
+    [Header("Тюнинг (макс.)")]
     public int tuningPower = 0;
     public int tuningEconomy = 0;
     public int tuningDesign = 0;
     public int tuningSafety = 0;
 
-    [Header("Тюнинг (текущие значения)")]
+    [Header("Тюнинг (тек.)")]
     public int currentPower = 0;
     public int currentEconomy = 0;
     public int currentDesign = 0;
@@ -35,25 +34,31 @@ public class CarBlueprint : ScriptableObject
     public bool hasTint = false;
 
     [Header("Экономика")]
-    public int currentPrice; // актуальная цена (если 0, берётся basePrice)
+    public int currentPrice;
+
+    [Header("Спрос (резервный для машин без уровней)")]
+    public float demandMultiplier = 1f;
+
+    [Header("Настройки влияния новостей")]
+    public DemandRange[] newsDemandRanges; // 0-Easy, 1-Normal, 2-Hard
+    public float newsMultiplier = 1f;
+
+    // ------------------------------------------------------------
 
     public string GetDisplayName()
     {
         return currentLevel > 0 ? $"{carName} v{currentLevel + 1}" : carName;
     }
 
-    // ---------- Клонирование ----------
     public CarBlueprint Clone()
     {
         CarBlueprint newCar = ScriptableObject.CreateInstance<CarBlueprint>();
 
-        // Копирование простых полей
         newCar.carName = this.carName;
         newCar.carPrefab = this.carPrefab;
         newCar.basePrice = this.basePrice;
         newCar.productionCost = this.productionCost;
         newCar.currentPrice = this.currentPrice;
-        newCar.demandMultiplier = this.demandMultiplier;
         newCar.currentLevel = this.currentLevel;
         newCar.tuningPower = this.tuningPower;
         newCar.tuningEconomy = this.tuningEconomy;
@@ -68,15 +73,22 @@ public class CarBlueprint : ScriptableObject
         newCar.tintLevel = this.tintLevel;
         newCar.hasTint = this.hasTint;
         newCar.carIcon = this.carIcon;
+        newCar.demandMultiplier = this.demandMultiplier;
+        newCar.newsMultiplier = this.newsMultiplier;
 
-        // Клонирование основного рецепта
+        if (this.newsDemandRanges != null)
+        {
+            newCar.newsDemandRanges = new DemandRange[this.newsDemandRanges.Length];
+            for (int i = 0; i < this.newsDemandRanges.Length; i++)
+                newCar.newsDemandRanges[i] = this.newsDemandRanges[i];
+        }
+
         if (this.recipe != null)
         {
             newCar.recipe = ScriptableObject.CreateInstance<CarRecipe>();
             CopyRecipe(this.recipe, newCar.recipe);
         }
 
-        // Клонирование массива уровней (глубокое копирование LevelData)
         if (this.levels != null)
         {
             newCar.levels = new LevelData[this.levels.Length];
@@ -123,7 +135,6 @@ public class CarBlueprint : ScriptableObject
         target.electronicsPrice = source.electronicsPrice;
     }
 
-    // ---------- Применение рецепта ----------
     public void ApplyRecipe(CarRecipe newRecipe)
     {
         if (newRecipe == null) return;
@@ -141,7 +152,10 @@ public class CarBlueprint : ScriptableObject
         recipe.electronicsPrice = newRecipe.electronicsPrice;
     }
 
-    // ---------- Расчётные методы ----------
+    // ------------------------------------------------------------
+    // РАСЧЁТНЫЕ МЕТОДЫ
+    // ------------------------------------------------------------
+
     public float GetTuningPriceModifier()
     {
         int total = currentPower + currentEconomy + currentDesign + currentSafety;
@@ -157,13 +171,15 @@ public class CarBlueprint : ScriptableObject
 
     public float GetDemandPriceModifier()
     {
+        if (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1] != null)
+            return 0.8f + 0.4f * levels[currentLevel - 1].demandMultiplier;
         return 0.8f + 0.4f * demandMultiplier;
     }
 
     public int GetProductionCostWithLevel()
     {
-        if (levels != null && currentLevel >= 0 && currentLevel < levels.Length)
-            return Mathf.RoundToInt(levels[currentLevel].productionCost * (1f + currentLevel * 0.1f));
+        if (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1] != null)
+            return Mathf.RoundToInt(levels[currentLevel - 1].productionCost * (1f + currentLevel * 0.1f));
         return productionCost;
     }
 
@@ -190,30 +206,51 @@ public class CarBlueprint : ScriptableObject
 
     public CarRecipe GetCurrentRecipe()
     {
-        if (levels != null && currentLevel >= 0 && currentLevel < levels.Length && levels[currentLevel].recipe != null)
-            return levels[currentLevel].recipe;
+        if (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length && levels[currentLevel - 1].recipe != null)
+            return levels[currentLevel - 1].recipe;
         return recipe;
+    }
+
+    public float CurrentDemandMultiplier
+    {
+        get
+        {
+            float baseDemand = (levels != null && currentLevel > 0 && currentLevel - 1 < levels.Length) ? levels[currentLevel - 1].demandMultiplier : demandMultiplier;
+            return baseDemand * newsMultiplier;
+        }
     }
 }
 
-// ---------- Класс LevelData ----------
+// ------------------------------------------------------------
+// КЛАСС LevelData
+// ------------------------------------------------------------
 [System.Serializable]
 public class LevelData
 {
     [Header("Визуал")]
-    public GameObject prefab;              // префаб модели для этого уровня
+    public GameObject prefab;
 
     [Header("Экономика")]
-    public int levelPrice;                 // базовая цена на этом уровне
-    public int productionCost;             // стоимость производства
+    public int levelPrice;
+    public int productionCost;
     public float demandMultiplier = 1f;
 
     [Header("Рецепт")]
-    public CarRecipe recipe;               // рецепт для этого уровня
+    public CarRecipe recipe;
 
-    [Header("Тюнинг (максимум)")]
+    [Header("Тюнинг (макс.)")]
     public int tuningPower = 0;
     public int tuningEconomy = 0;
     public int tuningDesign = 0;
     public int tuningSafety = 0;
+}
+
+// ------------------------------------------------------------
+// СТРУКТУРА DemandRange
+// ------------------------------------------------------------
+[System.Serializable]
+public struct DemandRange
+{
+    public float min;
+    public float max;
 }
