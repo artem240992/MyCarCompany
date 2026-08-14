@@ -55,6 +55,7 @@ public class ProductionManager : MonoBehaviour
         productionCount = 1;
         ui.UpdateCountLabel(productionCount);
         UpdateButtons();
+        
     }
 
     public void DecreaseCount()
@@ -94,63 +95,59 @@ public class ProductionManager : MonoBehaviour
         UpdateButtons();
     }
 
-    public void ProduceBasicCar()
+    // ---- Единственный метод для производства базовой машины (возвращает bool) ----
+    public bool ProduceBasicCar()
     {
-        if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
-        var availableCars = tech.AvailableCars;
-        if (availableCars == null || availableCars.Length == 0) { ui.ShowNotification("Нет доступных машин!"); return; }
-        CarBlueprint car = availableCars[0];
-        if (car == null) return;
-
-        // ---- Проверка запчастей ----
-        if (!CheckPartsAvailability(car)) return;
-
-        // ---- Расчёт прибыли с учётом себестоимости запчастей ----
-        float partCost = economy.GetPartCostForCar(car);
-        float productionCost = car.GetProductionCostWithLevel() + partCost;
-        int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        double profitBeforeTax = modPrice - productionCost;
-        float taxRate = economy.GetTaxRate(car);
-        double profitAfterTax = profitBeforeTax * (1f - taxRate);
-
-        // ---- Списание запчастей ----
-        ConsumePartsForCar(car);
-
-        economy.AddMoney(profitAfterTax);
-        ui.ShowNotification($"Произведена машина {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
-        SpawnCar(car);
+        var availableCars = CarCompanyManager.Instance.TechManager.AvailableCars;
+        if (availableCars == null || availableCars.Length == 0)
+            return false;
+        return ProduceSpecificCar(availableCars[0]);
     }
 
-    public void ProduceSpecificCar(CarBlueprint car)
+    // ---- Производство конкретной машины с проверками и добавлением на склад ----
+    public bool ProduceSpecificCar(CarBlueprint car)
     {
-        if (isProductionInProgress) { ui.ShowNotification("Производство занято!"); return; }
-        if (car == null) return;
+        if (car == null) return false;
 
-        // ---- Проверка запчастей на всё количество машин ----
-        if (!CheckPartsAvailability(car, productionCount)) return;
+        var recipe = car.GetCurrentRecipe();
+        if (recipe == null) return false;
 
-        // ---- Расчёт прибыли с учётом себестоимости запчастей ----
-        float partCost = economy.GetPartCostForCar(car) * productionCount;
-        float productionCost = car.GetProductionCostWithLevel() * productionCount + partCost;
-        int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-        double profitBeforeTax = (modPrice * productionCount) - productionCost;
-        float taxRate = economy.GetTaxRate(car);
-        double profitAfterTax = profitBeforeTax * (1f - taxRate);
+        // Проверка деталей
+        if (!WarehouseManager.Instance.CanProduceCar(recipe))
+        {
+            UIManager.Instance?.ShowNotification("Не хватает деталей для производства!");
+            return false;
+        }
 
-        // ---- Списание запчастей для всех машин ----
-        ConsumePartsForCar(car, productionCount);
+        // Проверка денег
+        int cost = car.GetModifiedAssemblyCost();
+        if (!CarCompanyManager.Instance.EconomyManager.SpendMoney(cost))
+        {
+            UIManager.Instance?.ShowNotification($"Не хватает денег для производства! Нужно ${cost}");
+            return false;
+        }
 
-        economy.AddMoney(profitAfterTax);
-        ui.ShowNotification($"Произведено {productionCount} шт. {car.GetDisplayName()}. Прибыль: ${profitAfterTax:F0} (налог {taxRate:P0})");
+        // Списываем детали
+        WarehouseManager.Instance.ConsumePartsForCar(recipe);
+
+        // ---- ДОБАВЛЯЕМ МАШИНУ НА СКЛАД ----
+        if (!WarehouseManager.Instance.AddCar(car))
+        {
+            UIManager.Instance?.ShowNotification("Не удалось добавить машину на склад!");
+            return false;
+        }
+
+        // Визуализация (если нужна)
         SpawnCar(car);
+
+        return true;
     }
 
     // ---- Вспомогательные методы для работы с запчастями ----
     private bool CheckPartsAvailability(CarBlueprint car, int count = 1)
     {
-        if (car.recipe == null) return true; // если рецепта нет, запчасти не нужны
+        if (car.recipe == null) return true;
 
-        // Проверяем, хватит ли запчастей на все машины
         CarRecipe recipe = car.recipe;
         bool hasEnough = WarehouseManager.Instance.HasParts(PartType.Engine, recipe.engineRequired * count) &&
                          WarehouseManager.Instance.HasParts(PartType.Body, recipe.bodyRequired * count) &&
@@ -194,7 +191,6 @@ public class ProductionManager : MonoBehaviour
 
         isProductionInProgress = true;
 
-        // Используем carPrefab для визуализации
         GameObject prefabToSpawn = car.carPrefab;
         currentCarInstance = Instantiate(prefabToSpawn, carDisplay.transform);
         currentCarInstance.transform.localPosition = Vector3.zero;

@@ -11,8 +11,20 @@ public class SaveData
     // НОВЫЕ ФЛАГИ ДЛЯ МОДУЛЬНЫХ ТУТОРИАЛОВ
     public bool tutorialCarsCompleted;
 
+    public double yearlyIncome;
+    public double yearlyExpenses;
+
+    public int carStock;
+
+    public List<CarStockSaveData> carStockByModel;
+
+    public int totalOfficesOpened;
+    // public int totalCarsSold;
+    public int totalPartsSold;
+    public int totalPartsProduced;
+
     public int totalCarsSold;
-    
+
     public bool tutorialTechCompleted;
     public bool tutorialMarketingCompleted;
     public bool tutorialUpgradeCompleted;

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db755e9b27954c84394c67f4c7a8f1cf, type: 3}
+  m_Name: VARIATOR
+  m_EditorClassIdentifier: Assembly-CSharp::TechnologyAsset
+  techName: VARIATOR
+  description: VARIATOR
+  researchCost: 0
+  requiredTechNames:
+  - ROBOT
+  priceModifier: 250
+  demandModifier: 1
+  unlockCarOnResearch: 0
+  unlockedCar: {fileID: 0}
+  availableYear: 2026

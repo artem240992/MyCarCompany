@@ -10,6 +10,7 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance { get; private set; }
 
     private VisualElement newsOverlay;
+    private Toggle musicToggle;
     private Label newsTitleLabel;
     private Label newsDescriptionLabel;
     private Label newsImportanceLabel;
@@ -43,8 +44,10 @@ public class UIManager : MonoBehaviour
     private Label inflationLabel;
     private Label reputationLabel;
     private Label seasonLabel;
+    
 
     private VisualElement carsOverlay;
+
     private VisualElement carsContainer;
     private VisualElement techOverlay;
     private ScrollView techScrollView;
@@ -78,6 +81,9 @@ public class UIManager : MonoBehaviour
     private Label engineerCountLabel;
     private Button buyConveyorButton;
     private Button hireEngineerButton;
+
+    private Label carStockLabel;
+
     private Button buyPartsButton;
 
     private Button upgradeTabFactoryButton;
@@ -126,6 +132,13 @@ public class UIManager : MonoBehaviour
     {
         public CarBlueprint car;
         public Button produceButton;
+
+        public DropdownField transmissionDropdown; // новое поле
+
+        public Label ratingLabel; 
+
+        public Button sellButton;
+        public Label stockLabel;
         
         public Label profitDetailsLabel;
         public VisualElement card;
@@ -276,6 +289,7 @@ public class UIManager : MonoBehaviour
         if (root == null) return;
 
         newsOverlay = root.Q<VisualElement>("NewsOverlay");
+        carStockLabel = root.Q<Label>("CarStockLabel");
         newsTitleLabel = root.Q<Label>("NewsTitleLabel");
         newsDescriptionLabel = root.Q<Label>("NewsDescriptionLabel");
         newsImportanceLabel = root.Q<Label>("NewsImportanceLabel");
@@ -288,7 +302,20 @@ public class UIManager : MonoBehaviour
 
         if (newsOverlay != null)
             newsOverlay.style.display = DisplayStyle.None;
-            
+
+        musicToggle = root.Q<Toggle>("MusicToggle");
+        if (musicToggle != null)
+        {
+            // Загружаем сохранённое состояние и устанавливаем переключатель
+            int savedMute = PlayerPrefs.GetInt("MusicMuted", 0);
+            musicToggle.value = (savedMute == 0); // true = музыка включена
+            musicToggle.RegisterValueChangedCallback(evt =>
+            {
+                if (MusicManager.Instance != null)
+                    MusicManager.Instance.SetMute(!evt.newValue); // если toggle выключен, музыка mute = true
+            });
+        }
+
         mainPanel = root.Q<VisualElement>("MainPanel");
         reputationLabel = root.Q<Label>("ReputationLabel");
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
@@ -425,7 +452,7 @@ public class UIManager : MonoBehaviour
                 if (loadSlot != null) loadSlot.SetEnabled(false);
             }
         }
-        SubscribeButton("ProduceButton", TryProduceBasicCar);
+        SubscribeButton("ProduceButton", ProduceSingleCar);
 
         SubscribeButton("EasyButton", () => { SetDifficulty(Difficulty.Easy); CloseSettingsWindow(); });
         SubscribeButton("NormalButton", () => { SetDifficulty(Difficulty.Normal); CloseSettingsWindow(); });
@@ -552,6 +579,7 @@ public class UIManager : MonoBehaviour
             root.Add(demoProgressLabel);
         }
         #endif
+        
     }
 
     private void SubscribeButton(string name, Action action)
@@ -560,6 +588,81 @@ public class UIManager : MonoBehaviour
         if (btn != null) btn.clicked += () => action?.Invoke();
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
+
+
+
+/// <summary>
+/// Производит указанное количество машин указанной модели.
+/// </summary>
+/// <param name="car">Модель для производства. Если null, используется первая доступная.</param>
+/// <param name="count">Количество машин для производства.</param>
+    private void ProduceCars(CarBlueprint car, int count)
+    {
+        if (count <= 0) return;
+
+        // Если модель не указана, берём первую доступную
+        if (car == null)
+        {
+            var availableCars = tech.AvailableCars;
+            if (availableCars == null || availableCars.Length == 0)
+            {
+                ShowNotification("Нет доступных машин для производства!");
+                return;
+            }
+            car = availableCars[0];
+            if (car == null) return;
+        }
+
+        var economy = CarCompanyManager.Instance.EconomyManager;
+        int produced = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            // 1. Проверяем наличие деталей
+            if (!HasRequiredParts(car))
+            {
+                ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
+                break;
+            }
+
+            // 2. Проверяем наличие денег
+            int assemblyCost = car.GetModifiedAssemblyCost();
+            if (economy.Money < assemblyCost)
+            {
+                ShowNotification($"❌ Недостаточно денег! Нужно ${assemblyCost} для сборки.");
+                break;
+            }
+
+            // 3. Производим машину
+            bool success = production.ProduceSpecificCar(car);
+            if (success)
+            {
+                produced++;
+            }
+            else
+            {
+                // Если производство не удалось по другой причине, прерываем
+                break;
+            }
+        }
+
+        if (produced > 0)
+        {
+            UpdateWarehouseLabels();
+            UpdateProductionButtonsState();
+            UpdateMoneyLabels();
+            ShowNotification($"✅ {produced} {car.GetDisplayName()} произведено!");
+
+            // ---- Обновление достижений ----
+            CarCompanyManager.Instance.EconomyManager.RegisterCarSold(produced);
+        }
+        else
+        {
+            // Если не произвели ни одной машины, показываем общее уведомление
+            if (count > 0) ShowNotification($"❌ Не удалось произвести ни одной машины.");
+        }
+    }
+
 
     // ---- Производство базовой машины ----
     private void TryProduceBasicCar()
@@ -573,34 +676,46 @@ public class UIManager : MonoBehaviour
         CarBlueprint car = availableCars[0];
         if (car == null) return;
 
-        if (!HasRequiredParts(car))
-        {
-            ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
-            return;
-        }
+        // Получаем количество из CountLabel
+        int count = 1;
+        if (countLabel != null && int.TryParse(countLabel.text, out int parsed))
+            count = Mathf.Max(1, parsed);
 
-        production.ProduceBasicCar();
-        UpdateWarehouseLabels();
-        UpdateProductionButtonsState();
-        UpdateMoneyLabels();
-        ShowNotification($"✅ {car.GetDisplayName()} произведена!");
+        ProduceCars(car, count);
     }
 
     // ---- Производство конкретной машины ----
     private void TryProduceSpecificCar(CarBlueprint car)
     {
         if (car == null) return;
-        if (!HasRequiredParts(car))
+
+        // Получаем количество из CountLabel
+        int count = 1;
+        if (countLabel != null && int.TryParse(countLabel.text, out int parsed))
+            count = Mathf.Max(1, parsed);
+
+        ProduceCars(car, count);
+    }
+
+
+    /// <summary>
+    /// Производит ОДНУ базовую машину (для кнопки в главном меню).
+    /// </summary>
+    public void ProduceSingleCar()
+    {
+        var availableCars = tech.AvailableCars;
+        if (availableCars == null || availableCars.Length == 0)
         {
-            ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
+            ShowNotification("Нет доступных машин для производства!");
             return;
         }
-        production.ProduceSpecificCar(car);
-        UpdateWarehouseLabels();
-        UpdateProductionButtonsState();
-        UpdateMoneyLabels();
-        ShowNotification($"✅ {car.GetDisplayName()} произведён!");
+        CarBlueprint car = availableCars[0];
+        if (car == null) return;
+
+        ProduceCars(car, 1);
     }
+
+
 
     private void UpdateProductionButtonsState()
     {
@@ -652,6 +767,8 @@ public class UIManager : MonoBehaviour
     // ---- Обновление лейблов склада ----
     public void UpdateWarehouseLabels()
     {
+        if (carStockLabel != null)
+            carStockLabel.text = WarehouseManager.Instance?.GetTotalCarCount().ToString() ?? "0";
         if (warehouse == null) return;
         if (engineLabel != null)
             engineLabel.text = warehouse.GetPartCount(PartType.Engine).ToString();
@@ -1162,9 +1279,9 @@ public class UIManager : MonoBehaviour
 
             bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
             bool canUpgrade = !hasHigherLevel
-            && (car.levels != null && car.levels.Length > 0
-                && car.currentLevel < car.levels.Length)   // <-- убрали -1
-            && upgradeUnlocked;
+                && (car.levels != null && car.levels.Length > 0
+                    && car.currentLevel < car.levels.Length)
+                && upgradeUnlocked;
 
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
@@ -1222,11 +1339,55 @@ public class UIManager : MonoBehaviour
             typeLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
             textContainer.Add(typeLabel);
 
-            int assemblyCost = car.GetModifiedAssemblyCost(); // вместо car.recipe.assemblyCost
+            int assemblyCost = car.GetModifiedAssemblyCost();
             Label costLabel = new Label($"Сборка: ${assemblyCost}");
             costLabel.style.fontSize = 10;
             costLabel.style.color = new Color(0.9f, 0.7f, 0.3f);
             textContainer.Add(costLabel);
+
+            // ========== БЛОК ВЫБОРА КОРОБКИ ПЕРЕДАЧ ==========
+            VisualElement transmissionRow = new VisualElement();
+            transmissionRow.style.flexDirection = FlexDirection.Row;
+            transmissionRow.style.alignItems = Align.Center;
+            transmissionRow.style.marginTop = 2;
+
+            Label transmissionLabel = new Label("Коробка:");
+            transmissionLabel.style.color = Color.white;
+            transmissionLabel.style.fontSize = 11;
+            transmissionLabel.style.marginRight = 8;
+
+            DropdownField transmissionDropdown = new DropdownField();
+            transmissionDropdown.style.width = 100;
+            transmissionDropdown.style.fontSize = 11;
+
+            List<string> transmissionOptions = new List<string>();
+            string[] allTransmissions = { "АКПП", "МКПП", "Робот", "Вариатор" };
+            string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
+            for (int i = 0; i < allTransmissions.Length; i++)
+            {
+                if (tech.IsTechResearched(techNames[i]))
+                    transmissionOptions.Add(allTransmissions[i]);
+            }
+            if (transmissionOptions.Count == 0)
+            {
+                transmissionOptions.Add("АКПП");
+            }
+
+            transmissionDropdown.choices = transmissionOptions;
+            if (!string.IsNullOrEmpty(car.transmissionType) && transmissionOptions.Contains(car.transmissionType))
+                transmissionDropdown.value = car.transmissionType;
+            else
+                transmissionDropdown.value = transmissionOptions[0];
+
+            transmissionDropdown.RegisterValueChangedCallback(evt =>
+            {
+                car.transmissionType = evt.newValue;
+            });
+
+            transmissionRow.Add(transmissionLabel);
+            transmissionRow.Add(transmissionDropdown);
+            textContainer.Add(transmissionRow);
+            // =================================================
 
             Label nameLabel = new Label(car.GetDisplayName());
             nameLabel.style.fontSize = 15;
@@ -1267,6 +1428,7 @@ public class UIManager : MonoBehaviour
             increasePriceBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
 
             CarBlueprint localCar = car;
+
             decreasePriceBtn.clicked += () => ChangeCarPrice(localCar, -10);
             increasePriceBtn.clicked += () => ChangeCarPrice(localCar, 10);
 
@@ -1274,7 +1436,7 @@ public class UIManager : MonoBehaviour
             priceControlRow.Add(decreasePriceBtn);
             priceControlRow.Add(increasePriceBtn);
             textContainer.Add(priceControlRow);
-            // ========== КОНЕЦ БЛОКА ==========
+            // =========================================
 
             double profit = modPrice - modCost;
             Label profitLabel = new Label($"Прибыль: {profit:F0}");
@@ -1316,6 +1478,12 @@ public class UIManager : MonoBehaviour
             modifierLabel.style.display = DisplayStyle.None;
             textContainer.Add(modifierLabel);
 
+            // ---- Рейтинг (размещён в textContainer) ----
+            Label ratingLabelElement = new Label($"Рейтинг: {car.CalculateRating(economy.TotalPriceModifier):F1}");
+            ratingLabelElement.style.fontSize = 11;
+            ratingLabelElement.style.color = new Color(1f, 0.8f, 0.2f);
+            textContainer.Add(ratingLabelElement);
+
             textContainer.Add(nameLabel);
 
             topRow.Add(textContainer);
@@ -1335,14 +1503,44 @@ public class UIManager : MonoBehaviour
             produceButton.text = "Произвести";
             produceButton.style.width = 70;
             produceButton.style.height = 26;
-            produceButton.style.marginLeft = 4; // отступ от кнопки улучшения
+            produceButton.style.marginLeft = 4;
             produceButton.style.alignSelf = Align.Center;
             produceButton.clicked += () => TryProduceSpecificCar(localCar);
             topRow.Add(produceButton);
 
+            // ---- Кнопка "Продать 1" ----
+            Button sellButton = new Button();
+            sellButton.text = "Продать 1";
+            sellButton.style.width = 70;
+            sellButton.style.height = 26;
+            sellButton.style.marginLeft = 4;
+            sellButton.style.alignSelf = Align.Center;
+            sellButton.clicked += () =>
+            {
+                int sold = WarehouseManager.Instance.SellCars(localCar, 1);
+                if (sold > 0)
+                {
+                    UpdateWarehouseLabels();
+                    UpdateMoneyLabels();
+                    UpdateCarCards();
+                }
+                else
+                {
+                    ShowNotification("Нет машин этой модели на складе!");
+                }
+            };
+            topRow.Add(sellButton);
+
+            // ---- Отображение количества на складе ----
+            Label stockLabel = new Label($"На складе: {WarehouseManager.Instance.GetCarCount(localCar)}");
+            stockLabel.style.fontSize = 10;
+            stockLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+            stockLabel.style.marginTop = 2;
+            textContainer.Add(stockLabel);
+
             card.Add(topRow);
 
-            // ===== ПАНЕЛЬ ТЮНИНГА =====
+            // ---- Панель тюнинга ----
             VisualElement tuningPanel = new VisualElement();
             tuningPanel.style.flexDirection = FlexDirection.Column;
             tuningPanel.style.marginTop = 3;
@@ -1368,13 +1566,17 @@ public class UIManager : MonoBehaviour
             cardData.upgradeButton = upgradeButton;
             cardData.taxRateLabel = taxRateLabel;
             cardData.modifierLabel = modifierLabel;
+            cardData.ratingLabel = ratingLabelElement; // ТОЛЬКО ОДНА СТРОКА
 
-            // Сохраняем ссылки на новые элементы
+            // Сохраняем ссылки
             cardData.detailsLabel = detailsLabel;
             cardData.priceLabel = priceLabel;
             cardData.decreasePriceBtn = decreasePriceBtn;
             cardData.increasePriceBtn = increasePriceBtn;
             cardData.produceButton = produceButton;
+            cardData.sellButton = sellButton;
+            cardData.stockLabel = stockLabel;
+            cardData.transmissionDropdown = transmissionDropdown;
 
             // ---- Тюнинг-слайдеры ----
             for (int i = 0; i < tuningParamNames.Length; i++)
@@ -1533,11 +1735,10 @@ public class UIManager : MonoBehaviour
             // ---- Завершение карточки ----
             carCards.Add(cardData);
 
-            CarBlueprint localCarForProduction = car;
-            // card.RegisterCallback<ClickEvent>(evt => TryProduceSpecificCar(localCarForProduction));
             carsContainer.Add(card);
         }
 
+        // Обновляем карточки и цвета
         UpdateCarCards();
         foreach (var cardData in carCards)
         {
@@ -1547,7 +1748,20 @@ public class UIManager : MonoBehaviour
     }
 
    
-   public void UpdateCarCards()
+   public void RefreshMarketGraphIfOpen()
+    {
+        if (marketVisOverlay != null && marketVisOverlay.style.display == DisplayStyle.Flex)
+        {
+            var visController = GetComponent<MarketVisualizationController>();
+            if (visController != null)
+            {
+                visController.DrawIncomeGraph(economy.monthlyIncomeHistory);
+            }
+        }
+    }
+
+
+    public void UpdateCarCards()
     {
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
 
@@ -1563,6 +1777,28 @@ public class UIManager : MonoBehaviour
             double profitBeforeTax = modPrice - productionCost;
             float taxRate = economy.GetTaxRate(car);
             double finalProfit = profitBeforeTax * (1f - taxRate);
+
+            // ---- Обновление рейтинга ----
+            if (cardData.ratingLabel != null)
+            {
+                float rating = car.CalculateRating(economy.TotalPriceModifier);
+                cardData.ratingLabel.text = $"Рейтинг: {rating:F1}";
+                // Цвет в зависимости от оценки
+                if (rating >= 8f)
+                    cardData.ratingLabel.style.color = new Color(0.2f, 0.9f, 0.2f);
+                else if (rating >= 5f)
+                    cardData.ratingLabel.style.color = new Color(1f, 0.8f, 0.2f);
+                else
+                    cardData.ratingLabel.style.color = new Color(1f, 0.3f, 0.3f);
+            }
+
+            // Обновляем количество на складе
+            if (cardData.stockLabel != null)
+                cardData.stockLabel.text = $"На складе: {WarehouseManager.Instance.GetCarCount(car)}";
+
+            // Кнопка продажи активна только если есть машины
+            if (cardData.sellButton != null)
+                cardData.sellButton.SetEnabled(WarehouseManager.Instance.GetCarCount(car) > 0);
 
             // Обновляем прибыль
             if (cardData.profitLabel != null)
@@ -1605,9 +1841,9 @@ public class UIManager : MonoBehaviour
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
                 bool canUpgrade = !hasHigherLevel
-                && (car.levels != null && car.levels.Length > 0
-                    && car.currentLevel < car.levels.Length)   // <-- убрали -1
-                && upgradeUnlocked;
+                    && (car.levels != null && car.levels.Length > 0
+                        && car.currentLevel < car.levels.Length)
+                    && upgradeUnlocked;
 
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
@@ -1664,7 +1900,6 @@ public class UIManager : MonoBehaviour
             }
 
             // ========== ОБНОВЛЕНИЕ ЦЕНЫ ==========
-            // Обновляем detailsLabel (цена и себестоимость)
             if (cardData.detailsLabel != null)
             {
                 int currentModPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
@@ -1672,12 +1907,30 @@ public class UIManager : MonoBehaviour
                 cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}";
             }
 
-            // Обновляем priceLabel (текущая цена, которую можно менять)
             if (cardData.priceLabel != null)
             {
                 cardData.priceLabel.text = $"${car.currentPrice}";
             }
             // ======================================
+
+            // ========== СИНХРОНИЗАЦИЯ ВЫПАДАЮЩЕГО СПИСКА КОРОБОК ПЕРЕДАЧ ==========
+            if (cardData.transmissionDropdown != null)
+            {
+                List<string> newOptions = new List<string>();
+                string[] allTrans = { "АКПП", "МКПП", "Робот", "Вариатор" };
+                string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
+                for (int i = 0; i < allTrans.Length; i++)
+                {
+                    if (tech.IsTechResearched(techNames[i]))
+                        newOptions.Add(allTrans[i]);
+                }
+                if (newOptions.Count == 0) newOptions.Add("АКПП");
+                cardData.transmissionDropdown.choices = newOptions;
+                if (!newOptions.Contains(car.transmissionType))
+                    car.transmissionType = newOptions[0];
+                cardData.transmissionDropdown.value = car.transmissionType;
+            }
+            // =============================================================
         }
 
         UpdateWarehouseLabels();
@@ -2831,6 +3084,35 @@ public class UIManager : MonoBehaviour
         var definitions = manager.regionDefinitions;
         var offices = manager.GetOffices();
 
+        // ---- ЗАГОЛОВКИ (увеличенные ширины) ----
+        var headerRow = new VisualElement();
+        headerRow.style.flexDirection = FlexDirection.Row;
+        headerRow.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        headerRow.style.paddingTop = 4;
+        headerRow.style.paddingBottom = 4;
+        headerRow.style.paddingLeft = 8;
+        headerRow.style.paddingRight = 8;
+        headerRow.style.marginBottom = 4;
+        headerRow.style.borderBottomWidth = 1;
+        headerRow.style.borderBottomColor = Color.gray;
+
+        // Новые ширины колонок (увеличены)
+        float[] colWidths = { 150, 120, 70, 120, 200 }; // регион, статус, ур., доход, действия
+        string[] headers = { "Регион", "Статус", "Ур.", "Доход", "Действия" };
+
+        for (int i = 0; i < headers.Length; i++)
+        {
+            Label lbl = new Label(headers[i]);
+            lbl.style.width = colWidths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lbl.style.fontSize = 14;
+            lbl.style.flexShrink = 0;
+            headerRow.Add(lbl);
+        }
+        container.Add(headerRow);
+
+        // ---- СТРОКИ ДАННЫХ ----
         foreach (var def in definitions)
         {
             var office = offices.FirstOrDefault(o => o.regionId == def.id);
@@ -2838,47 +3120,70 @@ public class UIManager : MonoBehaviour
 
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
-            row.style.justifyContent = Justify.SpaceBetween;
             row.style.alignItems = Align.Center;
             row.style.paddingTop = 4;
             row.style.paddingBottom = 4;
+            row.style.paddingLeft = 8;
+            row.style.paddingRight = 8;
             row.style.borderBottomWidth = 1;
-            row.style.borderBottomColor = Color.gray;
+            row.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
 
+            // Регион
             var nameLabel = new Label(def.displayName);
-            nameLabel.style.width = 80;
+            nameLabel.style.width = colWidths[0];
             nameLabel.style.color = Color.white;
+            nameLabel.style.flexShrink = 0;
             row.Add(nameLabel);
 
+            // Статус
             var statusLabel = new Label(isOpen ? "✅ Открыто" : "🔒 Закрыто");
-            statusLabel.style.width = 80;
+            statusLabel.style.width = colWidths[1];
             statusLabel.style.color = isOpen ? Color.green : Color.red;
+            statusLabel.style.flexShrink = 0;
             row.Add(statusLabel);
 
+            // Уровень или прочерк
             if (isOpen)
             {
                 var levelLabel = new Label($"Ур. {office.level + 1}");
-                levelLabel.style.width = 50;
+                levelLabel.style.width = colWidths[2];
                 levelLabel.style.color = Color.white;
+                levelLabel.style.flexShrink = 0;
                 row.Add(levelLabel);
-
-                var revenueLabel = new Label($"${office.monthlyRevenue:F0}");
-                revenueLabel.style.width = 70;
-                revenueLabel.style.color = Color.yellow;
-                row.Add(revenueLabel);
             }
             else
             {
                 var emptyLabel = new Label("-");
-                emptyLabel.style.width = 120;
+                emptyLabel.style.width = colWidths[2];
                 emptyLabel.style.color = Color.gray;
+                emptyLabel.style.flexShrink = 0;
                 row.Add(emptyLabel);
             }
 
-            // Контейнер для кнопок
+            // Доход
+            if (isOpen)
+            {
+                var revenueLabel = new Label($"${office.monthlyRevenue:F0}");
+                revenueLabel.style.width = colWidths[3];
+                revenueLabel.style.color = Color.yellow;
+                revenueLabel.style.flexShrink = 0;
+                row.Add(revenueLabel);
+            }
+            else
+            {
+                var emptyRevenue = new Label("-");
+                emptyRevenue.style.width = colWidths[3];
+                emptyRevenue.style.color = Color.gray;
+                emptyRevenue.style.flexShrink = 0;
+                row.Add(emptyRevenue);
+            }
+
+            // Действия (контейнер с кнопками)
             var buttonContainer = new VisualElement();
             buttonContainer.style.flexDirection = FlexDirection.Row;
-            // Убираем gap, добавляем margin к каждой кнопке
+            buttonContainer.style.width = colWidths[4];
+            buttonContainer.style.flexShrink = 0;
+            buttonContainer.style.alignItems = Align.Center;
 
             if (!isOpen)
             {
@@ -2890,10 +3195,10 @@ public class UIManager : MonoBehaviour
                     UpdateOfficesUI();
                 });
                 openBtn.text = "Открыть";
-                openBtn.style.width = 60;
-                openBtn.style.height = 20;
-                openBtn.style.fontSize = 10;
-                openBtn.style.marginRight = 4; // вместо gap
+                openBtn.style.width = 70;
+                openBtn.style.height = 22;
+                openBtn.style.fontSize = 11;
+                openBtn.style.marginRight = 4;
                 buttonContainer.Add(openBtn);
             }
             else
@@ -2904,9 +3209,9 @@ public class UIManager : MonoBehaviour
                     UpdateOfficesUI();
                 });
                 upgradeBtn.text = "Улучшить";
-                upgradeBtn.style.width = 60;
-                upgradeBtn.style.height = 20;
-                upgradeBtn.style.fontSize = 10;
+                upgradeBtn.style.width = 70;
+                upgradeBtn.style.height = 22;
+                upgradeBtn.style.fontSize = 11;
                 upgradeBtn.style.marginRight = 4;
                 buttonContainer.Add(upgradeBtn);
 
@@ -2916,11 +3221,10 @@ public class UIManager : MonoBehaviour
                     UpdateOfficesUI();
                 });
                 closeBtn.text = "Закрыть";
-                closeBtn.style.width = 60;
-                closeBtn.style.height = 20;
-                closeBtn.style.fontSize = 10;
+                closeBtn.style.width = 70;
+                closeBtn.style.height = 22;
+                closeBtn.style.fontSize = 11;
                 closeBtn.style.backgroundColor = new Color(0.6f, 0.1f, 0.1f);
-                closeBtn.style.marginRight = 4;
                 buttonContainer.Add(closeBtn);
             }
 

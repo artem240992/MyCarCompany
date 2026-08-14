@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
-using System.Collections.Generic; // <-- для List
+using System.Collections.Generic;
 
 public class EconomyManager : MonoBehaviour
 {
@@ -19,6 +19,13 @@ public class EconomyManager : MonoBehaviour
     public float StartMoney = 100;
     public float ProfitMultiplier = 1f;
     public float TemporaryPriceModifier = 1f;
+
+    // ---- Для расчёта годового налога ----
+    private double yearlyIncome = 0;    // сумма всех доходов за текущий год
+    private double yearlyExpenses = 0;  // сумма всех расходов за текущий год
+
+    // ---- Для месячного дохода (график) ----
+    private double monthlyIncome = 0;   // сумма всех доходов за текущий месяц
 
     // ---- Скидки ----
     public float DiscountMultiplier = 1f;
@@ -58,30 +65,36 @@ public class EconomyManager : MonoBehaviour
         DifficultyTechCostMultiplier = 1f;
         productionDiscount = 0f;
         monthlyIncomeHistory.Clear();
-        totalCarsSold = 0; // <-- добавлено для достижений
+        totalCarsSold = 0;
+        monthlyIncome = 0; // <-- инициализация
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         else
             lastTaxYear = 2025;
         UpdatePassiveIncome();
         OnMoneyChanged?.Invoke();
+        yearlyIncome = 0;
+        yearlyExpenses = 0;
+    }
+
+    public void AddMoney(double amount)
+    {
+        Money += amount;
+        yearlyIncome += amount; // для налога (не трогаем)
+        monthlyIncome += amount; // для графика (добавлено)
+        OnMoneyChanged?.Invoke();
+        var achManager = CarCompanyManager.Instance.AchievementManager;
+        if (achManager != null)
+            achManager.UpdateProgress("money", (int)Money);
     }
 
     public bool SpendMoney(double amount)
     {
         if (Money < amount) return false;
         Money -= amount;
+        yearlyExpenses += amount; // для налога (не трогаем)
         OnMoneyChanged?.Invoke();
         return true;
-    }
-
-    public void AddMoney(double amount)
-    {
-        Money += amount;
-        OnMoneyChanged?.Invoke();
-        var achManager = CarCompanyManager.Instance.AchievementManager;
-        if (achManager != null)
-            achManager.UpdateProgress("money", (int)Money);
     }
 
     public void AddReputation(int amount)
@@ -194,8 +207,8 @@ public class EconomyManager : MonoBehaviour
     // ---- Расчёт себестоимости производства с учётом скидки ----
     public int GetProductionCostWithLevel(CarBlueprint car)
     {
-        if (car == null || car.recipe == null) return 50; // базовое значение
-        int baseCost = car.recipe.assemblyCost + car.currentLevel * 20; // пример
+        if (car == null || car.recipe == null) return 50;
+        int baseCost = car.recipe.assemblyCost + car.currentLevel * 20;
         float finalCost = baseCost * (1f - productionDiscount);
         return Mathf.RoundToInt(finalCost);
     }
@@ -224,7 +237,6 @@ public class EconomyManager : MonoBehaviour
         return Mathf.Min(baseTax + levelBonus + tuningBonus, 0.5f);
     }
 
-    
     public float GetPartCostForCar(CarBlueprint car)
     {
         if (car == null || car.recipe == null) return 0f;
@@ -252,7 +264,8 @@ public class EconomyManager : MonoBehaviour
         data.discountMultiplier = DiscountMultiplier;
         data.discountDuration = DiscountDuration;
         data.monthlyIncomeHistory = monthlyIncomeHistory;
-        data.totalCarsSold = totalCarsSold; // <-- добавлено
+        data.totalCarsSold = totalCarsSold;
+        // monthlyIncome не сохраняется, так как это накопление за текущий месяц (будет сброшено при загрузке)
     }
 
     public void LoadFromSave(SaveData data)
@@ -267,7 +280,8 @@ public class EconomyManager : MonoBehaviour
         DiscountMultiplier = data.discountMultiplier;
         DiscountDuration = data.discountDuration;
         monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
-        totalCarsSold = data.totalCarsSold; // <-- добавлено
+        totalCarsSold = data.totalCarsSold;
+        monthlyIncome = 0; // сброс при загрузке
         OnMoneyChanged?.Invoke();
     }
 
@@ -285,7 +299,8 @@ public class EconomyManager : MonoBehaviour
         DifficultyTechCostMultiplier = 1f;
         productionDiscount = 0f;
         monthlyIncomeHistory.Clear();
-        totalCarsSold = 0; // <-- добавлено
+        totalCarsSold = 0;
+        monthlyIncome = 0;
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         OnMoneyChanged?.Invoke();
@@ -298,16 +313,12 @@ public class EconomyManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
             if (PassiveIncome > 0)
             {
-                Money += PassiveIncome;
-                OnMoneyChanged?.Invoke();
+                AddMoney(PassiveIncome); // теперь доход учитывается и для налога, и для графика
             }
         }
     }
 
     // ---- Достижения по продаже машин ----
-    /// <summary>
-    /// Регистрирует продажу машин (вызывать при списании машин со склада)
-    /// </summary>
     public void RegisterCarSold(int count)
     {
         if (count <= 0) return;
@@ -333,10 +344,11 @@ public class EconomyManager : MonoBehaviour
         UpdateDiscount();
         RecalculateModifiers(null);
 
-        // ---- Добавляем текущий доход в историю (для графика) ----
-        monthlyIncomeHistory.Add((float)PassiveIncome);
+        // ---- Добавляем общий доход за месяц в историю ----
+        monthlyIncomeHistory.Add((float)monthlyIncome);
         if (monthlyIncomeHistory.Count > 12)
             monthlyIncomeHistory.RemoveAt(0);
+        monthlyIncome = 0; // сбрасываем для следующего месяца
 
         if (GameTimeManager.Instance != null)
         {
@@ -345,14 +357,23 @@ public class EconomyManager : MonoBehaviour
 
             if (month == 1 && year > lastTaxYear)
             {
+                double yearlyProfit = yearlyIncome - yearlyExpenses;
                 float taxRate = CarCompanyManager.Instance.DifficultyManager.GetYearlyTaxRate();
-                double taxAmount = Money * taxRate;
-                Money -= taxAmount;
-                if (Money < 0) Money = 0;
+                double taxAmount = 0;
+
+                if (yearlyProfit > 0)
+                {
+                    taxAmount = yearlyProfit * taxRate;
+                    Money -= taxAmount;
+                    if (Money < 0) Money = 0;
+                }
+
+                yearlyIncome = 0;
+                yearlyExpenses = 0;
                 lastTaxYear = year;
 
                 CarCompanyManager.Instance.UIManager?.ShowNotification(
-                    $"Годовой налог: ${taxAmount:F0} ({(taxRate * 100):F0}%) списано."
+                    $"Годовой налог: ${taxAmount:F0} ({(taxRate * 100):F0}% от прибыли ${yearlyProfit:F0})"
                 );
                 OnMoneyChanged?.Invoke();
             }

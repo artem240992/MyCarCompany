@@ -19,6 +19,7 @@ public class UIAchievementController : MonoBehaviour
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
+
     }
 
     public void Open()

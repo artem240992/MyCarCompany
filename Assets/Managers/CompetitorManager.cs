@@ -24,6 +24,7 @@ public class CompetitorManager : MonoBehaviour
         InitCompetitors();
         ui.RefreshCompetitorsList(competitors, economy.Reputation);
         StartCompetitorAI();
+        
     }
 
     private void InitCompetitors()

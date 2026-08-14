@@ -23,6 +23,7 @@ public class MarketVisualizationController : MonoBehaviour
         incomeGraphContainer = root.Q<VisualElement>("IncomeGraphContainer");
         chartTitle = root.Q<Label>("PieChartTitle");
         if (chartTitle != null) chartTitle.text = "Рыночная доля";
+
     }
 
     public void UpdatePieChart(List<Competitor> competitors, float playerShare)

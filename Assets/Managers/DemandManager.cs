@@ -35,6 +35,7 @@ public class DemandManager : MonoBehaviour
         demandPenalties[carName] = penalty;
         penaltyCoroutines[carName] = CarCompanyManager.Instance.StartCoroutine(ClearPenaltyAfter(carName, duration));
         UpdateDemand();
+        
     }
 
     private IEnumerator ClearPenaltyAfter(string carName, float duration)
