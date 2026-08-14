@@ -3,7 +3,7 @@
     <ui:VisualElement name="MainInterface" class="main-interface">
         <!-- Main Panel -->
         <ui:VisualElement name="MainPanel" class="main-panel">
-            <!-- Верхняя панель ресурсов (без изменений) -->
+            <!-- Верхняя панель ресурсов (добавлен индикатор новостей) -->
             <ui:VisualElement class="top-bar">
                 <ui:VisualElement class="resource-block money-block">
                     <ui:Label text="💰" class="resource-icon" tooltip="Текущий баланс денег"/>
@@ -47,6 +47,13 @@
                         <ui:Label text="" name="ElectronicsLabel" class="resource-value" tooltip="Электроника на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <!-- НОВЫЙ БЛОК: индикатор новостей -->
+                <ui:VisualElement class="resource-block news-block" style="background-color: rgba(255, 215, 0, 0.15); border-radius: 4px; padding: 2px 8px;">
+                    <ui:Label text="📰" class="resource-icon" tooltip="Активные новости"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label name="NewsIndicatorLabel" text="Новости" class="resource-value" style="font-size: 12px; color: #ffd700;" tooltip="Нажмите для просмотра новостей"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:VisualElement class="top-right">
                     <ui:Label text="" name="SavedDifficultyLabel" class="difficulty-display top-label" tooltip="Текущий уровень сложности"/>
                     <ui:Label text="" name="DateLabel" class="date-display top-label" tooltip="Текущая игровая дата"/>
@@ -62,7 +69,7 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- ===== ОВЕРЛЕЙ МЕНЮ (ИСПРАВЛЕН) ===== -->
+    <!-- ===== ОВЕРЛЕЙ МЕНЮ (добавлена кнопка "Новости") ===== -->
     <ui:VisualElement name="MenuOverlay" class="overlay">
         <ui:VisualElement style="width: 80%; max-width: 600px; height: 80%; max-height: 700px; background-color: rgb(40,40,40); padding:20px; border-radius:10px; flex-direction:column;">
             <ui:VisualElement style="flex-direction:row; justify-content:space-between; margin-bottom:10px; flex-shrink:0;">
@@ -71,7 +78,6 @@
             </ui:VisualElement>
 
             <ui:ScrollView style="flex-grow:1; flex-shrink:1;">
-                <!-- ИСПРАВЛЕНО: убран класс menu-container, добавлен display: flex -->
                 <ui:VisualElement name="MenuContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px; background-color: rgba(0,0,0,0.3); border-radius: 6px; width: 100%;">
                     <!-- Колонка 1 -->
                     <ui:VisualElement style="flex-direction: column; gap: 4px; flex-grow: 1; min-width: 120px;">
@@ -98,6 +104,9 @@
                         <ui:Button text="Достижения" name="OpenAchievementsButton" class="menu-button-compact" tooltip="Открыть окно достижений"/>
                         <ui:Button text="Конкуренты" name="OpenCompetitorsButton" class="menu-button-compact" tooltip="Открыть окно конкурентов"/>
 
+                        <ui:Label text="📰 Новости" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
+                        <ui:Button text="Новости" name="OpenNewsButton" class="menu-button-compact" tooltip="Текущие рыночные новости"/>
+
                         <ui:Label text="💾 Сохранение" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
                         <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 2px;">
                             <ui:Button text="С1💾" name="SaveSlot1" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 1"/>
@@ -116,6 +125,30 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:ScrollView>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== ОВЕРЛЕЙ НОВОСТЕЙ (НОВЫЙ) ===== -->
+    <ui:VisualElement name="NewsOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 80%; max-width: 600px; height: 60%; max-height: 500px; background-color: rgb(40, 40, 40); padding: 24px; border-radius: 12px; flex-direction: column; align-items: center;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; width: 100%; margin-bottom: 16px; flex-shrink: 0;">
+                <ui:Label text="📰 Новости рынка" style="font-size: 22px; color: #ffd700; -unity-font-style: bold;" tooltip="Последние новости, влияющие на спрос"/>
+                <ui:Button text="✕" name="CloseNewsButton" style="font-size: 22px; background-color: transparent; border-width: 0; color: white; padding: 0 8px;" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+
+            <ui:VisualElement style="flex-grow: 1; flex-shrink: 1; width: 100%; background-color: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; flex-direction: column; align-items: center; justify-content: center;">
+                <ui:Label name="NewsTitleLabel" style="font-size: 20px; color: white; -unity-font-style: bold; text-align: center; margin-bottom: 12px;" text="Нет активных новостей"/>
+                <ui:Label name="NewsDescriptionLabel" style="font-size: 15px; color: #ccc; text-align: center; white-space: normal; margin-bottom: 16px;" text="Рынок стабилен."/>
+                <ui:VisualElement style="flex-direction: row; align-items: center; width: 100%;">
+                    <ui:Label text="Влияние:" style="color: #aaa; font-size: 14px; margin-right: 8px;"/>
+                    <ui:Label name="NewsImportanceLabel" text="0%" style="color: #ffd700; font-size: 14px; min-width: 40px; margin-right: 12px;"/>
+                    <ui:VisualElement style="flex-grow: 1; height: 12px; background-color: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
+                        <ui:VisualElement name="NewsImportanceBar" style="width: 0%; height: 100%; background-color: #4CAF50; border-radius: 6px;"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Button text="Закрыть" name="CloseNewsButton2" style="margin-top: 16px; background-color: #555; color: white; padding: 6px 24px; border-radius: 6px; flex-shrink: 0;" tooltip="Закрыть окно новостей"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -417,10 +450,10 @@
     </ui:VisualElement>
 
     <!-- Демо-интерфейс (таймер и счётчик технологий) -->
- <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
-    <ui:Label name="DemoTimerLabel" style="color: #ffd700; font-size: 16px; -unity-font-style: bold;" text="⏱️ 30:00"/>
-    <ui:Label name="DemoProgressLabel" style="color: #00d4ff; font-size: 14px; margin-top: 4px;" text="🔬 Технологий: 0/5"/>
-</ui:VisualElement>
+    <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
+        <ui:Label name="DemoTimerLabel" style="color: #ffd700; font-size: 16px; -unity-font-style: bold;" text="⏱️ 30:00"/>
+        <ui:Label name="DemoProgressLabel" style="color: #00d4ff; font-size: 14px; margin-top: 4px;" text="🔬 Технологий: 0/5"/>
+    </ui:VisualElement>
 
     <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>

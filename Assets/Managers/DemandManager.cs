@@ -20,9 +20,12 @@ public class DemandManager : MonoBehaviour
     // ---- Множитель от инвестиций ----
     private float temporaryBoost = 1f;
 
+    // ---- Настройка бонуса за уровень ----
+    [Header("Влияние улучшений на спрос")]
+    [SerializeField] private float demandBonusPerLevel = 0.1f; // 10% за уровень
+
     public void Initialize() { }
 
-    // ---- Применить штраф к конкретной машине на время ----
     public void ApplyDemandPenalty(string carName, float penalty, float duration)
     {
         if (string.IsNullOrEmpty(carName)) return;
@@ -42,7 +45,6 @@ public class DemandManager : MonoBehaviour
         UpdateDemand();
     }
 
-    // ---- Сброс всех штрафов (при новой игре, смене сложности) ----
     public void ResetPenalties()
     {
         foreach (var coroutine in penaltyCoroutines.Values)
@@ -52,88 +54,164 @@ public class DemandManager : MonoBehaviour
         penaltyCoroutines.Clear();
     }
 
-    // ---- Применение временного бонуса от инвестиций ----
     public void ApplyTemporaryBoost(float bonus)
     {
         temporaryBoost += bonus;
-        // Ограничим, чтобы не улететь в бесконечность
         temporaryBoost = Mathf.Clamp(temporaryBoost, 0.5f, 3f);
         UpdateDemand();
     }
 
+    // ======================== ОСНОВНОЙ МЕТОД ОБНОВЛЕНИЯ СПРОСА ========================
+
     public void UpdateDemand()
     {
-        if (MarketSystem.Instance == null) return;
-        List<CarBlueprint> allCars = GetAllPossibleCars();
+        UpdateNewsMultipliers(); // обновляем множители новостей
 
-        // Репутация влияет на спрос: 50 → 1x, 100 → 1.5x, 0 → 0.5x
+        List<CarBlueprint> allCars = GetAllPossibleCars();
+        if (allCars == null || allCars.Count == 0) return;
+
+        // 1. Репутация игрока
         float reputationModifier = Mathf.Clamp(1f + (economy.Reputation - 50) / 100f, 0.5f, 1.5f);
+
+        // 2. Средняя цена по рынку
+        float avgPrice = CalculateAverageMarketPrice(allCars);
+
+        // 3. Сезонный множитель
+        float seasonModifier = economy.GetSeasonalDemandModifier();
 
         foreach (CarBlueprint car in allCars)
         {
             if (car == null) continue;
 
-            float min, max;
-            switch (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty)
+            // ----- БАЗОВЫЙ СПРОС (из LevelData или резервного поля) -----
+            float baseDemand = car.CurrentDemandMultiplier;
+
+            // ----- ЦЕНОВОЙ ФАКТОР -----
+            float priceFactor = CalculatePriceFactor(car, avgPrice);
+
+            // ----- МАРКЕТИНГ -----
+            float marketingBonus = 1f;
+            float brandModifier = 1f;
+            if (MarketingManager.Instance != null)
             {
-                case DifficultyManager.DifficultyLevel.Easy:   min = 0.9f; max = 1.1f; break;
-                case DifficultyManager.DifficultyLevel.Normal: min = 0.7f; max = 1.3f; break;
-                case DifficultyManager.DifficultyLevel.Hard:   min = 0.5f; max = 1.8f; break;
-                default: min = 0.8f; max = 1.2f; break;
+                marketingBonus = MarketingManager.Instance.GetDemandModifierForCar(car.carName);
+                brandModifier = MarketingManager.Instance.GetBrandModifier();
             }
-            float baseDemand = Random.Range(min, max);
 
-            // Влияние конкурентов
-            float competitorFactor = 1f;
-            foreach (var comp in competitor.Competitors)
-                if (comp != null && comp.availableCars.Contains(car))
-                {
-                    competitorFactor *= (1f - comp.marketShare * 0.5f);
-                    float priceEffect = 1f - (comp.priceMultiplier - 0.8f) * 0.2f;
-                    competitorFactor *= Mathf.Clamp(priceEffect, 0.5f, 1.2f);
-                }
+            // ----- ДАВЛЕНИЕ КОНКУРЕНТОВ (доля рынка) -----
+            float competitorPressure = CalculateCompetitorPressure(car);
 
-            // Технологии игрока и конкурентов
-            float playerTechDemandModifier = economy.TotalDemandModifier;
-            float competitorTechDemandModifier = 1f;
-            foreach (var comp in competitor.Competitors)
-                if (comp != null) competitorTechDemandModifier *= (1f - comp.researchLevel * 0.02f);
-
-            // ---- РЕПУТАЦИЯ И СОБЫТИЯ ----
-            float baseWithTech = baseDemand
-                * CarCompanyManager.Instance.DifficultyManager.CurrentEventMultiplier
-                * competitorFactor
-                * playerTechDemandModifier
-                * competitorTechDemandModifier
-                * reputationModifier;
-
-            // Тюнинг
-            float tuningDemandModifier = car.GetTuningDemandModifier();
-
-            // Штраф от конкурентов
+            // ----- ШТРАФ ОТ КОНКУРЕНТНЫХ ДЕЙСТВИЙ -----
             float penalty = 1f;
             if (demandPenalties.TryGetValue(car.carName, out float p))
                 penalty = p;
 
-            // ---- МАРКЕТИНГ И БРЕНД ----
-            float marketingModifier = 1f;
-            float brandModifier = 1f;
-            if (MarketingManager.Instance != null)
-            {
-                marketingModifier = MarketingManager.Instance.GetDemandModifierForCar(car.carName);
-                brandModifier = MarketingManager.Instance.GetBrandModifier();
-            }
+            // ----- ТЮНИНГ (мощность, экономичность, дизайн, безопасность) -----
+            float tuningModifier = car.GetTuningDemandModifier();
 
-            // ---- ИТОГОВЫЙ СПРОС с учётом temporaryBoost ----
-            float finalDemand = MarketSystem.Instance.GetDemandMultiplier(car, 
-                baseWithTech * tuningDemandModifier * penalty * marketingModifier * brandModifier)
-                * temporaryBoost;   // <-- ДОБАВЛЕНО УМНОЖЕНИЕ НА temporaryBoost
+            // ----- ВРЕМЕННЫЙ БОНУС (инвестиции) -----
+            float boost = temporaryBoost;
 
-            car.demandMultiplier = finalDemand;
+            // ----- НОВОЕ: БОНУС ЗА УРОВЕНЬ УЛУЧШЕНИЯ (двигатель, трансмиссия и т.д.) -----
+            float levelBonus = 1f + car.currentLevel * demandBonusPerLevel;
+
+            // ----- ИТОГОВЫЙ СПРОС -----
+            float finalDemand = baseDemand
+                * seasonModifier
+                * priceFactor
+                * marketingBonus
+                * brandModifier
+                * (1f - competitorPressure)
+                * penalty
+                * tuningModifier
+                * reputationModifier
+                * boost
+                * levelBonus;
+
+            // Ограничиваем разумными пределами
+            finalDemand = Mathf.Clamp(finalDemand, 0.3f, 2.5f);
+
+            // Сохраняем в правильное место
+            if (car.levels != null && car.currentLevel >= 0 && car.currentLevel < car.levels.Length)
+                car.levels[car.currentLevel].demandMultiplier = finalDemand;
+            else
+                car.demandMultiplier = finalDemand;
         }
 
         ui.UpdateCarCards();
         ui.UpdateMoneyLabels();
+    }
+
+
+    private void UpdateNewsMultipliers()
+    {
+        var allCars = GetAllPossibleCars();
+        bool newsActive = NewsManager.Instance != null && NewsManager.Instance.IsNewsActive;
+        float importance = newsActive ? NewsManager.Instance.CurrentImportance : 0f;
+        DifficultyManager.DifficultyLevel difficulty = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+        int diffIndex = (int)difficulty;
+
+        foreach (var car in allCars)
+        {
+            if (car == null) continue;
+            if (newsActive)
+            {
+                float min = 0.8f;
+                float max = 1.2f;
+                if (car.newsDemandRanges != null && car.newsDemandRanges.Length > diffIndex)
+                {
+                    var range = car.newsDemandRanges[diffIndex];
+                    min = range.min;
+                    max = range.max;
+                }
+                car.newsMultiplier = Mathf.Lerp(min, max, importance);
+            }
+            else
+            {
+                car.newsMultiplier = 1f;
+            }
+        }
+    }
+
+    // ======================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ========================
+
+    private float CalculateAverageMarketPrice(List<CarBlueprint> cars)
+    {
+        if (cars == null || cars.Count == 0) return 100f;
+        float sum = 0f;
+        int count = 0;
+        foreach (var car in cars)
+        {
+            if (car == null) continue;
+            sum += car.GetModifiedPrice(economy.TotalPriceModifier);
+            count++;
+        }
+        return count > 0 ? sum / count : 100f;
+    }
+
+    private float CalculatePriceFactor(CarBlueprint car, float avgPrice)
+    {
+        if (car == null || avgPrice <= 0) return 1f;
+        float carPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
+        float ratio = carPrice / avgPrice;
+        float factor = 1f / Mathf.Lerp(0.5f, 1.5f, ratio);
+        return Mathf.Clamp(factor, 0.5f, 1.5f);
+    }
+
+    private float CalculateCompetitorPressure(CarBlueprint car)
+    {
+        if (car == null || competitor.Competitors == null) return 0f;
+
+        float totalPressure = 0f;
+        foreach (var comp in competitor.Competitors)
+        {
+            if (comp == null) continue;
+            if (comp.availableCars != null && comp.availableCars.Contains(car))
+            {
+                totalPressure += comp.marketShare * 0.8f;
+            }
+        }
+        return Mathf.Clamp(totalPressure, 0f, 0.8f);
     }
 
     private List<CarBlueprint> GetAllPossibleCars()
@@ -148,5 +226,14 @@ public class DemandManager : MonoBehaviour
                     all.Add(t.unlockedCar);
         }
         return all;
+    }
+
+    public float GetDemandModifierForCar(string carName) 
+    {
+        var all = GetAllPossibleCars();
+        var car = all.FirstOrDefault(c => c.carName == carName);
+        if (car != null)
+            return car.CurrentDemandMultiplier;
+        return 1f;
     }
 }

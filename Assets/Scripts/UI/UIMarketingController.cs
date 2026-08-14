@@ -8,6 +8,7 @@ public class UIMarketingController : MonoBehaviour
     private VisualElement root;
 
     private Label brandQualityLabel;
+    private Dictionary<string, CarBlueprint> carNameToBlueprint = new Dictionary<string, CarBlueprint>();
     private Label brandModifierLabel;
     private ListView activeCampaignsList;
     private Button refreshButton;
@@ -107,12 +108,25 @@ public class UIMarketingController : MonoBehaviour
 
     private void PopulateCarDropdown()
     {
-        // ИСПРАВЛЕНО: проверяем, что TechManager инициализирован и AvailableCars не null
         var techManager = CarCompanyManager.Instance?.TechManager;
+        carNameToBlueprint.Clear();
+
         if (techManager != null && techManager.AvailableCars != null)
         {
             var cars = techManager.AvailableCars;
-            availableCarNames = cars.Select(c => c.carName).ToList();
+            List<string> displayNames = new List<string>();
+
+            foreach (var car in cars)
+            {
+                string displayName = car.GetDisplayName();
+                if (!carNameToBlueprint.ContainsKey(displayName))
+                {
+                    carNameToBlueprint[displayName] = car;
+                    displayNames.Add(displayName);
+                }
+            }
+
+            availableCarNames = displayNames;
         }
         else
         {
@@ -124,9 +138,14 @@ public class UIMarketingController : MonoBehaviour
         {
             carDropdown.choices = availableCarNames;
             if (availableCarNames.Count > 0)
+            {
+                // Устанавливаем значение, но не вызываем дополнительный метод
                 carDropdown.value = availableCarNames[0];
+            }
             else
+            {
                 carDropdown.value = "Нет машин";
+            }
         }
     }
 
@@ -206,8 +225,25 @@ public class UIMarketingController : MonoBehaviour
         };
     }
 
+
+
+    private CarBlueprint GetSelectedCar()
+    {
+        if (carDropdown == null || string.IsNullOrEmpty(carDropdown.value))
+            return null;
+
+        if (carNameToBlueprint.TryGetValue(carDropdown.value, out CarBlueprint car))
+            return car;
+
+        return null;
+    }
+
+
+
+
     public void RefreshUI()
     {
+        PopulateCarDropdown();
         // Проверяем готовность TechManager перед заполнением списков
         if (CarCompanyManager.Instance?.TechManager != null && CarCompanyManager.Instance.TechManager.AvailableCars != null)
             PopulateCarDropdown();

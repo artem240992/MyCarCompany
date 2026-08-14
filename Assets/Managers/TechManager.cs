@@ -666,20 +666,20 @@ public class TechManager : MonoBehaviour
         }
 
         int nextLevel = car.currentLevel + 1;
-        if (nextLevel >= car.levels.Length)
+        if (nextLevel > car.levels.Length)
         {
             ui.ShowNotification("Машина уже максимально улучшена!");
             return;
         }
 
-        LevelData nextLevelData = car.levels[nextLevel];
+        // Берём данные для следующего уровня (индекс nextLevel - 1, т.к. levels[0] -> уровень 1)
+        LevelData nextLevelData = car.levels[nextLevel - 1];
         if (nextLevelData == null)
         {
             ui.ShowNotification("Данные для следующего уровня отсутствуют!");
             return;
         }
 
-        // Стоимость улучшения (можно брать из nextLevelData или отдельно)
         int upgradeCost = 100 * (car.currentLevel + 1);
         if (!economy.SpendMoney(upgradeCost))
         {
@@ -687,7 +687,6 @@ public class TechManager : MonoBehaviour
             return;
         }
 
-        // ---- Создаём клон текущей машины ----
         CarBlueprint upgradedCar = car.Clone();
         if (upgradedCar == null)
         {
@@ -695,15 +694,16 @@ public class TechManager : MonoBehaviour
             return;
         }
 
-        // ---- Применяем параметры следующего уровня к клону ----
+        // --- Применяем параметры нового уровня ---
         upgradedCar.currentLevel = nextLevel;
 
         // Модель
         if (nextLevelData.prefab != null)
             upgradedCar.carPrefab = nextLevelData.prefab;
 
-        // Экономика
+        // Цена и экономика
         upgradedCar.currentPrice = nextLevelData.levelPrice;
+        upgradedCar.basePrice = nextLevelData.levelPrice; // для корректного ограничения изменения цены
         upgradedCar.productionCost = nextLevelData.productionCost;
         upgradedCar.demandMultiplier = nextLevelData.demandMultiplier;
 
@@ -723,19 +723,16 @@ public class TechManager : MonoBehaviour
         if (nextLevelData.recipe != null)
             upgradedCar.ApplyRecipe(nextLevelData.recipe);
 
-        // Цвет и тонировка остаются как у старой машины (уже скопированы через Clone)
-
-        // ---- Добавляем клон в список и обновляем ----
+        // Добавляем созданную машину в список
         createdCars.Add(upgradedCar);
         BuildAvailableCars();
 
-        // ---- Обновление UI ----
+        // Обновляем UI
         ui.ShowNotification($"Новая версия {upgradedCar.GetDisplayName()} создана! Цена: ${upgradedCar.currentPrice}");
         ui.UpdateMoneyLabels();
         ui.UpdateCarCards();
         demand.UpdateDemand();
     }
-
 
 
     // ---- Проверки ----
@@ -950,7 +947,7 @@ public class TechManager : MonoBehaviour
                 currentEconomy = car.currentEconomy,
                 currentDesign = car.currentDesign,
                 currentSafety = car.currentSafety,
-                demandMultiplier = car.demandMultiplier,
+                demandMultiplier = car.CurrentDemandMultiplier,
                 bodyColorR = car.bodyColor.r,
                 bodyColorG = car.bodyColor.g,
                 bodyColorB = car.bodyColor.b,
@@ -980,7 +977,11 @@ public class TechManager : MonoBehaviour
             newCar.currentEconomy = data.currentEconomy;
             newCar.currentDesign = data.currentDesign;
             newCar.currentSafety = data.currentSafety;
-            newCar.demandMultiplier = data.demandMultiplier;
+            // Загружаем спрос в правильное место
+            if (newCar.levels != null && newCar.currentLevel >= 0 && newCar.currentLevel < newCar.levels.Length)
+                newCar.levels[newCar.currentLevel].demandMultiplier = data.demandMultiplier;
+            else
+                newCar.demandMultiplier = data.demandMultiplier;
             newCar.bodyColor = new Color(data.bodyColorR, data.bodyColorG, data.bodyColorB);
             newCar.hasTint = data.hasTint;
 

@@ -9,6 +9,13 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
+    private VisualElement newsOverlay;
+    private Label newsTitleLabel;
+    private Label newsDescriptionLabel;
+    private Label newsImportanceLabel;
+    private VisualElement newsImportanceBar;
+    private Button closeNewsButton;
+
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;
@@ -118,7 +125,9 @@ public class UIManager : MonoBehaviour
     private class CarCardData
     {
         public CarBlueprint car;
-        public Label profitDetailsLabel; // для отображения деталей
+        public Button produceButton;
+        
+        public Label profitDetailsLabel;
         public VisualElement card;
         public Label profitLabel;
         public Label demandLabel;
@@ -134,6 +143,12 @@ public class UIManager : MonoBehaviour
         public Toggle tintToggle;
         public Label taxRateLabel;
         public Label modifierLabel;
+
+        // ========== НОВЫЕ ПОЛЯ ==========
+        public Label detailsLabel;          // лейбл "Цена: $X | Себ: $Y"
+        public Label priceLabel;            // лейбл текущей цены для регулировки
+        public Button decreasePriceBtn;
+        public Button increasePriceBtn;
     }
 
     private string[] tuningParamNames = { "power", "economy", "design", "safety" };
@@ -205,6 +220,54 @@ public class UIManager : MonoBehaviour
         #endif
     }
 
+
+    // Методы:
+    private void OpenNewsWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (newsOverlay != null)
+        {
+            newsOverlay.style.display = DisplayStyle.Flex;
+            AnimateWindowOpen(newsOverlay);
+            UpdateNewsUI();
+        }
+    }
+
+    private void CloseNewsWindow()
+    {
+        if (newsOverlay != null)
+            AnimateWindowClose(newsOverlay, () => newsOverlay.style.display = DisplayStyle.None);
+    }
+
+    public void UpdateNewsUI()
+    {
+        if (newsTitleLabel == null) return;
+        bool hasNews = NewsManager.Instance != null && NewsManager.Instance.IsNewsActive;
+        if (hasNews)
+        {
+            newsTitleLabel.text = NewsManager.Instance.CurrentTitle;
+            newsDescriptionLabel.text = NewsManager.Instance.CurrentDescription;
+            float importance = NewsManager.Instance.CurrentImportance;
+            newsImportanceLabel.text = $"Влияние: {importance * 100:F0}%";
+            if (newsImportanceBar != null)
+            {
+                newsImportanceBar.style.width = new Length(importance * 100, LengthUnit.Percent);
+                Color color = importance > 0.6f ? Color.green : (importance > 0.3f ? Color.yellow : Color.red);
+                newsImportanceBar.style.backgroundColor = color;
+            }
+        }
+        else
+        {
+            newsTitleLabel.text = "Нет активных новостей";
+            newsDescriptionLabel.text = "Рынок стабилен.";
+            newsImportanceLabel.text = "Влияние: 0%";
+            if (newsImportanceBar != null)
+                newsImportanceBar.style.width = new Length(0, LengthUnit.Percent);
+        }
+    }
+
+
     public void Initialize(UIDocument document)
     {
         uiDoc = document;
@@ -212,6 +275,20 @@ public class UIManager : MonoBehaviour
         root = uiDoc.rootVisualElement;
         if (root == null) return;
 
+        newsOverlay = root.Q<VisualElement>("NewsOverlay");
+        newsTitleLabel = root.Q<Label>("NewsTitleLabel");
+        newsDescriptionLabel = root.Q<Label>("NewsDescriptionLabel");
+        newsImportanceLabel = root.Q<Label>("NewsImportanceLabel");
+        newsImportanceBar = root.Q<VisualElement>("NewsImportanceBar");
+        closeNewsButton = root.Q<Button>("CloseNewsButton");
+
+        SubscribeButton("OpenNewsButton", OpenNewsWindow);
+        if (closeNewsButton != null)
+            closeNewsButton.clicked += CloseNewsWindow;
+
+        if (newsOverlay != null)
+            newsOverlay.style.display = DisplayStyle.None;
+            
         mainPanel = root.Q<VisualElement>("MainPanel");
         reputationLabel = root.Q<Label>("ReputationLabel");
         notificationContainer = root.Q<VisualElement>("NotificationContainer");
@@ -306,6 +383,9 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenMarketingButton", OpenMarketingWindow);
         SubscribeButton("CloseMarketingButton", CloseMarketingWindow);
         SubscribeButton("CloseMenuButton", CloseMenuWindow);
+        SubscribeButton("OpenNewsButton", OpenNewsWindow);
+        SubscribeButton("CloseNewsButton", CloseNewsWindow);
+        SubscribeButton("CloseNewsButton2", CloseNewsWindow);
 
         SubscribeButton("OpenOfficesButton", OpenOfficesWindow);
         SubscribeButton("CloseOfficesButton", CloseOfficesWindow);
@@ -1067,6 +1147,7 @@ public class UIManager : MonoBehaviour
         return $"\nЦена: ${actualCost} (базовая ${baseCost}){penaltyInfo}";
     }
 
+
     // ---- Карточки машин ----
     public void CreateCarCards(CarBlueprint[] availableCars)
     {
@@ -1081,9 +1162,9 @@ public class UIManager : MonoBehaviour
 
             bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
             bool canUpgrade = !hasHigherLevel
-                && (car.levels != null && car.levels.Length > 0
-                    && car.currentLevel < car.levels.Length - 1)
-                && upgradeUnlocked;
+            && (car.levels != null && car.levels.Length > 0
+                && car.currentLevel < car.levels.Length)   // <-- убрали -1
+            && upgradeUnlocked;
 
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
@@ -1152,6 +1233,43 @@ public class UIManager : MonoBehaviour
             Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
             detailsLabel.style.fontSize = 12;
             detailsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+            textContainer.Add(detailsLabel);
+
+            // ========== БЛОК РЕГУЛИРОВКИ ЦЕНЫ ==========
+            VisualElement priceControlRow = new VisualElement();
+            priceControlRow.style.flexDirection = FlexDirection.Row;
+            priceControlRow.style.alignItems = Align.Center;
+            priceControlRow.style.marginTop = 4;
+
+            Label priceLabel = new Label($"${car.currentPrice}");
+            priceLabel.style.fontSize = 14;
+            priceLabel.style.color = Color.yellow;
+            priceLabel.style.marginRight = 8;
+            priceLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+            Button decreasePriceBtn = new Button();
+            decreasePriceBtn.text = "−";
+            decreasePriceBtn.style.width = 24;
+            decreasePriceBtn.style.height = 24;
+            decreasePriceBtn.style.fontSize = 14;
+            decreasePriceBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+            Button increasePriceBtn = new Button();
+            increasePriceBtn.text = "+";
+            increasePriceBtn.style.width = 24;
+            increasePriceBtn.style.height = 24;
+            increasePriceBtn.style.fontSize = 14;
+            increasePriceBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+            CarBlueprint localCar = car;
+            decreasePriceBtn.clicked += () => ChangeCarPrice(localCar, -10);
+            increasePriceBtn.clicked += () => ChangeCarPrice(localCar, 10);
+
+            priceControlRow.Add(priceLabel);
+            priceControlRow.Add(decreasePriceBtn);
+            priceControlRow.Add(increasePriceBtn);
+            textContainer.Add(priceControlRow);
+            // ========== КОНЕЦ БЛОКА ==========
 
             double profit = modPrice - modCost;
             Label profitLabel = new Label($"Прибыль: {profit:F0}");
@@ -1159,47 +1277,42 @@ public class UIManager : MonoBehaviour
             profitLabel.style.color = profit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            // ========== НОВОЕ: детализация прибыли ==========
             Label profitDetailsLabel = new Label();
             profitDetailsLabel.style.fontSize = 10;
             profitDetailsLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
             profitDetailsLabel.style.marginTop = 2;
-            profitDetailsLabel.style.display = DisplayStyle.Flex; // всегда показываем
-            // ... добавьте его в textContainer
+            profitDetailsLabel.style.display = DisplayStyle.Flex;
             textContainer.Add(profitDetailsLabel);
-            // =================================================
 
-            Label demandLabel = new Label($"Спрос: {car.demandMultiplier:F1}x");
+            Label demandLabel = new Label($"Спрос: {car.CurrentDemandMultiplier:F1}x");
             demandLabel.style.fontSize = 11;
             demandLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+            textContainer.Add(demandLabel);
 
             Label levelLabel = new Label($"Уровень: {car.currentLevel + 1}");
             levelLabel.style.fontSize = 11;
             levelLabel.style.color = new Color(0.6f, 0.8f, 1f);
+            textContainer.Add(levelLabel);
 
             Label trendLabel = new Label("тренд: ...");
             trendLabel.style.fontSize = 10;
             trendLabel.style.color = Color.gray;
+            textContainer.Add(trendLabel);
 
             Label taxRateLabel = new Label($"Налог: {economy.GetTaxRate(car):P0}");
             taxRateLabel.style.fontSize = 10;
             taxRateLabel.style.color = new Color(0.9f, 0.5f, 0.2f);
+            textContainer.Add(taxRateLabel);
 
             Label modifierLabel = new Label();
             modifierLabel.style.fontSize = 10;
             modifierLabel.style.color = new Color(1f, 0.8f, 0.2f);
             modifierLabel.style.marginTop = 2;
             modifierLabel.style.display = DisplayStyle.None;
+            textContainer.Add(modifierLabel);
 
             textContainer.Add(nameLabel);
-            textContainer.Add(detailsLabel);
-            textContainer.Add(profitLabel);
-            textContainer.Add(profitDetailsLabel); // <-- добавлено
-            textContainer.Add(demandLabel);
-            textContainer.Add(levelLabel);
-            textContainer.Add(trendLabel);
-            textContainer.Add(taxRateLabel);
-            textContainer.Add(modifierLabel);
+
             topRow.Add(textContainer);
 
             Button upgradeButton = new Button();
@@ -1209,12 +1322,22 @@ public class UIManager : MonoBehaviour
             upgradeButton.style.marginLeft = 8;
             upgradeButton.style.alignSelf = Align.Center;
             upgradeButton.SetEnabled(canUpgrade);
-            CarBlueprint localCar = car;
             upgradeButton.clicked += () => tech.UpgradeCar(localCar);
             topRow.Add(upgradeButton);
 
+            // ---- Кнопка "Произвести" ----
+            Button produceButton = new Button();
+            produceButton.text = "Произвести";
+            produceButton.style.width = 70;
+            produceButton.style.height = 26;
+            produceButton.style.marginLeft = 4; // отступ от кнопки улучшения
+            produceButton.style.alignSelf = Align.Center;
+            produceButton.clicked += () => TryProduceSpecificCar(localCar);
+            topRow.Add(produceButton);
+
             card.Add(topRow);
 
+            // ===== ПАНЕЛЬ ТЮНИНГА =====
             VisualElement tuningPanel = new VisualElement();
             tuningPanel.style.flexDirection = FlexDirection.Column;
             tuningPanel.style.marginTop = 3;
@@ -1233,7 +1356,7 @@ public class UIManager : MonoBehaviour
             cardData.car = car;
             cardData.card = card;
             cardData.profitLabel = profitLabel;
-            cardData.profitDetailsLabel = profitDetailsLabel; // <-- сохраняем ссылку
+            cardData.profitDetailsLabel = profitDetailsLabel;
             cardData.demandLabel = demandLabel;
             cardData.trendLabel = trendLabel;
             cardData.levelLabel = levelLabel;
@@ -1241,6 +1364,14 @@ public class UIManager : MonoBehaviour
             cardData.taxRateLabel = taxRateLabel;
             cardData.modifierLabel = modifierLabel;
 
+            // Сохраняем ссылки на новые элементы
+            cardData.detailsLabel = detailsLabel;
+            cardData.priceLabel = priceLabel;
+            cardData.decreasePriceBtn = decreasePriceBtn;
+            cardData.increasePriceBtn = increasePriceBtn;
+            cardData.produceButton = produceButton;
+
+            // ---- Тюнинг-слайдеры ----
             for (int i = 0; i < tuningParamNames.Length; i++)
             {
                 string param = tuningParamNames[i];
@@ -1334,6 +1465,7 @@ public class UIManager : MonoBehaviour
 
             card.Add(tuningPanel);
 
+            // ---- Цвета и тонировка ----
             VisualElement colorPanel = new VisualElement();
             colorPanel.style.flexDirection = FlexDirection.Row;
             colorPanel.style.alignItems = Align.Center;
@@ -1385,6 +1517,7 @@ public class UIManager : MonoBehaviour
 
             card.Add(colorPanel);
 
+            // ---- График спроса ----
             VisualElement graphContainer = new VisualElement();
             graphContainer.style.width = new Length(100, LengthUnit.Percent);
             graphContainer.style.height = new Length(40, LengthUnit.Pixel);
@@ -1392,10 +1525,11 @@ public class UIManager : MonoBehaviour
             card.Add(graphContainer);
             cardData.graphContainer = graphContainer;
 
+            // ---- Завершение карточки ----
             carCards.Add(cardData);
 
             CarBlueprint localCarForProduction = car;
-            card.RegisterCallback<ClickEvent>(evt => TryProduceSpecificCar(localCarForProduction));
+            // card.RegisterCallback<ClickEvent>(evt => TryProduceSpecificCar(localCarForProduction));
             carsContainer.Add(card);
         }
 
@@ -1407,6 +1541,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
+   
    public void UpdateCarCards()
     {
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
@@ -1416,7 +1551,7 @@ public class UIManager : MonoBehaviour
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
-            // ---- Расчёт чистой прибыли (как в производстве) ----
+            // ---- Расчёт чистой прибыли ----
             float partCost = economy.GetPartCostForCar(car);
             float productionCost = car.GetProductionCostWithLevel() + partCost;
             int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
@@ -1424,38 +1559,35 @@ public class UIManager : MonoBehaviour
             float taxRate = economy.GetTaxRate(car);
             double finalProfit = profitBeforeTax * (1f - taxRate);
 
-            // Обновляем лейбл прибыли
+            // Обновляем прибыль
             if (cardData.profitLabel != null)
             {
                 cardData.profitLabel.text = $"Прибыль: {finalProfit:F0}";
                 cardData.profitLabel.style.color = finalProfit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             }
-
-            // Детализация прибыли
             if (cardData.profitDetailsLabel != null)
             {
-                string details = $"Цена: {modPrice:F0}  |  Себ: {productionCost:F0} (вкл. детали)  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
-                cardData.profitDetailsLabel.text = details;
+                cardData.profitDetailsLabel.text = $"Цена: {modPrice:F0}  |  Себ: {productionCost:F0} (вкл. детали)  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
                 cardData.profitDetailsLabel.style.display = DisplayStyle.Flex;
             }
-
-            // Tooltip на прибыль
             if (cardData.profitLabel != null)
             {
                 cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
             }
 
-            // ---- Остальные обновления (без изменений) ----
-            float demandValue = car.demandMultiplier;
+            // Спрос
+            float demandValue = car.CurrentDemandMultiplier;
             if (cardData.demandLabel != null)
             {
                 cardData.demandLabel.text = $"Спрос: {demandValue:F1}x";
                 cardData.demandLabel.style.color = demandValue > 1.2f ? Color.green : (demandValue < 0.8f ? Color.red : Color.yellow);
             }
 
+            // Уровень
             if (cardData.levelLabel != null)
                 cardData.levelLabel.text = $"Уровень: {car.currentLevel + 1}";
 
+            // Тренд
             if (cardData.trendLabel != null && MarketSystem.Instance != null)
             {
                 string trend = MarketSystem.Instance.GetDemandTrend(car.carName);
@@ -1463,47 +1595,50 @@ public class UIManager : MonoBehaviour
                 cardData.trendLabel.style.color = trend.Contains("растёт") ? Color.green : (trend.Contains("падает") ? Color.red : Color.gray);
             }
 
+            // Кнопка улучшения
             if (cardData.upgradeButton != null)
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
                 bool canUpgrade = !hasHigherLevel
                 && (car.levels != null && car.levels.Length > 0
-                    && car.currentLevel < car.levels.Length - 1)
+                    && car.currentLevel < car.levels.Length)   // <-- убрали -1
                 && upgradeUnlocked;
 
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             }
 
+            // Налог
             if (cardData.taxRateLabel != null)
                 cardData.taxRateLabel.text = $"Налог: {taxRate:P0}";
 
+            // График
             if (cardData.graphContainer != null && MarketSystem.Instance != null)
                 MarketSystem.Instance.DrawDemandGraph(cardData.graphContainer, car.carName);
 
+            // Тюнинг слайдеры
             UpdateTuningSliders(cardData, car);
 
+            // Цвет и тонировка
             if (cardData.tintToggle != null)
                 cardData.tintToggle.value = car.hasTint;
-
             if (cardData.colorButtons != null)
             {
                 int selectedIndex = Array.IndexOf(carColors, car.bodyColor);
                 UpdateColorButtons(cardData, selectedIndex);
             }
 
+            // Модификаторы
             if (cardData.modifierLabel != null)
             {
                 string modText = "";
                 bool hasMod = false;
-
                 float penalty = 0f;
                 if (demand.demandPenalties != null && demand.demandPenalties.TryGetValue(car.carName, out penalty))
                 {
                     modText += $"⚔️ Спрос -{(1f - penalty) * 100:F0}% ";
                     hasMod = true;
                 }
-
                 if (economy.TemporaryPriceModifier != 1f)
                 {
                     float change = (economy.TemporaryPriceModifier - 1f) * 100f;
@@ -1511,7 +1646,6 @@ public class UIManager : MonoBehaviour
                     modText += $"📊 Цена {sign}{change:F0}% ";
                     hasMod = true;
                 }
-
                 if (hasMod)
                 {
                     cardData.modifierLabel.text = modText;
@@ -1523,11 +1657,28 @@ public class UIManager : MonoBehaviour
                     cardData.modifierLabel.style.display = DisplayStyle.None;
                 }
             }
+
+            // ========== ОБНОВЛЕНИЕ ЦЕНЫ ==========
+            // Обновляем detailsLabel (цена и себестоимость)
+            if (cardData.detailsLabel != null)
+            {
+                int currentModPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
+                int currentModCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}";
+            }
+
+            // Обновляем priceLabel (текущая цена, которую можно менять)
+            if (cardData.priceLabel != null)
+            {
+                cardData.priceLabel.text = $"${car.currentPrice}";
+            }
+            // ======================================
         }
 
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
     }
+
 
     private void UpdateTuningSliders(CarCardData cardData, CarBlueprint car)
     {
@@ -2996,5 +3147,25 @@ public class UIManager : MonoBehaviour
         var overlay = root.Q<VisualElement>("MenuOverlay");
         if (overlay != null)
             AnimateWindowClose(overlay, () => overlay.style.display = DisplayStyle.None);
+    }
+
+    private void ChangeCarPrice(CarBlueprint car, int delta)
+    {
+        if (car == null) return;
+
+        int newPrice = car.currentPrice + delta;
+        newPrice = Mathf.Clamp(newPrice, 10, car.basePrice * 3);
+
+        car.currentPrice = newPrice;
+
+        // Сохраняем цену в LevelData для улучшенных машин
+        if (car.currentLevel > 0 && car.levels != null && car.currentLevel - 1 < car.levels.Length)
+        {
+            car.levels[car.currentLevel - 1].levelPrice = newPrice;
+        }
+
+        UpdateCarCards();
+        demand.UpdateDemand();
+        UpdateMoneyLabels();
     }
 }
