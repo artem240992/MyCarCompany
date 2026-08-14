@@ -6,6 +6,7 @@ public class CarBlueprint : ScriptableObject
     [Header("Основные параметры")]
     public string carName;
     public GameObject carPrefab;
+    public string transmissionType = "АКПП"; // по умолчанию
     public int basePrice;
     public int productionCost;
     public int currentLevel = 0;
@@ -65,6 +66,7 @@ public class CarBlueprint : ScriptableObject
 
         newCar.carName = this.carName;
         newCar.carPrefab = this.carPrefab;
+        newCar.transmissionType = this.transmissionType;
         newCar.carType = this.carType;
         newCar.basePrice = this.basePrice;
         newCar.productionCost = this.productionCost;
@@ -228,6 +230,23 @@ public class CarBlueprint : ScriptableObject
         float tuningPrice = baseForPrice * GetTuningPriceModifier();
         float finalPrice = tuningPrice * priceModifier * GetDemandPriceModifier();
         return Mathf.RoundToInt(finalPrice);
+    }
+
+    /// <summary>
+/// Вычисляет рейтинг автомобиля (от 1 до 10) на основе цены, качества и уровня.
+/// </summary>
+    public float CalculateRating(float priceModifier)
+    {
+        // Качество: сумма параметров тюнинга (каждый даёт 0.5 балла) + бонус за уровень (2 балла за уровень)
+        float quality = (currentPower + currentEconomy + currentDesign + currentSafety) * 0.5f + currentLevel * 2f;
+        // Цена с учётом модификаторов
+        float price = GetModifiedPrice(priceModifier);
+        // Базовый коэффициент: чем ниже цена относительно базовой, тем выше рейтинг
+        float priceFactor = (basePrice + 50f) / (price + 50f); // сглаживание для крайних цен
+        // Итоговая оценка
+        float rating = quality * priceFactor * 0.8f;
+        // Ограничиваем диапазон 1-10
+        return Mathf.Clamp(rating, 1f, 10f);
     }
 
     public int GetModifiedProductionCost(float costModifier)

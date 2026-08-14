@@ -13,15 +13,14 @@ MonoBehaviour:
   m_Name: BaseCar_Lev3
   m_EditorClassIdentifier: Assembly-CSharp::CarBlueprint
   carName: 
-  carPrefab: {fileID: 7199546247579947592, guid: 8c0f502c596c3c746a68e5631858c360, type: 3}
-  levelPrefabs: []
+  carPrefab: {fileID: 919132149155446097, guid: 15e3b883b05343c409ed2f085de014a1, type: 3}
   basePrice: 0
   productionCost: 0
-  demandMultiplier: 1
   currentLevel: 0
   carIcon: {fileID: 0}
   recipe: {fileID: 11400000, guid: c095346ea6aef144e841608a8935cbad, type: 2}
-  levelRecipes: []
+  carType: {fileID: 0}
+  levels: []
   tuningPower: 0
   tuningEconomy: 0
   tuningDesign: 0
@@ -35,3 +34,19 @@ MonoBehaviour:
   tintLevel: 0
   hasTint: 0
   currentPrice: 0
+  demandMultiplier: 1
+  newsDemandRanges: []
+  newsMultiplier: 1
+  seasonalDemandMultipliers:
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1

@@ -16,6 +16,7 @@ public class UIActionLogController : MonoBehaviour
         logScrollView = new ScrollView();
         logScrollView.style.flexGrow = 1;
         actionLogContent.Add(logScrollView);
+
     }
 
     public void RefreshLogs()

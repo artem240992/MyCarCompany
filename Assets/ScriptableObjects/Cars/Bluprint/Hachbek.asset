@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1d33f3a4a6675ec41b975002ed96aa9f, type: 3}
-  m_Name: BaseCar
+  m_Name: Hachbek
   m_EditorClassIdentifier: Assembly-CSharp::CarBlueprint
-  carName: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u0430\u044F \u043C\u0430\u0448\u0438\u043D\u0430"
-  carPrefab: {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
-  basePrice: 250
+  carName: Hachbek
+  carPrefab: {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
+  basePrice: 500
   productionCost: 50
   currentLevel: 0
-  carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
-  recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
-  carType: {fileID: 11400000, guid: 26fefda604e93314794c6db15fe64d6e, type: 2}
+  carIcon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  recipe: {fileID: 11400000, guid: 7992eb4ec51b07e43a436f3a4c47929f, type: 2}
+  carType: {fileID: 11400000, guid: ff33484ed0c5811489cd91f7b388aa89, type: 2}
   levels:
-  - prefab: {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
+  - prefab: {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
     levelPrice: 1250
     productionCost: 50
     demandMultiplier: 0.3
@@ -30,11 +30,11 @@ MonoBehaviour:
     tuningEconomy: 0
     tuningDesign: 0
     tuningSafety: 0
-  - prefab: {fileID: 3786326439804512758, guid: f4e73d783d681e04ca355f6c8a50af8e, type: 3}
+  - prefab: {fileID: 919132149155446097, guid: 479bd64bd0eb14d47a9189dab8f05695, type: 3}
     levelPrice: 2500
     productionCost: 1500
     demandMultiplier: 0
-    recipe: {fileID: 11400000, guid: c095346ea6aef144e841608a8935cbad, type: 2}
+    recipe: {fileID: 11400000, guid: 7992eb4ec51b07e43a436f3a4c47929f, type: 2}
     tuningPower: 0
     tuningEconomy: 0
     tuningDesign: 0
@@ -52,13 +52,13 @@ MonoBehaviour:
   tintLevel: 0
   hasTint: 0
   currentPrice: 250
-  demandMultiplier: 0
+  demandMultiplier: 0.39883912
   newsDemandRanges:
   - min: -1
     max: 10
   - min: 15
     max: 35
-  newsMultiplier: 8.835145
+  newsMultiplier: 1
   seasonalDemandMultipliers:
   - 1
   - 1

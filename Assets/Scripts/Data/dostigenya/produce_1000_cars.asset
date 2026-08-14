@@ -20,4 +20,4 @@ MonoBehaviour:
   targetValue: 1000
   trackedMetric: carsProduced
   icon: {fileID: 0}
-  hiddenUntilUnlocked: 1
+  hiddenUntilUnlocked: 0

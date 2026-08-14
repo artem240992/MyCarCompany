@@ -699,6 +699,8 @@ GameObject:
   - component: {fileID: 2044430362}
   - component: {fileID: 2044430363}
   - component: {fileID: 2044430364}
+  - component: {fileID: 2044430365}
+  - component: {fileID: 2044430366}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Player
@@ -731,6 +733,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ce8ae1ac6faa2d147baf264397fff89e, type: 2}
   - {fileID: 11400000, guid: 5c0a88be54140a8418ec164b8542dc58, type: 2}
   - {fileID: 11400000, guid: a0977224bc2760a46aabc9ae7348b5bb, type: 2}
+  - {fileID: 11400000, guid: e2b8c4562c355c1408fd4c993bf748df, type: 2}
+  - {fileID: 11400000, guid: 964a19ad45026a449a06efadd5a7fd55, type: 2}
+  - {fileID: 11400000, guid: f83ac9da3c1ee444ca94b112029eda32, type: 2}
+  - {fileID: 11400000, guid: 4418b9ad54220b3469edafda789f95d0, type: 2}
 --- !u!4 &2044430357
 Transform:
   m_ObjectHideFlags: 0
@@ -859,6 +865,67 @@ MonoBehaviour:
     \u0442\u0435\u0440\u044F\u044E\u0442 \u043F\u043E\u043F\u0443\u043B\u044F\u0440\u043D\u043E\u0441\u0442\u044C
     \u0438\u0437-\u0437\u0430 \u044D\u043A\u043E\u043B\u043E\u0433\u0438\u0447\u0435\u0441\u043A\u0438\u0445
     \u0441\u0431\u043E\u0440\u043E\u0432"
+--- !u!114 &2044430365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044430355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5a3ae42a76ca8641b3e333b0fe8fc04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MusicManager
+  backgroundMusic: {fileID: 8300000, guid: 50fbd77694a77e840826a13923db9f0b, type: 3}
+  volume: 0.063
+--- !u!114 &2044430366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044430355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ca90a890280449468157c64cb28a989, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InternationalManager
+  requiredTechForOffices: "\u041C\u0435\u0436\u0434\u0443\u043D\u0430\u0440\u043E\u0434\u043D\u0430\u044F
+    \u044D\u043A\u0441\u043F\u0430\u043D\u0441\u0438\u044F"
+  regionDefinitions:
+  - id: usa
+    displayName: "\U0001F1FA\U0001F1F8 \u0421\u0428\u0410"
+    baseDemandMultiplier: 1.2
+    importTax: 0.05
+    baseRent: 80
+    baseSalaries: 50
+    openCost: 600
+    upgradeCost: 350
+  - id: eu
+    displayName: "\U0001F1EA\U0001F1FA \u0415\u0432\u0440\u043E\u043F\u0430"
+    baseDemandMultiplier: 1.1
+    importTax: 0.08
+    baseRent: 70
+    baseSalaries: 45
+    openCost: 550
+    upgradeCost: 300
+  - id: asia
+    displayName: "\U0001F30F \u0410\u0437\u0438\u044F"
+    baseDemandMultiplier: 1
+    importTax: 0.1
+    baseRent: 50
+    baseSalaries: 30
+    openCost: 400
+    upgradeCost: 250
+  - id: ru
+    displayName: "\U0001F1F7\U0001F1FA \u0420\u043E\u0441\u0441\u0438\u044F"
+    baseDemandMultiplier: 0.9
+    importTax: 0.15
+    baseRent: 40
+    baseSalaries: 25
+    openCost: 300
+    upgradeCost: 200
 --- !u!1 &2144086935
 GameObject:
   m_ObjectHideFlags: 0

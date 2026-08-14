@@ -53,6 +53,7 @@ public class TechManager : MonoBehaviour
         economy.RecalculateModifiers(technologies);
         ui.CreateTechTree(technologies.ToList(), economy.TechCostMultiplier);
         ui.CreateCarCards(availableCars);
+        
     }
 
     // ---- Генерация тюнинговых технологий (с availableYear/Month) ----

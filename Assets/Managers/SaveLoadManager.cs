@@ -203,5 +203,6 @@ public class SaveLoadManager : MonoBehaviour
     public void Initialize()
     {
         Debug.Log("SaveLoadManager инициализирован");
+        
     }
 }

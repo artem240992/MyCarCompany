@@ -45,6 +45,7 @@ public class DifficultyManager : MonoBehaviour
         currentDifficulty = (DifficultyLevel)saved;
         ApplyDifficultySettings();
         StartEconomicEventsIfHard();
+       
     }
 
     public void SetDifficulty(DifficultyLevel newDifficulty)

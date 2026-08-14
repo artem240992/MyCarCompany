@@ -26,6 +26,7 @@ public class InternationalManager : MonoBehaviour
     }
 
     private List<OfficeData> offices = new List<OfficeData>();
+    private int totalOfficesOpened = 0; // <-- добавлен счётчик
 
     private void Awake()
     {
@@ -80,6 +81,11 @@ public class InternationalManager : MonoBehaviour
             isActive = true
         };
         offices.Add(office);
+
+        // ---- Обновление достижений ----
+        totalOfficesOpened++;
+        CarCompanyManager.Instance.AchievementManager?.UpdateProgress("officesOpened", totalOfficesOpened);
+
         UIManager.Instance?.ShowNotification($"Представительство в {def.displayName} открыто!");
         UpdateUI();
     }
@@ -156,11 +162,13 @@ public class InternationalManager : MonoBehaviour
     public void FillSaveData(SaveData data)
     {
         data.offices = offices;
+        data.totalOfficesOpened = totalOfficesOpened; // <-- сохраняем счётчик
     }
 
     public void LoadFromSave(SaveData data)
     {
         if (data.offices != null)
             offices = data.offices;
+        totalOfficesOpened = data.totalOfficesOpened; // <-- загружаем счётчик
     }
 }

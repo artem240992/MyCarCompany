@@ -47,6 +47,13 @@
                         <ui:Label text="" name="ElectronicsLabel" class="resource-value" tooltip="Электроника на складе"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <!-- Машины на складе -->
+                <ui:VisualElement class="resource-block parts-block">
+                    <ui:Label text="🚗" class="resource-icon" tooltip="Машины на складе"/>
+                    <ui:VisualElement class="resource-info">
+                        <ui:Label text="" name="CarStockLabel" class="resource-value" tooltip="Количество машин на складе"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <!-- НОВЫЙ БЛОК: индикатор новостей -->
                 <ui:VisualElement class="resource-block news-block" style="background-color: rgba(255, 215, 0, 0.15); border-radius: 4px; padding: 2px 8px;">
                     <ui:Label text="📰" class="resource-icon" tooltip="Активные новости"/>
@@ -239,18 +246,23 @@
     </ui:VisualElement>
 
     <!-- Settings -->
-    <ui:VisualElement name="SettingsOverlay" class="overlay">
-        <ui:VisualElement name="SettingsWindow" class="window settings-window">
-            <ui:VisualElement class="window-header">
-                <ui:Label text="Настройки сложности" class="window-title" tooltip="Измените сложность игры (применится после перезагрузки)"/>
-                <ui:Button text="✕" name="CloseSettingsButton" class="close-button" tooltip="Закрыть окно"/>
-            </ui:VisualElement>
-            <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
-            <ui:Button text="Easy" name="EasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
-            <ui:Button text="Normal" name="NormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
-            <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
+<ui:VisualElement name="SettingsOverlay" class="overlay">
+    <ui:VisualElement name="SettingsWindow" class="window settings-window">
+        <ui:VisualElement class="window-header">
+            <ui:Label text="Настройки сложности" class="window-title" tooltip="Измените сложность игры (применится после перезагрузки)"/>
+            <ui:Button text="✕" name="CloseSettingsButton" class="close-button" tooltip="Закрыть окно"/>
+        </ui:VisualElement>
+        <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
+        <ui:Button text="Easy" name="EasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
+        <ui:Button text="Normal" name="NormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
+        <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
+
+        <!-- ====== ГАЛОЧКА ДЛЯ МУЗЫКИ ====== -->
+        <ui:VisualElement style="flex-direction: row; align-items: center; margin-top: 16px; padding-top: 12px; border-top-width: 1px; border-top-color: #555;">
+            <ui:Toggle name="MusicToggle" label="Включить музыку" style="color: white; font-size: 16px;" tooltip="Включить/выключить фоновую музыку"/>
         </ui:VisualElement>
     </ui:VisualElement>
+</ui:VisualElement>
 
     <!-- Competitors -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">

@@ -32,6 +32,7 @@ public class AchievementManager : MonoBehaviour
                 };
             }
         }
+        
     }
 
     private void GenerateTestAchievements()
