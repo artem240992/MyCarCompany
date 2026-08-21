@@ -123,6 +123,15 @@ public class CarCompanyManager : MonoBehaviour
         EconomyManager.OnMoneyChanged += UIManager.UpdateMoneyLabels;
         EconomyManager.OnMoneyChanged += ProductionManager.UpdateButtons;
 
+        // После записи истории:
+        CarCompanyManager.Instance.DemandManager.RecordDemandHistory();
+
+        // Если окно графика открыто, обновить его
+        if (UIManager.Instance != null && UIManager.Instance.IsDemandGraphOpen())
+        {
+            UIManager.Instance.DrawDemandGraph();
+        }
+
         if (TutorialManager.Instance == null)
             Debug.LogError("TutorialManager не создан!");
 

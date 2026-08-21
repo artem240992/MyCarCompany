@@ -149,6 +149,7 @@ public class InternationalManager : MonoBehaviour
             // Применяем к экономике
             economy.Money -= totalCost;
             economy.Money += netRevenue;
+            CarCompanyManager.Instance.DemandManager?.UpdateDemand();
         }
         UpdateUI();
     }

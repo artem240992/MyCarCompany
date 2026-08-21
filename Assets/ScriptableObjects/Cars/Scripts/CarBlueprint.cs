@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [CreateAssetMenu(fileName = "NewCar", menuName = "Car Company/Car Blueprint")]
 public class CarBlueprint : ScriptableObject
@@ -12,6 +13,10 @@ public class CarBlueprint : ScriptableObject
     public int currentLevel = 0;
     public Sprite carIcon;
     public CarRecipe recipe;
+
+    [Header("История спроса")]
+    public List<float> demandHistory = new List<float>(); // последние 12 месяцев
+
 
     [Header("Тип автомобиля")]
     public CarType carType; // если не задан, используется своя сезонность
@@ -68,6 +73,8 @@ public class CarBlueprint : ScriptableObject
         newCar.carPrefab = this.carPrefab;
         newCar.transmissionType = this.transmissionType;
         newCar.carType = this.carType;
+        // Копирование истории спроса
+        newCar.demandHistory = new List<float>(this.demandHistory);
         newCar.basePrice = this.basePrice;
         newCar.productionCost = this.productionCost;
         newCar.currentPrice = this.currentPrice;

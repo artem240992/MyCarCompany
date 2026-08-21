@@ -17,6 +17,11 @@ public class UIManager : MonoBehaviour
     private VisualElement newsImportanceBar;
     private Button closeNewsButton;
 
+    private VisualElement demandGraphOverlay;
+    private DropdownField demandGraphCarDropdown;
+    private VisualElement demandGraphContainer;
+    private Button closeDemandGraphButton;
+
     private UIDocument uiDoc;
     private VisualElement root;
     private VisualElement mainPanel;
@@ -83,6 +88,11 @@ public class UIManager : MonoBehaviour
     private Button hireEngineerButton;
 
     private Label carStockLabel;
+
+    private VisualElement interactiveNewsOverlay;
+    private Label interactiveTitleLabel;
+    private Label interactiveDescLabel;
+    private VisualElement actionsContainer;
 
     private Button buyPartsButton;
 
@@ -247,7 +257,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void CloseNewsWindow()
+    public void CloseNewsWindow()
     {
         if (newsOverlay != null)
             AnimateWindowClose(newsOverlay, () => newsOverlay.style.display = DisplayStyle.None);
@@ -281,6 +291,167 @@ public class UIManager : MonoBehaviour
     }
 
 
+
+
+    public bool IsDemandGraphOpen()
+    {
+        return demandGraphOverlay != null && demandGraphOverlay.style.display == DisplayStyle.Flex;
+    }
+
+    private void OpenDemandGraph()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (demandGraphOverlay == null) return;
+        demandGraphOverlay.style.display = DisplayStyle.Flex;
+        AnimateWindowOpen(demandGraphOverlay);
+        PopulateDemandGraphDropdown();
+        DrawDemandGraph();
+    }
+
+    private void CloseDemandGraph()
+    {
+        if (demandGraphOverlay != null)
+            AnimateWindowClose(demandGraphOverlay, () => demandGraphOverlay.style.display = DisplayStyle.None);
+    }
+
+    private void PopulateDemandGraphDropdown()
+    {
+        if (demandGraphCarDropdown == null) return;
+        var cars = tech.AvailableCars;
+        if (cars == null || cars.Length == 0) return;
+        demandGraphCarDropdown.choices = cars.Select(c => c.GetDisplayName()).ToList();
+        if (demandGraphCarDropdown.choices.Count > 0)
+        {
+            demandGraphCarDropdown.value = demandGraphCarDropdown.choices[0];
+            demandGraphCarDropdown.RegisterValueChangedCallback(evt => DrawDemandGraph());
+        }
+    }
+
+    public void DrawDemandGraph()
+    {
+        if (demandGraphContainer == null || demandGraphCarDropdown == null) return;
+        string selectedName = demandGraphCarDropdown.value;
+        var car = tech.AvailableCars.FirstOrDefault(c => c.GetDisplayName() == selectedName);
+        if (car == null)
+        {
+            demandGraphContainer.Clear();
+            var label = new Label("Модель не найдена");
+            label.style.color = Color.white;
+            demandGraphContainer.Add(label);
+            return;
+        }
+
+        demandGraphContainer.Clear();
+
+        var history = car.demandHistory;
+        if (history == null || history.Count < 2)
+        {
+            var label = new Label($"Недостаточно данных для графика (записей: {history?.Count ?? 0}).\nПодождите несколько месяцев.");
+            label.style.color = Color.white;
+            label.style.whiteSpace = WhiteSpace.Normal;
+            demandGraphContainer.Add(label);
+            return;
+        }
+
+        var graph = new VisualElement();
+        graph.style.flexGrow = 1;
+        graph.style.backgroundColor = new Color(0.1f, 0.1f, 0.1f);
+        graph.style.marginTop = 10;
+        graph.style.marginBottom = 10;
+
+        float min = history.Min();
+        float max = history.Max();
+        if (max - min < 0.01f) { min -= 0.5f; max += 0.5f; }
+        float range = max - min;
+
+        graph.generateVisualContent += (ctx) =>
+        {
+            var rect = graph.contentRect;
+            if (rect.width < 10 || rect.height < 10) return;
+            var painter = ctx.painter2D;
+            painter.lineWidth = 2;
+            painter.strokeColor = Color.yellow;
+
+            painter.BeginPath();
+            for (int i = 0; i < history.Count; i++)
+            {
+                float x = (i / (float)(history.Count - 1)) * rect.width;
+                float y = (1f - (history[i] - min) / range) * rect.height;
+                if (i == 0)
+                    painter.MoveTo(new Vector2(x, y));
+                else
+                    painter.LineTo(new Vector2(x, y));
+            }
+            painter.Stroke();
+
+            // Рисуем сетку и подписи (опционально)
+            painter.lineWidth = 0.5f;
+            painter.strokeColor = new Color(0.3f, 0.3f, 0.3f);
+            for (int i = 0; i <= 4; i++)
+            {
+                float yPos = rect.y + (i / 4f) * rect.height;
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(rect.x, yPos));
+                painter.LineTo(new Vector2(rect.x + rect.width, yPos));
+                painter.Stroke();
+            }
+        };
+
+        demandGraphContainer.Add(graph);
+
+        // ---- Обновление прогноза ----
+        Label forecastLabel = demandGraphOverlay.Q<Label>("SeasonalForecastLabel");
+        if (forecastLabel != null)
+        {
+            string forecast = GenerateSeasonalForecast(car);
+            forecastLabel.text = forecast;
+        }
+    }
+
+
+
+
+    private string GenerateSeasonalForecast(CarBlueprint car)
+    {
+        if (car == null || car.seasonalDemandMultipliers == null || car.seasonalDemandMultipliers.Length < 12)
+            return "Нет данных для прогноза";
+
+        int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
+        float currentFactor = car.seasonalDemandMultipliers[currentMonth - 1];
+
+        // Проверяем следующие 3 месяца
+        string forecast = "";
+        bool hasChange = false;
+
+        for (int i = 1; i <= 3; i++)
+        {
+            int nextMonth = (currentMonth + i - 1) % 12 + 1; // цикл 1-12
+            float nextFactor = car.seasonalDemandMultipliers[nextMonth - 1];
+            float change = ((nextFactor - currentFactor) / currentFactor) * 100f;
+
+            if (Mathf.Abs(change) > 3f) // порог 3%
+            {
+                string sign = change > 0 ? "▲" : "▼";
+                string color = change > 0 ? "зелёный" : "красный";
+                string monthName = GetMonthName(nextMonth);
+                forecast += $"{sign} {monthName}: {change:F0}% ({color})\n";
+                hasChange = true;
+            }
+        }
+
+        if (!hasChange)
+            return "Спрос стабилен в ближайшие 3 месяца.";
+
+        return forecast.TrimEnd('\n');
+    }
+
+    private string GetMonthName(int month)
+    {
+        string[] months = { "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек" };
+        return months[month - 1];
+    }
+
     public void Initialize(UIDocument document)
     {
         uiDoc = document;
@@ -295,6 +466,22 @@ public class UIManager : MonoBehaviour
         newsImportanceLabel = root.Q<Label>("NewsImportanceLabel");
         newsImportanceBar = root.Q<VisualElement>("NewsImportanceBar");
         closeNewsButton = root.Q<Button>("CloseNewsButton");
+
+
+        // ---- График спроса ----
+        demandGraphOverlay = root.Q<VisualElement>("DemandGraphOverlay");
+        demandGraphCarDropdown = root.Q<DropdownField>("DemandGraphCarDropdown");
+        demandGraphContainer = root.Q<VisualElement>("DemandGraphContainer");
+        closeDemandGraphButton = root.Q<Button>("CloseDemandGraphButton");
+
+        if (closeDemandGraphButton != null)
+            closeDemandGraphButton.clicked += CloseDemandGraph;
+
+        if (demandGraphOverlay != null)
+            demandGraphOverlay.style.display = DisplayStyle.None;
+
+        // Кнопка в главном меню (убедитесь, что она есть в UXML)
+        SubscribeButton("OpenDemandGraphButton", OpenDemandGraph);
 
         SubscribeButton("OpenNewsButton", OpenNewsWindow);
         if (closeNewsButton != null)
@@ -381,6 +568,19 @@ public class UIManager : MonoBehaviour
         upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
         upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
         upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
+
+        interactiveNewsOverlay = root.Q<VisualElement>("InteractiveNewsOverlay");
+        interactiveTitleLabel = root.Q<Label>("InteractiveNewsTitle");
+        interactiveDescLabel = root.Q<Label>("InteractiveNewsDescription");
+        actionsContainer = root.Q<VisualElement>("InteractiveActionsContainer");
+
+        var closeInteractiveBtn = root.Q<Button>("CloseInteractiveNewsButton");
+        if (closeInteractiveBtn != null)
+            closeInteractiveBtn.clicked += CloseInteractiveNewsWindow;
+
+        if (interactiveNewsOverlay != null)
+            interactiveNewsOverlay.style.display = DisplayStyle.None;
+
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
@@ -588,6 +788,40 @@ public class UIManager : MonoBehaviour
         if (btn != null) btn.clicked += () => action?.Invoke();
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
+
+
+
+    // Методы:
+    public void ShowInteractiveNews(InteractiveNews news)
+    {
+        if (interactiveNewsOverlay == null) return;
+        interactiveNewsOverlay.style.display = DisplayStyle.Flex;
+        interactiveTitleLabel.text = news.title;
+        interactiveDescLabel.text = news.description;
+        actionsContainer.Clear();
+
+        for (int i = 0; i < news.actions.Length; i++)
+        {
+            var action = news.actions[i];
+            Button btn = new Button();
+            btn.text = $"{action.actionName}\n{action.description}";
+            btn.style.marginBottom = 4;
+            btn.style.whiteSpace = WhiteSpace.Normal;
+            btn.style.fontSize = 12;
+            btn.style.paddingLeft = 8;
+            btn.style.paddingRight = 8;
+            int index = i;
+            btn.clicked += () => NewsManager.Instance.ExecuteAction(index);
+            actionsContainer.Add(btn);
+        }
+    }
+
+    public void CloseInteractiveNewsWindow()
+    {
+        if (interactiveNewsOverlay != null)
+            interactiveNewsOverlay.style.display = DisplayStyle.None;
+    }
+
 
 
 
@@ -2995,8 +3229,17 @@ public class UIManager : MonoBehaviour
         UpdateDifficultyDisplay();
         PlayerPrefs.SetInt("Difficulty", (int)currentDifficulty);
         PlayerPrefs.Save();
-        if (CarCompanyManager.Instance != null && CarCompanyManager.Instance.DifficultyManager != null)
-            CarCompanyManager.Instance.DifficultyManager.SetDifficulty((DifficultyManager.DifficultyLevel)(int)newDifficulty);
+
+        // Применяем сложность через DifficultyManager
+        var dm = CarCompanyManager.Instance.DifficultyManager;
+        dm.SetDifficulty((DifficultyManager.DifficultyLevel)newDifficulty);
+
+        // Применяем настройки экономики (БЕЗ АРГУМЕНТОВ)
+        CarCompanyManager.Instance.EconomyManager.ApplyDifficultySettings();
+
+        // Обновляем спрос
+        CarCompanyManager.Instance.DemandManager.UpdateDemand();
+        UpdateNewsUI();
     }
 
     private void UpdateDifficultyDisplay()

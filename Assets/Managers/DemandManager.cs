@@ -24,6 +24,8 @@ public class DemandManager : MonoBehaviour
     [Header("Влияние улучшений на спрос")]
     [SerializeField] private float demandBonusPerLevel = 0.1f; // 10% за уровень
 
+    private float interactiveNewsMultiplier = 1f;
+
     public void Initialize() { }
 
     public void ApplyDemandPenalty(string carName, float penalty, float duration)
@@ -35,7 +37,12 @@ public class DemandManager : MonoBehaviour
         demandPenalties[carName] = penalty;
         penaltyCoroutines[carName] = CarCompanyManager.Instance.StartCoroutine(ClearPenaltyAfter(carName, duration));
         UpdateDemand();
-        
+    }
+
+    public void ApplyNewsDemandMultiplier(float multiplier)
+    {
+        interactiveNewsMultiplier = Mathf.Clamp(multiplier, 0.5f, 1.5f);
+        UpdateDemand();
     }
 
     private IEnumerator ClearPenaltyAfter(string carName, float duration)
@@ -78,7 +85,8 @@ public class DemandManager : MonoBehaviour
         // 2. Средняя цена по рынку
         float avgPrice = CalculateAverageMarketPrice(allCars);
 
-        // Сезонность теперь НЕ используется отдельно – она уже учтена в CurrentDemandMultiplier
+        // 3. Множитель сложности
+        float difficultyModifier = CarCompanyManager.Instance.DifficultyManager.CurrentDemandModifier;
 
         foreach (CarBlueprint car in allCars)
         {
@@ -117,7 +125,7 @@ public class DemandManager : MonoBehaviour
             float levelBonus = 1f + car.currentLevel * demandBonusPerLevel;
 
             // ----- ИТОГОВЫЙ СПРОС -----
-            float finalDemand = baseDemand
+            float finalDemand = baseDemand * interactiveNewsMultiplier
                 * priceFactor
                 * marketingBonus
                 * brandModifier
@@ -126,14 +134,13 @@ public class DemandManager : MonoBehaviour
                 * tuningModifier
                 * reputationModifier
                 * boost
-                * levelBonus;
+                * levelBonus
+                * difficultyModifier;   // <-- добавлен множитель сложности
 
             // Ограничиваем разумными пределами
             finalDemand = Mathf.Clamp(finalDemand, 0.3f, 2.5f);
 
             // Сохраняем спрос в правильное место
-            // Для уровня 0 – в резервное поле demandMultiplier
-            // Для уровней > 0 – в LevelData с индексом (currentLevel - 1)
             if (car.currentLevel > 0 && car.levels != null && car.currentLevel - 1 < car.levels.Length)
             {
                 car.levels[car.currentLevel - 1].demandMultiplier = finalDemand;
@@ -147,7 +154,6 @@ public class DemandManager : MonoBehaviour
         ui.UpdateCarCards();
         ui.UpdateMoneyLabels();
     }
-
 
     private void UpdateNewsMultipliers()
     {
@@ -234,12 +240,29 @@ public class DemandManager : MonoBehaviour
         return all;
     }
 
-    public float GetDemandModifierForCar(string carName) 
+    public float GetDemandModifierForCar(string carName)
     {
         var all = GetAllPossibleCars();
         var car = all.FirstOrDefault(c => c.carName == carName);
         if (car != null)
             return car.CurrentDemandMultiplier;
         return 1f;
+    }
+
+    public void RecordDemandHistory()
+    {
+        var allCars = GetAllPossibleCars();
+        Debug.Log($"RecordDemandHistory: найдено машин {allCars?.Count ?? 0}");
+        if (allCars == null || allCars.Count == 0) return;
+
+        foreach (var car in allCars)
+        {
+            if (car == null) continue;
+            float currentDemand = car.CurrentDemandMultiplier;
+            car.demandHistory.Add(currentDemand);
+            if (car.demandHistory.Count > 12)
+                car.demandHistory.RemoveAt(0);
+            Debug.Log($"Машина {car.carName}: добавлен спрос {currentDemand}, теперь {car.demandHistory.Count} записей");
+        }
     }
 }

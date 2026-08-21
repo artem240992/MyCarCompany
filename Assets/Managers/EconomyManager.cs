@@ -21,11 +21,11 @@ public class EconomyManager : MonoBehaviour
     public float TemporaryPriceModifier = 1f;
 
     // ---- Для расчёта годового налога ----
-    private double yearlyIncome = 0;    // сумма всех доходов за текущий год
-    private double yearlyExpenses = 0;  // сумма всех расходов за текущий год
+    private double yearlyIncome = 0;
+    private double yearlyExpenses = 0;
 
     // ---- Для месячного дохода (график) ----
-    private double monthlyIncome = 0;   // сумма всех доходов за текущий месяц
+    private double monthlyIncome = 0;
 
     // ---- Скидки ----
     public float DiscountMultiplier = 1f;
@@ -66,7 +66,7 @@ public class EconomyManager : MonoBehaviour
         productionDiscount = 0f;
         monthlyIncomeHistory.Clear();
         totalCarsSold = 0;
-        monthlyIncome = 0; // <-- инициализация
+        monthlyIncome = 0;
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
         else
@@ -75,13 +75,14 @@ public class EconomyManager : MonoBehaviour
         OnMoneyChanged?.Invoke();
         yearlyIncome = 0;
         yearlyExpenses = 0;
+        ApplyDifficultySettings(true); // применяем настройки сложности при старте
     }
 
     public void AddMoney(double amount)
     {
         Money += amount;
-        yearlyIncome += amount; // для налога (не трогаем)
-        monthlyIncome += amount; // для графика (добавлено)
+        yearlyIncome += amount;
+        monthlyIncome += amount;
         OnMoneyChanged?.Invoke();
         var achManager = CarCompanyManager.Instance.AchievementManager;
         if (achManager != null)
@@ -92,7 +93,7 @@ public class EconomyManager : MonoBehaviour
     {
         if (Money < amount) return false;
         Money -= amount;
-        yearlyExpenses += amount; // для налога (не трогаем)
+        yearlyExpenses += amount;
         OnMoneyChanged?.Invoke();
         return true;
     }
@@ -167,7 +168,6 @@ public class EconomyManager : MonoBehaviour
         TotalDemandModifier = 1f;
     }
 
-    // ---- Методы скидок ----
     public void ApplyDiscount(float discount, int months)
     {
         if (discount < 0f || discount > 1f || months <= 0)
@@ -198,13 +198,11 @@ public class EconomyManager : MonoBehaviour
         }
     }
 
-    // ---- Скидка на производство (от инвестиций) ----
     public void ApplyProductionDiscount(float discount)
     {
         productionDiscount = Mathf.Clamp(discount, 0f, 0.3f);
     }
 
-    // ---- Расчёт себестоимости производства с учётом скидки ----
     public int GetProductionCostWithLevel(CarBlueprint car)
     {
         if (car == null || car.recipe == null) return 50;
@@ -224,12 +222,12 @@ public class EconomyManager : MonoBehaviour
     public float GetTaxRate(CarBlueprint car)
     {
         float baseTax = 0f;
-        var difficulty = CarCompanyManager.Instance.UIManager?.GetCurrentDifficulty() ?? UIManager.Difficulty.Normal;
+        var difficulty = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
         switch (difficulty)
         {
-            case UIManager.Difficulty.Easy:   baseTax = 0.05f; break;
-            case UIManager.Difficulty.Normal: baseTax = 0.05f; break;
-            case UIManager.Difficulty.Hard:   baseTax = 0.15f; break;
+            case DifficultyManager.DifficultyLevel.Easy:   baseTax = 0.05f; break;
+            case DifficultyManager.DifficultyLevel.Normal: baseTax = 0.05f; break;
+            case DifficultyManager.DifficultyLevel.Hard:   baseTax = 0.15f; break;
         }
         float levelBonus = car.currentLevel * 0.1f;
         int totalTuning = car.currentPower + car.currentEconomy + car.currentDesign + car.currentSafety;
@@ -265,7 +263,6 @@ public class EconomyManager : MonoBehaviour
         data.discountDuration = DiscountDuration;
         data.monthlyIncomeHistory = monthlyIncomeHistory;
         data.totalCarsSold = totalCarsSold;
-        // monthlyIncome не сохраняется, так как это накопление за текущий месяц (будет сброшено при загрузке)
     }
 
     public void LoadFromSave(SaveData data)
@@ -281,7 +278,7 @@ public class EconomyManager : MonoBehaviour
         DiscountDuration = data.discountDuration;
         monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
         totalCarsSold = data.totalCarsSold;
-        monthlyIncome = 0; // сброс при загрузке
+        monthlyIncome = 0;
         OnMoneyChanged?.Invoke();
     }
 
@@ -313,17 +310,35 @@ public class EconomyManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
             if (PassiveIncome > 0)
             {
-                AddMoney(PassiveIncome); // теперь доход учитывается и для налога, и для графика
+                AddMoney(PassiveIncome);
             }
         }
     }
 
-    // ---- Достижения по продаже машин ----
     public void RegisterCarSold(int count)
     {
         if (count <= 0) return;
         totalCarsSold += count;
         CarCompanyManager.Instance.AchievementManager?.UpdateProgress("carsProduced", totalCarsSold);
+    }
+
+    // ---- Применение настроек сложности (вызывается при старте и при смене сложности) ----
+    public void ApplyDifficultySettings(bool isNewGame = false)
+    {
+        var dm = CarCompanyManager.Instance.DifficultyManager;
+        if (dm == null) return;
+
+        TotalPriceModifier = dm.CurrentPriceModifier;
+        CostMultiplier = dm.CurrentProductionCostModifier;
+        TechCostMultiplier = dm.CurrentResearchCostModifier;
+        inflationRate = dm.CurrentInflationRate;
+        StartMoney = dm.CurrentStartMoney;
+
+        if (isNewGame)
+        {
+            Money = StartMoney;
+            OnMoneyChanged?.Invoke();
+        }
     }
 
     private void Awake()
@@ -344,11 +359,10 @@ public class EconomyManager : MonoBehaviour
         UpdateDiscount();
         RecalculateModifiers(null);
 
-        // ---- Добавляем общий доход за месяц в историю ----
         monthlyIncomeHistory.Add((float)monthlyIncome);
         if (monthlyIncomeHistory.Count > 12)
             monthlyIncomeHistory.RemoveAt(0);
-        monthlyIncome = 0; // сбрасываем для следующего месяца
+        monthlyIncome = 0;
 
         if (GameTimeManager.Instance != null)
         {
@@ -371,7 +385,7 @@ public class EconomyManager : MonoBehaviour
                 yearlyIncome = 0;
                 yearlyExpenses = 0;
                 lastTaxYear = year;
-
+                CarCompanyManager.Instance.DemandManager?.UpdateDemand();
                 CarCompanyManager.Instance.UIManager?.ShowNotification(
                     $"Годовой налог: ${taxAmount:F0} ({(taxRate * 100):F0}% от прибыли ${yearlyProfit:F0})"
                 );
@@ -380,5 +394,6 @@ public class EconomyManager : MonoBehaviour
         }
 
         CarCompanyManager.Instance.UIManager?.UpdateDateTimeDisplay();
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
     }
 }

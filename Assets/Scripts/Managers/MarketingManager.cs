@@ -115,6 +115,7 @@ public class MarketingManager : MonoBehaviour
                 OnCampaignEnded(campaign);
             }
         }
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
         UpdateBrandQuality();
     }
 
