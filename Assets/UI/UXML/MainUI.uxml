@@ -84,6 +84,18 @@
                 <ui:Button text="✕" name="CloseMenuButton" style="font-size:20px; background-color:transparent; border-width:0; color:white;"/>
             </ui:VisualElement>
 
+            <!-- Interactive News Overlay – ВЫНЕСЕН ИЗ МЕНЮ -->
+            <!--
+            <ui:VisualElement name="InteractiveNewsOverlay" class="overlay" style="display: none;">
+                <ui:VisualElement style="width: 80%; max-width: 600px; background-color: rgb(40,40,40); padding: 20px; border-radius: 10px; flex-direction: column;">
+                    <ui:Label name="InteractiveNewsTitle" style="font-size: 20px; color: #ffd700; -unity-font-style: bold; margin-bottom: 10px;" />
+                    <ui:Label name="InteractiveNewsDescription" style="font-size: 14px; color: white; white-space: normal; margin-bottom: 20px;" />
+                    <ui:VisualElement name="InteractiveActionsContainer" style="flex-direction: column; gap: 6px;" />
+                    <ui:Button text="Закрыть" name="CloseInteractiveNewsButton" style="margin-top: 10px; background-color: #555; color: white; padding: 6px 12px;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            -->
+
             <ui:ScrollView style="flex-grow:1; flex-shrink:1;">
                 <ui:VisualElement name="MenuContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px; background-color: rgba(0,0,0,0.3); border-radius: 6px; width: 100%;">
                     <!-- Колонка 1 -->
@@ -98,6 +110,7 @@
                         <ui:Button text="Рынок" name="OpenMarketVisualizationButton" class="menu-button-compact" tooltip="Рыночная аналитика (доли, графики)"/>
                         <ui:Button text="Кредиты" name="OpenLoansButton" class="menu-button-compact" tooltip="Управление кредитами"/>
                         <ui:Button text="Инвестиции" name="OpenInvestmentsButton" class="menu-button-compact" tooltip="Инвестиции в маркетинг, исследования, производство"/>
+                        <ui:Button text="График спроса" name="OpenDemandGraphButton" class="menu-button-compact" tooltip="Показать график изменения спроса"/>
                     </ui:VisualElement>
 
                     <!-- Колонка 2 -->
@@ -156,6 +169,16 @@
             </ui:VisualElement>
 
             <ui:Button text="Закрыть" name="CloseNewsButton2" style="margin-top: 16px; background-color: #555; color: white; padding: 6px 24px; border-radius: 6px; flex-shrink: 0;" tooltip="Закрыть окно новостей"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- ===== ИНТЕРАКТИВНЫЕ НОВОСТИ (ВЫНЕСЕН ОТДЕЛЬНО) ===== -->
+    <ui:VisualElement name="InteractiveNewsOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 80%; max-width: 600px; background-color: rgb(40,40,40); padding: 20px; border-radius: 10px; flex-direction: column;">
+            <ui:Label name="InteractiveNewsTitle" style="font-size: 20px; color: #ffd700; -unity-font-style: bold; margin-bottom: 10px;" />
+            <ui:Label name="InteractiveNewsDescription" style="font-size: 14px; color: white; white-space: normal; margin-bottom: 20px;" />
+            <ui:VisualElement name="InteractiveActionsContainer" style="flex-direction: column; gap: 6px;" />
+            <ui:Button text="Закрыть" name="CloseInteractiveNewsButton" style="margin-top: 10px; background-color: #555; color: white; padding: 6px 12px;" />
         </ui:VisualElement>
     </ui:VisualElement>
 
@@ -246,23 +269,23 @@
     </ui:VisualElement>
 
     <!-- Settings -->
-<ui:VisualElement name="SettingsOverlay" class="overlay">
-    <ui:VisualElement name="SettingsWindow" class="window settings-window">
-        <ui:VisualElement class="window-header">
-            <ui:Label text="Настройки сложности" class="window-title" tooltip="Измените сложность игры (применится после перезагрузки)"/>
-            <ui:Button text="✕" name="CloseSettingsButton" class="close-button" tooltip="Закрыть окно"/>
-        </ui:VisualElement>
-        <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
-        <ui:Button text="Easy" name="EasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
-        <ui:Button text="Normal" name="NormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
-        <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
+    <ui:VisualElement name="SettingsOverlay" class="overlay">
+        <ui:VisualElement name="SettingsWindow" class="window settings-window">
+            <ui:VisualElement class="window-header">
+                <ui:Label text="Настройки сложности" class="window-title" tooltip="Измените сложность игры (применится после перезагрузки)"/>
+                <ui:Button text="✕" name="CloseSettingsButton" class="close-button" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+            <ui:Label text="Выберите уровень сложности:" class="settings-subtitle"/>
+            <ui:Button text="Easy" name="EasyButton" class="difficulty-button" tooltip="Лёгкий уровень: цены снижены, конкуренты слабее"/>
+            <ui:Button text="Normal" name="NormalButton" class="difficulty-button" tooltip="Обычный уровень: стандартные настройки"/>
+            <ui:Button text="Hard" name="HardButton" class="difficulty-button difficulty-button-last" tooltip="Тяжёлый уровень: цены выше, конкуренты агрессивнее"/>
 
-        <!-- ====== ГАЛОЧКА ДЛЯ МУЗЫКИ ====== -->
-        <ui:VisualElement style="flex-direction: row; align-items: center; margin-top: 16px; padding-top: 12px; border-top-width: 1px; border-top-color: #555;">
-            <ui:Toggle name="MusicToggle" label="Включить музыку" style="color: white; font-size: 16px;" tooltip="Включить/выключить фоновую музыку"/>
+            <!-- ====== ГАЛОЧКА ДЛЯ МУЗЫКИ ====== -->
+            <ui:VisualElement style="flex-direction: row; align-items: center; margin-top: 16px; padding-top: 12px; border-top-width: 1px; border-top-color: #555;">
+                <ui:Toggle name="MusicToggle" label="Включить музыку" style="color: white; font-size: 16px;" tooltip="Включить/выключить фоновую музыку"/>
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
-</ui:VisualElement>
 
     <!-- Competitors -->
     <ui:VisualElement name="CompetitorsOverlay" class="overlay">
@@ -354,6 +377,25 @@
             <ui:VisualElement style="flex-direction:row; justify-content:flex-end; margin-top:10px; flex-shrink:0;">
                 <ui:Button name="RefreshOfficesButton" text="Обновить" style="background-color:#444; color:white; padding:4px 14px;"/>
             </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+        <!-- График спроса -->
+    <ui:VisualElement name="DemandGraphOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 80%; max-width: 800px; height: 70%; max-height: 600px; background-color: rgb(40,40,40); padding: 20px; border-radius: 10px; flex-direction: column;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="📈 График спроса" style="font-size: 20px; color: #ffd700; -unity-font-style: bold;"/>
+                <ui:Button text="✕" name="CloseDemandGraphButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;"/>
+            </ui:VisualElement>
+            <ui:VisualElement style="flex-direction: column; margin-top: 10px; flex-shrink: 0;">
+                <ui:Label text="📊 Прогноз на ближайшие месяцы:" style="color: #ffd700; font-size: 14px; -unity-font-style: bold; margin-bottom: 4px;"/>
+                <ui:Label name="SeasonalForecastLabel" style="color: #ccc; font-size: 13px; white-space: normal;"/>
+            </ui:VisualElement>
+            <ui:VisualElement style="flex-direction: row; gap: 8px; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="Модель:" style="color: white; align-self: center;"/>
+                <ui:DropdownField name="DemandGraphCarDropdown" style="width: 150px;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="DemandGraphContainer" style="flex-grow: 1; background-color: rgba(0,0,0,0.3); border-radius: 4px;"/>
         </ui:VisualElement>
     </ui:VisualElement>
 

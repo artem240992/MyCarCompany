@@ -50,6 +50,7 @@ public class InvestmentManager : MonoBehaviour
         var demand = CarCompanyManager.Instance.DemandManager;
         var tech = CarCompanyManager.Instance.TechManager;
         var economy = CarCompanyManager.Instance.EconomyManager;
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
 
         for (int i = activeInvestments.Count - 1; i >= 0; i--)
         {

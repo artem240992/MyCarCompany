@@ -6,7 +6,7 @@ public class GameTimeManager : MonoBehaviour
     public static GameTimeManager Instance { get; private set; }
 
     public event Action OnMonthChanged; // событие смены месяца
-
+    
     [Header("Time Settings")]
     public float monthDuration = 30f; // секунд на один месяц
     public int currentMonth = 1;
@@ -32,6 +32,15 @@ public class GameTimeManager : MonoBehaviour
         {
             timeSinceMonthStart -= monthDuration;
             AdvanceMonth();
+        }
+
+        // После записи истории:
+        CarCompanyManager.Instance.DemandManager?.RecordDemandHistory();
+
+        // Если окно графика открыто – перерисовать
+        if (UIManager.Instance != null && UIManager.Instance.IsDemandGraphOpen())
+        {
+            UIManager.Instance.DrawDemandGraph();
         }
     }
 

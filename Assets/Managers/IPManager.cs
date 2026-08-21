@@ -126,6 +126,7 @@ public class IPManager : MonoBehaviour
                 UIManager.Instance?.ShowNotification($"Патент на '{patent.techName}' истёк!");
             }
         }
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
 
         // Сбор роялти
         float totalRoyalty = 0f;

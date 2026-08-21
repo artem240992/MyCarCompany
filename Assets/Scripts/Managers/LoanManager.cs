@@ -47,6 +47,7 @@ public class LoanManager : MonoBehaviour
     private void OnMonthChanged()
     {
         var economy = CarCompanyManager.Instance.EconomyManager;
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
         for (int i = activeLoans.Count - 1; i >= 0; i--)
         {
             var loan = activeLoans[i];
