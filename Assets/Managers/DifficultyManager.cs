@@ -47,6 +47,25 @@ public class DifficultyManager : MonoBehaviour
 
     public DifficultyLevel CurrentDifficulty => currentDifficulty;
 
+    // ---- Добавить в секцию полей ----
+    [Header("Платформы")]
+    public float platformCostModifierEasy = 0.8f;
+    public float platformCostModifierNormal = 1.0f;
+    public float platformCostModifierHard = 1.4f;
+
+    public float platformTimeModifierEasy = 0.7f;
+    public float platformTimeModifierNormal = 1.0f;
+    public float platformTimeModifierHard = 1.3f;
+
+    public float platformDiscountModifierEasy = 0.1f;
+    public float platformDiscountModifierNormal = 0.0f;
+    public float platformDiscountModifierHard = -0.05f;
+
+    // ---- Добавить в текущие значения (в конец списка) ----
+    public float CurrentPlatformCostModifier { get; private set; }
+    public float CurrentPlatformTimeModifier { get; private set; }
+    public float CurrentPlatformDiscountModifier { get; private set; }
+
     // ---- ТЕКУЩИЕ ЗНАЧЕНИЯ (вычисляются на основе сложности) ----
     public float CurrentPriceModifier
     {
