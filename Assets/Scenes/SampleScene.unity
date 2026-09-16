@@ -591,6 +591,55 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1147929330
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1147929332}
+  - component: {fileID: 1147929331}
+  m_Layer: 0
+  m_Name: PlatformManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1147929331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1147929330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4b895feb82add847bacfbc376f5072f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlatformManager
+  allPlatforms:
+  - {fileID: 11400000, guid: e09c3aa0a178dc84f833e5873bf46e96, type: 2}
+  - {fileID: 11400000, guid: a7294fdb4d1206f428ca4470f7e71481, type: 2}
+  - {fileID: 11400000, guid: 3ec4380e6270bbc43ae5117b5efb01d0, type: 2}
+  - {fileID: 11400000, guid: be2405d893c619c4caa7eeb1abe86d07, type: 2}
+--- !u!4 &1147929332
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1147929330}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.00149, y: 5.546, z: 3.53469}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1616114899
 GameObject:
   m_ObjectHideFlags: 0
@@ -831,23 +880,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d76b9ca092f9f34fa0ed42450b378ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewsManager
-  newsInterval: 20
-  newsDuration: 40
-  interactiveNews:
-  - title: "\u0422\u0435\u0441\u0442 \u044D\u043A\u043E\u043D\u043E\u043C\u0438\u043A\u0438"
-    description: "\u0422\u0435\u0435\u0435\u0435\u0435\u0441\u0442"
-    type: 0
-    actions:
-    - actionName: "\u0422\u0435\u0441\u0442 1"
-      description: "\u043F\u0440\u043E\u043B\u0430\u043E\u0436\u0434\u043F\u0430\u043E\u0430\u043F\u043E"
-      demandImpact: 100
-      reputationImpact: 200
-      moneyImpact: 400
-    - actionName: "\u0422\u0435\u0441\u0442 2"
-      description: 13131313131313131
-      demandImpact: 100
-      reputationImpact: 200
-      moneyImpact: 400
+  minNewsInterval: 45
+  maxNewsInterval: 90
+  minNewsDuration: 30
+  maxNewsDuration: 60
+  interactiveNews: []
 --- !u!114 &2044430365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1035,3 +1072,4 @@ SceneRoots:
   - {fileID: 1616114900}
   - {fileID: 414377230}
   - {fileID: 2144086939}
+  - {fileID: 1147929332}

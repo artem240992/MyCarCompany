@@ -43,6 +43,7 @@ public class TechManager : MonoBehaviour
         GenerateTuningTechnologies();
         GenerateCarUnlockTechnologies();
         GenerateSpecialTechnologies();
+        GeneratePlatformTechnologies();
         AddAdditionalTechnologies();
         BuildAvailableCars();
 
@@ -56,6 +57,37 @@ public class TechManager : MonoBehaviour
         
     }
 
+    private void GeneratePlatformTechnologies()
+    {
+        if (technologies == null) return;
+        List<Technology> techList = technologies.ToList();
+
+        string[] platformNames = { "Городская платформа", "Внедорожная платформа", "Спортивная платформа", "Грузовая платформа" };
+        int[] costs = { 200, 250, 300, 350 };
+        int[] years = { 2025, 2025, 2026, 2025 };
+        int[] months = { 1, 3, 6, 1 };
+
+        for (int i = 0; i < platformNames.Length; i++)
+        {
+            string techName = $"Разработка {platformNames[i]}";
+            if (techList.Any(t => t != null && t.techName == techName)) continue;
+
+            Technology tech = new Technology();
+            tech.techName = techName;
+            tech.description = $"Позволяет разрабатывать {platformNames[i]}";
+            tech.researchCost = costs[i];
+            tech.isResearched = false;
+            tech.requiredTechNames = new string[0];
+            tech.priceModifier = 1f;
+            tech.demandModifier = 1f;
+            tech.unlockCarOnResearch = false;
+            tech.unlockedCar = null;
+            tech.availableYear = years[i];
+            tech.availableMonth = months[i];
+            techList.Add(tech);
+        }
+        technologies = techList.ToArray();
+    }
     // ---- Генерация тюнинговых технологий (с availableYear/Month) ----
     private void GenerateTuningTechnologies()
     {
@@ -521,6 +553,11 @@ public class TechManager : MonoBehaviour
         }
 
         demand.UpdateDemand();
+        // ---- Обновляем окно платформ, если оно открыто ----
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdatePlatformsUI();
+        }
 
         for (int i = 0; i < tuningParamNames.Length; i++)
         {

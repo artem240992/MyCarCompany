@@ -14,12 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CarBlueprint
   carName: "\u0421\u043F\u043E\u0440\u0442"
   carPrefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
+  transmissionType: "\u0410\u041A\u041F\u041F"
   basePrice: 550
   productionCost: 100
   currentLevel: 0
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
-  carType: {fileID: 0}
+  demandHistory:
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  - 2.5
+  platform: {fileID: 11400000, guid: e09c3aa0a178dc84f833e5873bf46e96, type: 2}
+  carType: {fileID: 11400000, guid: 56001476ad3dc174c9ff2372c755019a, type: 2}
   levels: []
   tuningPower: 10
   tuningEconomy: 10
@@ -34,7 +49,7 @@ MonoBehaviour:
   tintLevel: 0
   hasTint: 0
   currentPrice: 550
-  demandMultiplier: 0.3
+  demandMultiplier: 2.5
   newsDemandRanges: []
   newsMultiplier: 1
   seasonalDemandMultipliers:

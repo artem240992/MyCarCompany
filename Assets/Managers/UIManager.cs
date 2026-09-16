@@ -9,13 +9,25 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
+    // ---- НОВОСТИ (единая страница) ----
     private VisualElement newsOverlay;
     private Toggle musicToggle;
     private Label newsTitleLabel;
     private Label newsDescriptionLabel;
     private Label newsImportanceLabel;
     private VisualElement newsImportanceBar;
+    private VisualElement newsTimeBar;
+    private Label newsTimeLabel;
+    private VisualElement newsBadge;
+    private Label newsBadgeIcon;
+    private Label newsBadgeText;
+    private VisualElement newsActionsContainer;
+    private VisualElement newsHistoryContainer;
     private Button closeNewsButton;
+
+    private VisualElement platformsOverlay;
+    private ListView platformsListView;
+    private Button developPlatformButton;
 
     private VisualElement demandGraphOverlay;
     private DropdownField demandGraphCarDropdown;
@@ -89,11 +101,6 @@ public class UIManager : MonoBehaviour
 
     private Label carStockLabel;
 
-    private VisualElement interactiveNewsOverlay;
-    private Label interactiveTitleLabel;
-    private Label interactiveDescLabel;
-    private VisualElement actionsContainer;
-
     private Button buyPartsButton;
 
     private Button upgradeTabFactoryButton;
@@ -146,6 +153,7 @@ public class UIManager : MonoBehaviour
         public DropdownField transmissionDropdown; // новое поле
 
         public Label ratingLabel; 
+        public Label platformLabel;
 
         public Button sellButton;
         public Label stockLabel;
@@ -245,16 +253,28 @@ public class UIManager : MonoBehaviour
 
 
     // Методы:
+    // Вызывается автоматически, когда NewsManager генерирует новость.
+// НЕ закрывает другие окна — новость появляется поверх.
+public void ShowInteractiveNews(InteractiveNews news)
+{
+    if (newsOverlay == null) return;
+
+    newsOverlay.style.display = DisplayStyle.Flex;
+    AnimateWindowOpen(newsOverlay);
+    UpdateNewsUI();
+}
+
+// Вызывается по кнопке «Новости» из меню — здесь уместно закрыть всё остальное.
     private void OpenNewsWindow()
     {
         CloseMenuWindow();
         HideAllOverlays();
-        if (newsOverlay != null)
-        {
-            newsOverlay.style.display = DisplayStyle.Flex;
-            AnimateWindowOpen(newsOverlay);
-            UpdateNewsUI();
-        }
+
+        if (newsOverlay == null) return;
+
+        newsOverlay.style.display = DisplayStyle.Flex;
+        AnimateWindowOpen(newsOverlay);
+        UpdateNewsUI();
     }
 
     public void CloseNewsWindow()
@@ -263,31 +283,260 @@ public class UIManager : MonoBehaviour
             AnimateWindowClose(newsOverlay, () => newsOverlay.style.display = DisplayStyle.None);
     }
 
+
+    public void CloseInteractiveNewsWindow()
+    {
+        CloseNewsWindow();
+    }
+
     public void UpdateNewsUI()
     {
         if (newsTitleLabel == null) return;
+
         bool hasNews = NewsManager.Instance != null && NewsManager.Instance.IsNewsActive;
+
         if (hasNews)
         {
-            newsTitleLabel.text = NewsManager.Instance.CurrentTitle;
-            newsDescriptionLabel.text = NewsManager.Instance.CurrentDescription;
+            var news = NewsManager.Instance.CurrentInteractiveNews;
+
+            // Бейдж типа
+            var (icon, text, color) = GetNewsTypeVisual(news.type);
+            if (newsBadgeIcon != null) newsBadgeIcon.text = icon;
+            if (newsBadgeText != null)
+            {
+                newsBadgeText.text = text;
+                newsBadgeText.style.color = color;
+            }
+            if (newsBadge != null)
+                newsBadge.style.backgroundColor = new StyleColor(new Color(color.r, color.g, color.b, 0.15f));
+
+            newsTitleLabel.text = news.title;
+            newsDescriptionLabel.text = news.description;
+
             float importance = NewsManager.Instance.CurrentImportance;
-            newsImportanceLabel.text = $"Влияние: {importance * 100:F0}%";
+            newsImportanceLabel.text = $"{importance * 100:F0}%";
             if (newsImportanceBar != null)
             {
                 newsImportanceBar.style.width = new Length(importance * 100, LengthUnit.Percent);
-                Color color = importance > 0.6f ? Color.green : (importance > 0.3f ? Color.yellow : Color.red);
-                newsImportanceBar.style.backgroundColor = color;
+                newsImportanceBar.style.backgroundColor = importance > 0.6f ? new Color(0.56f, 0.93f, 0.56f)
+                                                        : importance > 0.3f ? new Color(1f, 0.8f, 0.2f)
+                                                                            : new Color(1f, 0.42f, 0.42f);
             }
+
+            if (newsTimeBar != null)
+            {
+                float remaining = NewsManager.Instance.NewsTimeRemaining;
+                float duration = Mathf.Max(0.01f, NewsManager.Instance.NewsDuration);
+                newsTimeBar.style.width = new Length((remaining / duration) * 100, LengthUnit.Percent);
+            }
+            if (newsTimeLabel != null)
+                newsTimeLabel.text = $"{NewsManager.Instance.NewsTimeRemaining:F0} сек";
+
+            BuildNewsActions(news);
         }
         else
         {
+            if (newsBadgeIcon != null) newsBadgeIcon.text = "🌐";
+            if (newsBadgeText != null)
+            {
+                newsBadgeText.text = "Рынок";
+                newsBadgeText.style.color = new Color(0.7f, 0.7f, 0.7f);
+            }
+            if (newsBadge != null)
+                newsBadge.style.backgroundColor = new StyleColor(new Color(0.5f, 0.5f, 0.5f, 0.15f));
+
             newsTitleLabel.text = "Нет активных новостей";
-            newsDescriptionLabel.text = "Рынок стабилен.";
-            newsImportanceLabel.text = "Влияние: 0%";
+            newsDescriptionLabel.text = "Рынок стабилен. Следующее событие появится позже.";
+
+            newsImportanceLabel.text = "0%";
             if (newsImportanceBar != null)
                 newsImportanceBar.style.width = new Length(0, LengthUnit.Percent);
+
+            if (newsTimeLabel != null) newsTimeLabel.text = "—";
+            if (newsTimeBar != null) newsTimeBar.style.width = new Length(0, LengthUnit.Percent);
+
+            if (newsActionsContainer != null)
+                newsActionsContainer.Clear();
         }
+
+        RefreshNewsHistory();
+    }
+
+    private void BuildNewsActions(InteractiveNews news)
+    {
+        if (newsActionsContainer == null) return;
+        newsActionsContainer.Clear();
+        if (news.actions == null || news.actions.Length == 0) return;
+
+        for (int i = 0; i < news.actions.Length; i++)
+        {
+            int idx = i;
+            var action = news.actions[idx];
+
+            // ---- Проверка требования технологии ----
+            bool locked = false;
+            if (!string.IsNullOrEmpty(action.requiredTechName))
+            {
+                var techMgr = CarCompanyManager.Instance != null ? CarCompanyManager.Instance.TechManager : null;
+                locked = techMgr == null || !techMgr.IsTechResearched(action.requiredTechName);
+            }
+
+            var btn = new Button();
+            btn.enableRichText = true;
+            btn.style.marginBottom = 6;
+            btn.style.whiteSpace = WhiteSpace.Normal;
+            btn.style.paddingTop = 10;
+            btn.style.paddingBottom = 10;
+            btn.style.paddingLeft = 14;
+            btn.style.paddingRight = 14;
+            btn.style.borderTopLeftRadius = 8;
+            btn.style.borderTopRightRadius = 8;
+            btn.style.borderBottomLeftRadius = 8;
+            btn.style.borderBottomRightRadius = 8;
+            btn.style.unityTextAlign = TextAnchor.MiddleLeft;
+            btn.style.fontSize = 13;
+
+            if (locked)
+            {
+                // Заблокированная кнопка
+                btn.text =
+                    $"<b>🔒 {action.actionName}</b>\n" +
+                    $"<color=#888888>{action.description}</color>\n" +
+                    $"<color=#e0a03a>Требуется технология: {action.requiredTechName}</color>";
+
+                btn.style.backgroundColor = new StyleColor(new Color(0.12f, 0.12f, 0.12f));
+                btn.style.color = new Color(0.6f, 0.6f, 0.6f);
+                btn.SetEnabled(false);
+            }
+            else
+            {
+                // Доступная кнопка
+                btn.style.backgroundColor = new StyleColor(new Color(0.18f, 0.18f, 0.18f));
+                btn.style.color = Color.white;
+                btn.text =
+                    $"<b>{action.actionName}</b>\n" +
+                    $"<color=#bbbbbb>{action.description}</color>\n" +
+                    $"{FormatActionEffects(action)}";
+
+                btn.clicked += () =>
+                {
+                    NewsManager.Instance.ExecuteAction(idx);
+                    UpdateMoneyLabels();
+                    UpdateCarCards();
+                    RefreshMarketGraphIfOpen();
+                    UpdateNewsUI();
+                };
+            }
+
+            newsActionsContainer.Add(btn);
+        }
+    }
+
+    private void RefreshNewsHistory()
+    {
+        if (newsHistoryContainer == null) return;
+        newsHistoryContainer.Clear();
+
+        var history = NewsManager.Instance?.History;
+        if (history == null || history.Count == 0)
+        {
+            var empty = new Label("Пока не было новостей.");
+            empty.style.color = new Color(0.6f, 0.6f, 0.6f);
+            empty.style.fontSize = 13;
+            newsHistoryContainer.Add(empty);
+            return;
+        }
+
+        int shown = 0;
+        for (int i = history.Count - 1; i >= 0 && shown < 15; i--, shown++)
+        {
+            var entry = history[i];
+            var (icon, _, color) = GetNewsTypeVisual(entry.type);
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 8;
+            row.style.paddingBottom = 8;
+            row.style.paddingLeft = 10;
+            row.style.paddingRight = 10;
+            row.style.marginBottom = 4;
+            row.style.backgroundColor = new StyleColor(new Color(0.16f, 0.16f, 0.16f));
+            row.style.borderTopLeftRadius = 6;
+            row.style.borderTopRightRadius = 6;
+            row.style.borderBottomLeftRadius = 6;
+            row.style.borderBottomRightRadius = 6;
+            row.style.borderLeftWidth = 3;
+            row.style.borderLeftColor = new StyleColor(color);
+
+            var dateLabel = new Label($"{entry.gameMonth:D2}/{entry.gameYear}");
+            dateLabel.style.width = 60;
+            dateLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+            dateLabel.style.fontSize = 12;
+            row.Add(dateLabel);
+
+            var iconLabel = new Label(icon);
+            iconLabel.style.marginRight = 8;
+            iconLabel.style.fontSize = 14;
+            row.Add(iconLabel);
+
+            var textCol = new VisualElement();
+            textCol.style.flexGrow = 1;
+
+            var title = new Label(entry.title);
+            title.style.color = Color.white;
+            title.style.fontSize = 13;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            textCol.Add(title);
+
+            if (!string.IsNullOrEmpty(entry.resultText))
+            {
+                var result = new Label(entry.resultText);
+                result.style.color = new Color(0.7f, 0.7f, 0.7f);
+                result.style.fontSize = 11;
+                result.style.marginTop = 2;
+                textCol.Add(result);
+            }
+
+            row.Add(textCol);
+            newsHistoryContainer.Add(row);
+        }
+    }
+
+    private (string icon, string text, Color color) GetNewsTypeVisual(NewsType type)
+    {
+        switch (type)
+        {
+            case NewsType.EconomicBoom:      return ("💰", "Экономический бум", new Color(0.56f, 0.93f, 0.56f));
+            case NewsType.OilCrisis:         return ("🛢️", "Нефтяной кризис",   new Color(1f, 0.42f, 0.42f));
+            case NewsType.GovernmentSubsidy: return ("🏛️", "Гос. субсидия",     new Color(0.4f, 0.8f, 1f));
+            case NewsType.EcoTrend:          return ("🌱", "Эко-тренд",          new Color(0.56f, 0.93f, 0.56f));
+            case NewsType.CompetitorScandal: return ("⚔️", "Скандал",            new Color(1f, 0.8f, 0.2f));
+            case NewsType.MarketSlowdown:    return ("📉", "Замедление рынка",   new Color(1f, 0.42f, 0.42f));
+            default:                         return ("📰", "Событие",            new Color(0.7f, 0.7f, 0.7f));
+        }
+    }
+
+    private string FormatActionEffects(NewsAction a)
+    {
+        string money = Mathf.Approximately(a.moneyImpact, 0f) ? "—"
+                    : (a.moneyImpact > 0 ? $"<color=#8de08d>+{a.moneyImpact:0}💰</color>"
+                                        : $"<color=#e08d8d>{a.moneyImpact:0}💰</color>");
+
+        string rep = Mathf.Approximately(a.reputationImpact, 0f) ? "—"
+                : (a.reputationImpact > 0 ? $"<color=#8de08d>+{a.reputationImpact:0}⭐</color>"
+                                            : $"<color=#e08d8d>{a.reputationImpact:0}⭐</color>");
+
+        string demand;
+        if (Mathf.Approximately(a.demandImpact, 1f)) demand = "—";
+        else
+        {
+            float pct = (a.demandImpact - 1f) * 100f;
+            demand = pct > 0 ? $"<color=#8de08d>+{pct:0}%📈</color>"
+                            : $"<color=#e08d8d>{pct:0}%📈</color>";
+        }
+
+        return $"{money}   {rep}   {demand}";
     }
 
 
@@ -459,13 +708,21 @@ public class UIManager : MonoBehaviour
         root = uiDoc.rootVisualElement;
         if (root == null) return;
 
-        newsOverlay = root.Q<VisualElement>("NewsOverlay");
-        carStockLabel = root.Q<Label>("CarStockLabel");
-        newsTitleLabel = root.Q<Label>("NewsTitleLabel");
+        // ---- НОВОСТИ (единая страница) ----
+        newsOverlay          = root.Q<VisualElement>("NewsOverlay");
+        newsTitleLabel       = root.Q<Label>("NewsTitleLabel");
         newsDescriptionLabel = root.Q<Label>("NewsDescriptionLabel");
-        newsImportanceLabel = root.Q<Label>("NewsImportanceLabel");
-        newsImportanceBar = root.Q<VisualElement>("NewsImportanceBar");
-        closeNewsButton = root.Q<Button>("CloseNewsButton");
+        newsImportanceLabel  = root.Q<Label>("NewsImportanceLabel");
+        newsImportanceBar    = root.Q<VisualElement>("NewsImportanceBar");
+        newsTimeBar          = root.Q<VisualElement>("NewsTimeBar");
+        newsTimeLabel        = root.Q<Label>("NewsTimeLabel");
+        newsBadge            = root.Q<VisualElement>("NewsBadge");
+        newsBadgeIcon        = root.Q<Label>("NewsBadgeIcon");
+        newsBadgeText        = root.Q<Label>("NewsBadgeText");
+        newsActionsContainer = root.Q<VisualElement>("NewsActionsContainer");
+        newsHistoryContainer = root.Q<VisualElement>("NewsHistoryContainer");
+        closeNewsButton      = root.Q<Button>("CloseNewsButton");
+        carStockLabel        = root.Q<Label>("CarStockLabel");
 
 
         // ---- График спроса ----
@@ -473,6 +730,17 @@ public class UIManager : MonoBehaviour
         demandGraphCarDropdown = root.Q<DropdownField>("DemandGraphCarDropdown");
         demandGraphContainer = root.Q<VisualElement>("DemandGraphContainer");
         closeDemandGraphButton = root.Q<Button>("CloseDemandGraphButton");
+
+        platformsOverlay = root.Q<VisualElement>("PlatformsOverlay");
+        platformsListView = root.Q<ListView>("PlatformsList");
+        developPlatformButton = root.Q<Button>("DevelopPlatformButton");
+        SubscribeButton("OpenPlatformsButton", OpenPlatformsWindow);
+        SubscribeButton("ClosePlatformsButton", ClosePlatformsWindow);
+        if (developPlatformButton != null)
+            developPlatformButton.clicked += OnDevelopPlatformClicked;
+
+        if (platformsOverlay != null)
+            platformsOverlay.style.display = DisplayStyle.None;
 
         if (closeDemandGraphButton != null)
             closeDemandGraphButton.clicked += CloseDemandGraph;
@@ -563,24 +831,12 @@ public class UIManager : MonoBehaviour
         SetupInvestmentsUI();
         SetupLoansListView();
         SetupInvestmentsListView();
+        SetupPlatformsListView();
 
         upgradeTabFactoryButton = root.Q<Button>("UpgradeTabFactoryButton");
         upgradeTabPartsButton = root.Q<Button>("UpgradeTabPartsButton");
         upgradeFactoryContent = root.Q<VisualElement>("UpgradeFactoryContent");
         upgradePartsContent = root.Q<VisualElement>("UpgradePartsContent");
-
-        interactiveNewsOverlay = root.Q<VisualElement>("InteractiveNewsOverlay");
-        interactiveTitleLabel = root.Q<Label>("InteractiveNewsTitle");
-        interactiveDescLabel = root.Q<Label>("InteractiveNewsDescription");
-        actionsContainer = root.Q<VisualElement>("InteractiveActionsContainer");
-
-        var closeInteractiveBtn = root.Q<Button>("CloseInteractiveNewsButton");
-        if (closeInteractiveBtn != null)
-            closeInteractiveBtn.clicked += CloseInteractiveNewsWindow;
-
-        if (interactiveNewsOverlay != null)
-            interactiveNewsOverlay.style.display = DisplayStyle.None;
-
 
         if (achievementsOverlay != null)
             achievementsOverlay.style.display = DisplayStyle.None;
@@ -779,6 +1035,9 @@ public class UIManager : MonoBehaviour
             root.Add(demoProgressLabel);
         }
         #endif
+        if (NewsManager.Instance != null)
+            NewsManager.Instance.OnNewsChanged += UpdateNewsUI;
+
         
     }
 
@@ -789,38 +1048,6 @@ public class UIManager : MonoBehaviour
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
     }
 
-
-
-    // Методы:
-    public void ShowInteractiveNews(InteractiveNews news)
-    {
-        if (interactiveNewsOverlay == null) return;
-        interactiveNewsOverlay.style.display = DisplayStyle.Flex;
-        interactiveTitleLabel.text = news.title;
-        interactiveDescLabel.text = news.description;
-        actionsContainer.Clear();
-
-        for (int i = 0; i < news.actions.Length; i++)
-        {
-            var action = news.actions[i];
-            Button btn = new Button();
-            btn.text = $"{action.actionName}\n{action.description}";
-            btn.style.marginBottom = 4;
-            btn.style.whiteSpace = WhiteSpace.Normal;
-            btn.style.fontSize = 12;
-            btn.style.paddingLeft = 8;
-            btn.style.paddingRight = 8;
-            int index = i;
-            btn.clicked += () => NewsManager.Instance.ExecuteAction(index);
-            actionsContainer.Add(btn);
-        }
-    }
-
-    public void CloseInteractiveNewsWindow()
-    {
-        if (interactiveNewsOverlay != null)
-            interactiveNewsOverlay.style.display = DisplayStyle.None;
-    }
 
 
 
@@ -1045,6 +1272,17 @@ public class UIManager : MonoBehaviour
     private void Update()
     {
         UpdateDemoUI();
+
+        if (newsOverlay != null && newsOverlay.style.display == DisplayStyle.Flex
+            && NewsManager.Instance != null && NewsManager.Instance.IsNewsActive)
+        {
+            float remaining = NewsManager.Instance.NewsTimeRemaining;
+            float duration = Mathf.Max(0.01f, NewsManager.Instance.NewsDuration);
+            if (newsTimeBar != null)
+                newsTimeBar.style.width = new Length((remaining / duration) * 100, LengthUnit.Percent);
+            if (newsTimeLabel != null)
+                newsTimeLabel.text = $"{remaining:F0} сек";
+        }
     }
 
 
@@ -1567,6 +1805,13 @@ public class UIManager : MonoBehaviour
             partsLabel.style.fontSize = 10;
             partsLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
             textContainer.Add(partsLabel);
+            
+            // ---- Платформа ----
+            Label platformLabel = new Label();
+            platformLabel.style.fontSize = 11;
+            platformLabel.style.color = new Color(0.7f, 0.8f, 1f);
+            platformLabel.style.marginTop = 2;
+            textContainer.Add(platformLabel);
 
             Label typeLabel = new Label(car.carType != null ? car.carType.typeName : "Без типа");
             typeLabel.style.fontSize = 11;
@@ -1804,6 +2049,7 @@ public class UIManager : MonoBehaviour
 
             // Сохраняем ссылки
             cardData.detailsLabel = detailsLabel;
+            cardData.platformLabel = platformLabel;
             cardData.priceLabel = priceLabel;
             cardData.decreasePriceBtn = decreasePriceBtn;
             cardData.increasePriceBtn = increasePriceBtn;
@@ -2004,9 +2250,75 @@ public class UIManager : MonoBehaviour
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
-            // ---- Расчёт чистой прибыли ----
+            // ---- Расчёт себестоимости с учётом платформы ----
             float partCost = economy.GetPartCostForCar(car);
-            float productionCost = car.GetProductionCostWithLevel() + partCost;
+            float baseCost = car.GetProductionCostWithLevel() + partCost;
+
+            // Скидка от платформы
+            float platformDiscount = 0f;
+            if (car.platform != null && car.platform.isDeveloped && PlatformManager.Instance != null)
+            {
+                platformDiscount = PlatformManager.Instance.GetPlatformDiscount(car);
+            }
+            float productionCost = baseCost * (1f - platformDiscount);
+
+            // ---- Платформа ----
+            if (cardData.platformLabel != null)
+            {
+                if (car.platform == null)
+                {
+                    cardData.platformLabel.text = "Платформа: не привязана";
+                    cardData.platformLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
+                }
+                else
+                {
+                    string platformName = car.platform.platformName;
+                    bool techUnlocked = PlatformManager.Instance != null 
+                                        && PlatformManager.Instance.IsPlatformTechUnlocked(car.platform.type);
+                    bool isDeveloped = car.platform.isDeveloped;
+                    bool isDeveloping = PlatformManager.Instance != null 
+                                        && PlatformManager.Instance.GetDevelopingPlatforms().Contains(car.platform);
+
+                    if (isDeveloped)
+                    {
+                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} ✅";
+                        cardData.platformLabel.style.color = new Color(0.56f, 0.93f, 0.56f); // зелёный
+                    }
+                    else if (isDeveloping)
+                    {
+                        float progress = PlatformManager.Instance.GetDevelopmentProgress(car.platform);
+                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} ⏳ ({progress:F1} мес.)";
+                        cardData.platformLabel.style.color = Color.yellow;
+                    }
+                    else if (techUnlocked)
+                    {
+                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} — готова к разработке";
+                        cardData.platformLabel.style.color = new Color(0.8f, 0.8f, 1f);
+                    }
+                    else
+                    {
+                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} 🔒 (нужна технология)";
+                        cardData.platformLabel.style.color = new Color(0.7f, 0.5f, 0.5f);
+                    }
+                }
+            }
+
+            if (cardData.platformLabel != null && car.platform != null)
+            {
+                var dm = CarCompanyManager.Instance.DifficultyManager;
+                float cost = car.platform.developmentCost * dm.CurrentPlatformCostModifier;
+                float time = car.platform.developmentTimeMonths * dm.CurrentPlatformTimeModifier;
+                float discount = car.platform.productionCostReduction * 100f;
+
+                cardData.platformLabel.tooltip =
+                    $"Тип: {car.platform.type}\n" +
+                    $"Скидка на производство: -{discount:F0}%\n" +
+                    $"Стоимость разработки: ${cost:F0}\n" +
+                    $"Время разработки: {time:F1} мес.\n" +
+                    $"Используется моделей: {car.platform.usedModelsCount}";
+            }
+
+            // ---- Расчёт прибыли ----
             int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
             double profitBeforeTax = modPrice - productionCost;
             float taxRate = economy.GetTaxRate(car);
@@ -2017,7 +2329,6 @@ public class UIManager : MonoBehaviour
             {
                 float rating = car.CalculateRating(economy.TotalPriceModifier);
                 cardData.ratingLabel.text = $"Рейтинг: {rating:F1}";
-                // Цвет в зависимости от оценки
                 if (rating >= 8f)
                     cardData.ratingLabel.style.color = new Color(0.2f, 0.9f, 0.2f);
                 else if (rating >= 5f)
@@ -2040,14 +2351,22 @@ public class UIManager : MonoBehaviour
                 cardData.profitLabel.text = $"Прибыль: {finalProfit:F0}";
                 cardData.profitLabel.style.color = finalProfit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             }
+
+            // Детализация прибыли с указанием скидки платформы
             if (cardData.profitDetailsLabel != null)
             {
-                cardData.profitDetailsLabel.text = $"Цена: {modPrice:F0}  |  Себ: {productionCost:F0} (вкл. детали)  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
+                string discountText = platformDiscount > 0f
+                    ? $"🛠️ Платформа: -{platformDiscount * 100:F1}%  |  "
+                    : "";
+                cardData.profitDetailsLabel.text = $"{discountText}Цена: {modPrice:F0}  |  Себ: {productionCost:F0}  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
                 cardData.profitDetailsLabel.style.display = DisplayStyle.Flex;
             }
             if (cardData.profitLabel != null)
             {
-                cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
+                string discountTooltip = platformDiscount > 0f
+                    ? $"\nСкидка платформы: -{platformDiscount * 100:F1}%"
+                    : "";
+                cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}{discountTooltip}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
             }
 
             // Спрос
@@ -2137,8 +2456,11 @@ public class UIManager : MonoBehaviour
             if (cardData.detailsLabel != null)
             {
                 int currentModPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-                int currentModCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}";
+                // Себестоимость с учётом скидки платформы
+                int currentBaseCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
+                int currentModCost = Mathf.RoundToInt(currentBaseCost * (1f - platformDiscount));
+                string costSuffix = platformDiscount > 0f ? $" (🛠️-{platformDiscount * 100:F0}%)" : "";
+                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}{costSuffix}";
             }
 
             if (cardData.priceLabel != null)
@@ -2925,6 +3247,18 @@ public class UIManager : MonoBehaviour
         };
     }
 
+    private void OnEnable()
+    {
+        if (NewsManager.Instance != null)
+            NewsManager.Instance.OnNewsChanged += UpdateNewsUI;
+    }
+
+    private void OnDisable()
+    {
+        if (NewsManager.Instance != null)
+            NewsManager.Instance.OnNewsChanged -= UpdateNewsUI;
+    }
+
     private void SetupInvestmentsListView()
     {
         var listView = root.Q<ListView>("InvestmentsListView");
@@ -3069,6 +3403,7 @@ public class UIManager : MonoBehaviour
         if (marketVisOverlay != null) marketVisOverlay.style.display = DisplayStyle.None;
         if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
         if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
+        if (platformsOverlay != null) platformsOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -3093,6 +3428,94 @@ public class UIManager : MonoBehaviour
         }).ExecuteLater(150);
     }
 
+
+
+    private void SetupPlatformsListView()
+    {
+        if (platformsListView == null) return;
+
+        platformsListView.makeItem = () =>
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 6;
+            row.style.paddingBottom = 6;
+            row.style.paddingLeft = 8;
+            row.style.paddingRight = 8;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
+
+            var nameLabel = new Label { name = "PlatformName" };
+            nameLabel.style.width = 180;
+            nameLabel.style.color = Color.white;
+            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+            var typeLabel = new Label { name = "PlatformType" };
+            typeLabel.style.width = 100;
+            typeLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+
+            var costLabel = new Label { name = "PlatformCost" };
+            costLabel.style.width = 100;
+            costLabel.style.color = Color.yellow;
+
+            var timeLabel = new Label { name = "PlatformTime" };
+            timeLabel.style.width = 80;
+            timeLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+
+            var discountLabel = new Label { name = "PlatformDiscount" };
+            discountLabel.style.width = 100;
+            discountLabel.style.color = new Color(0.56f, 0.93f, 0.56f);
+
+            var statusLabel = new Label { name = "PlatformStatus" };
+            statusLabel.style.flexGrow = 1;
+            statusLabel.style.color = Color.white;
+
+            row.Add(nameLabel);
+            row.Add(typeLabel);
+            row.Add(costLabel);
+            row.Add(timeLabel);
+            row.Add(discountLabel);
+            row.Add(statusLabel);
+            return row;
+        };
+
+        platformsListView.bindItem = (element, index) =>
+        {
+            if (platformsListView.itemsSource == null || index >= platformsListView.itemsSource.Count) return;
+            var data = (PlatformDisplayData)platformsListView.itemsSource[index];
+            var platform = data.platform;
+            var dm = CarCompanyManager.Instance.DifficultyManager;
+
+            element.Q<Label>("PlatformName").text = platform.platformName;
+            element.Q<Label>("PlatformType").text = platform.type.ToString();
+            element.Q<Label>("PlatformCost").text = $"${platform.developmentCost * dm.CurrentPlatformCostModifier:F0}";
+            element.Q<Label>("PlatformTime").text = $"{platform.developmentTimeMonths * dm.CurrentPlatformTimeModifier:F1} мес.";
+            element.Q<Label>("PlatformDiscount").text = $"-{platform.productionCostReduction * 100:F0}%";
+
+            var status = element.Q<Label>("PlatformStatus");
+            if (data.isDeveloped)
+            {
+                status.text = "✅ Разработана";
+                status.style.color = Color.green;
+            }
+            else if (data.isDeveloping)
+            {
+                status.text = $"⏳ В разработке ({data.progress:F1} мес.)";
+                status.style.color = Color.yellow;
+            }
+            else if (data.canDevelop)
+            {
+                status.text = "🔧 Доступна для разработки";
+                status.style.color = Color.white;
+            }
+            else
+            {
+                status.text = "🔒 Изучите технологию";
+                status.style.color = Color.gray;
+            }
+        };
+    }
     private Sprite LoadCarIcon(string carName)
     {
         if (string.IsNullOrEmpty(carName)) return null;
@@ -3600,6 +4023,8 @@ public class UIManager : MonoBehaviour
     {
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.OnMonthChanged -= UpdateDateTimeDisplay;
+        if (NewsManager.Instance != null)
+            NewsManager.Instance.OnNewsChanged -= UpdateNewsUI;
     }
 
     public void UpdateReputationLabel()
@@ -3719,5 +4144,66 @@ public class UIManager : MonoBehaviour
         UpdateCarCards();
         demand.UpdateDemand();
         UpdateMoneyLabels();
+    }
+
+
+    private void OpenPlatformsWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (platformsOverlay == null) return;
+        platformsOverlay.style.display = DisplayStyle.Flex;
+        AnimateWindowOpen(platformsOverlay);
+        UpdatePlatformsUI();
+    }
+
+    private void ClosePlatformsWindow()
+    {
+        if (platformsOverlay != null)
+            AnimateWindowClose(platformsOverlay, () => platformsOverlay.style.display = DisplayStyle.None);
+    }
+
+    public void UpdatePlatformsUI()
+    {
+        if (platformsListView == null) return;
+        var manager = PlatformManager.Instance;
+        if (manager == null) return;
+
+        var list = new List<PlatformDisplayData>();
+        var allPlatforms = manager.allPlatforms;
+        foreach (var platform in allPlatforms)
+        {
+            var data = new PlatformDisplayData
+            {
+                platform = platform,
+                isDeveloped = platform.isDeveloped,
+                isDeveloping = manager.GetDevelopingPlatforms().Contains(platform),
+                progress = manager.GetDevelopmentProgress(platform),
+                canDevelop = manager.IsPlatformTechUnlocked(platform.type) && !platform.isDeveloped && !manager.GetDevelopingPlatforms().Contains(platform)
+            };
+            list.Add(data);
+        }
+
+        platformsListView.itemsSource = list;
+        platformsListView.Rebuild();
+    }
+
+    private void OnDevelopPlatformClicked()
+    {
+        if (platformsListView.selectedItem == null) return;
+        var data = (PlatformDisplayData)platformsListView.selectedItem;
+        if (data == null || !data.canDevelop) return;
+        PlatformManager.Instance.DevelopPlatform(data.platform);
+        UpdatePlatformsUI();
+    }
+
+    // ---- Вспомогательный класс для отображения ----
+    private class PlatformDisplayData
+    {
+        public Platform platform;
+        public bool isDeveloped;
+        public bool isDeveloping;
+        public float progress;
+        public bool canDevelop;
     }
 }
