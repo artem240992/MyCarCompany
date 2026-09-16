@@ -45,9 +45,6 @@ public class DifficultyManager : MonoBehaviour
     public float startMoneyNormal = 150f;
     public float startMoneyHard = 80f;
 
-    public DifficultyLevel CurrentDifficulty => currentDifficulty;
-
-    // ---- Добавить в секцию полей ----
     [Header("Платформы")]
     public float platformCostModifierEasy = 0.8f;
     public float platformCostModifierNormal = 1.0f;
@@ -61,12 +58,12 @@ public class DifficultyManager : MonoBehaviour
     public float platformDiscountModifierNormal = 0.0f;
     public float platformDiscountModifierHard = -0.05f;
 
-    // ---- Добавить в текущие значения (в конец списка) ----
-    public float CurrentPlatformCostModifier { get; private set; }
-    public float CurrentPlatformTimeModifier { get; private set; }
-    public float CurrentPlatformDiscountModifier { get; private set; }
+    public DifficultyLevel CurrentDifficulty => currentDifficulty;
 
-    // ---- ТЕКУЩИЕ ЗНАЧЕНИЯ (вычисляются на основе сложности) ----
+    // ============================================================
+    // ТЕКУЩИЕ ЗНАЧЕНИЯ (вычисляются на основе сложности)
+    // ============================================================
+
     public float CurrentPriceModifier
     {
         get
@@ -207,6 +204,52 @@ public class DifficultyManager : MonoBehaviour
         }
     }
 
+    // ============================================================
+    // НОВЫЕ ВЫЧИСЛЯЕМЫЕ СВОЙСТВА ДЛЯ ПЛАТФОРМ
+    // ============================================================
+
+    public float CurrentPlatformCostModifier
+    {
+        get
+        {
+            switch (currentDifficulty)
+            {
+                case DifficultyLevel.Easy:   return platformCostModifierEasy;
+                case DifficultyLevel.Normal: return platformCostModifierNormal;
+                case DifficultyLevel.Hard:   return platformCostModifierHard;
+                default: return 1f;
+            }
+        }
+    }
+
+    public float CurrentPlatformTimeModifier
+    {
+        get
+        {
+            switch (currentDifficulty)
+            {
+                case DifficultyLevel.Easy:   return platformTimeModifierEasy;
+                case DifficultyLevel.Normal: return platformTimeModifierNormal;
+                case DifficultyLevel.Hard:   return platformTimeModifierHard;
+                default: return 1f;
+            }
+        }
+    }
+
+    public float CurrentPlatformDiscountModifier
+    {
+        get
+        {
+            switch (currentDifficulty)
+            {
+                case DifficultyLevel.Easy:   return platformDiscountModifierEasy;
+                case DifficultyLevel.Normal: return platformDiscountModifierNormal;
+                case DifficultyLevel.Hard:   return platformDiscountModifierHard;
+                default: return 0f;
+            }
+        }
+    }
+
     public float CurrentEventMultiplier
     {
         get
@@ -256,14 +299,14 @@ public class DifficultyManager : MonoBehaviour
     {
         // Обновляем экономику в соответствии с текущей сложностью
         economy.StartMoney = CurrentStartMoney;
-        // Здесь можно установить и другие параметры экономики, если нужно
-        // Например, ProfitMultiplier и DifficultyTechCostModifier уже используются
-        // Но мы их не трогаем, чтобы не нарушить существующую логику.
-        // Вместо этого они могут быть взяты из Current... свойств в EconomyManager.
         economy.RecalculateModifiers(null);
         ui.UpdateMoneyLabels();
         ui.UpdateSavedDifficultyLabel();
         ui.UpdateCarCards();
+
+        // Обновляем UI платформ, если они есть
+        if (PlatformManager.Instance != null)
+            PlatformManager.Instance.SendMessage("UpdateUI", SendMessageOptions.DontRequireReceiver);
     }
 
     public void StartEconomicEventsIfHard()

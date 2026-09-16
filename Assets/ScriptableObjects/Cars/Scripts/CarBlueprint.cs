@@ -17,6 +17,8 @@ public class CarBlueprint : ScriptableObject
     [Header("История спроса")]
     public List<float> demandHistory = new List<float>(); // последние 12 месяцев
 
+    [Header("Платформа")]
+    public Platform platform; // если null, модель разрабатывается без платформы
 
     [Header("Тип автомобиля")]
     public CarType carType; // если не задан, используется своя сезонность
@@ -77,6 +79,7 @@ public class CarBlueprint : ScriptableObject
         newCar.demandHistory = new List<float>(this.demandHistory);
         newCar.basePrice = this.basePrice;
         newCar.productionCost = this.productionCost;
+        newCar.platform = this.platform;
         newCar.currentPrice = this.currentPrice;
         newCar.currentLevel = this.currentLevel;
         newCar.tuningPower = this.tuningPower;

@@ -84,18 +84,6 @@
                 <ui:Button text="✕" name="CloseMenuButton" style="font-size:20px; background-color:transparent; border-width:0; color:white;"/>
             </ui:VisualElement>
 
-            <!-- Interactive News Overlay – ВЫНЕСЕН ИЗ МЕНЮ -->
-            <!--
-            <ui:VisualElement name="InteractiveNewsOverlay" class="overlay" style="display: none;">
-                <ui:VisualElement style="width: 80%; max-width: 600px; background-color: rgb(40,40,40); padding: 20px; border-radius: 10px; flex-direction: column;">
-                    <ui:Label name="InteractiveNewsTitle" style="font-size: 20px; color: #ffd700; -unity-font-style: bold; margin-bottom: 10px;" />
-                    <ui:Label name="InteractiveNewsDescription" style="font-size: 14px; color: white; white-space: normal; margin-bottom: 20px;" />
-                    <ui:VisualElement name="InteractiveActionsContainer" style="flex-direction: column; gap: 6px;" />
-                    <ui:Button text="Закрыть" name="CloseInteractiveNewsButton" style="margin-top: 10px; background-color: #555; color: white; padding: 6px 12px;" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-            -->
-
             <ui:ScrollView style="flex-grow:1; flex-shrink:1;">
                 <ui:VisualElement name="MenuContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px; background-color: rgba(0,0,0,0.3); border-radius: 6px; width: 100%;">
                     <!-- Колонка 1 -->
@@ -103,6 +91,7 @@
                         <ui:Label text="🚗 Производство" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-bottom: 2px;"/>
                         <ui:Button text="Машины" name="OpenCarsButton" class="menu-button-compact" tooltip="Открыть окно производства машин"/>
                         <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button-compact" tooltip="Открыть окно улучшений завода"/>
+                        <ui:Button text="Платформы" name="OpenPlatformsButton" class="menu-button-compact" tooltip="Разрабатывайте платформы для удешевления производства"/>
                         <ui:Button text="Произвести авто" name="ProduceButton" class="menu-button-compact" tooltip="Произвести одну базовую машину"/>
 
                         <ui:Label text="📈 Маркетинг и продажи" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
@@ -148,41 +137,7 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
-    <!-- ===== ОВЕРЛЕЙ НОВОСТЕЙ (НОВЫЙ) ===== -->
-    <ui:VisualElement name="NewsOverlay" class="overlay" style="display: none;">
-        <ui:VisualElement style="width: 80%; max-width: 600px; height: 60%; max-height: 500px; background-color: rgb(40, 40, 40); padding: 24px; border-radius: 12px; flex-direction: column; align-items: center;">
-            <ui:VisualElement style="flex-direction: row; justify-content: space-between; width: 100%; margin-bottom: 16px; flex-shrink: 0;">
-                <ui:Label text="📰 Новости рынка" style="font-size: 22px; color: #ffd700; -unity-font-style: bold;" tooltip="Последние новости, влияющие на спрос"/>
-                <ui:Button text="✕" name="CloseNewsButton" style="font-size: 22px; background-color: transparent; border-width: 0; color: white; padding: 0 8px;" tooltip="Закрыть окно"/>
-            </ui:VisualElement>
-
-            <ui:VisualElement style="flex-grow: 1; flex-shrink: 1; width: 100%; background-color: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; flex-direction: column; align-items: center; justify-content: center;">
-                <ui:Label name="NewsTitleLabel" style="font-size: 20px; color: white; -unity-font-style: bold; text-align: center; margin-bottom: 12px;" text="Нет активных новостей"/>
-                <ui:Label name="NewsDescriptionLabel" style="font-size: 15px; color: #ccc; text-align: center; white-space: normal; margin-bottom: 16px;" text="Рынок стабилен."/>
-                <ui:VisualElement style="flex-direction: row; align-items: center; width: 100%;">
-                    <ui:Label text="Влияние:" style="color: #aaa; font-size: 14px; margin-right: 8px;"/>
-                    <ui:Label name="NewsImportanceLabel" text="0%" style="color: #ffd700; font-size: 14px; min-width: 40px; margin-right: 12px;"/>
-                    <ui:VisualElement style="flex-grow: 1; height: 12px; background-color: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
-                        <ui:VisualElement name="NewsImportanceBar" style="width: 0%; height: 100%; background-color: #4CAF50; border-radius: 6px;"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <ui:Button text="Закрыть" name="CloseNewsButton2" style="margin-top: 16px; background-color: #555; color: white; padding: 6px 24px; border-radius: 6px; flex-shrink: 0;" tooltip="Закрыть окно новостей"/>
-        </ui:VisualElement>
-    </ui:VisualElement>
-
-    <!-- ===== ИНТЕРАКТИВНЫЕ НОВОСТИ (ВЫНЕСЕН ОТДЕЛЬНО) ===== -->
-    <ui:VisualElement name="InteractiveNewsOverlay" class="overlay" style="display: none;">
-        <ui:VisualElement style="width: 80%; max-width: 600px; background-color: rgb(40,40,40); padding: 20px; border-radius: 10px; flex-direction: column;">
-            <ui:Label name="InteractiveNewsTitle" style="font-size: 20px; color: #ffd700; -unity-font-style: bold; margin-bottom: 10px;" />
-            <ui:Label name="InteractiveNewsDescription" style="font-size: 14px; color: white; white-space: normal; margin-bottom: 20px;" />
-            <ui:VisualElement name="InteractiveActionsContainer" style="flex-direction: column; gap: 6px;" />
-            <ui:Button text="Закрыть" name="CloseInteractiveNewsButton" style="margin-top: 10px; background-color: #555; color: white; padding: 6px 12px;" />
-        </ui:VisualElement>
-    </ui:VisualElement>
-
-    <!-- ===== ОСТАЛЬНЫЕ ОВЕРЛЕИ (без изменений) ===== -->
+    <!-- ===== ОСТАЛЬНЫЕ ОВЕРЛЕИ ===== -->
     <!-- Welcome -->
     <ui:VisualElement name="WelcomeOverlay" class="overlay">
         <ui:VisualElement name="WelcomeWindow" class="window welcome-window">
@@ -399,6 +354,30 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
+    <!-- ===== ОКНО ПЛАТФОРМ ===== -->
+    <ui:VisualElement name="PlatformsOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 80%; max-width: 800px; height: 75%; max-height: 650px; background-color: rgb(40, 40, 40); padding: 20px; border-radius: 10px; flex-direction: column;">
+            <!-- Заголовок -->
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="🛠️ Разработка платформ" style="font-size: 20px; color: #ffd700; -unity-font-style: bold;" tooltip="Разрабатывайте платформы для снижения себестоимости"/>
+                <ui:Button text="✕" name="ClosePlatformsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white;" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+
+            <!-- Подсказка -->
+            <ui:Label text="Исследуйте технологии платформ, чтобы начать разработку. Одна платформа может использоваться несколькими моделями и снижает стоимость их производства."
+                    style="color: #aaa; font-size: 12px; white-space: normal; margin-bottom: 10px; flex-shrink: 0;"/>
+
+            <!-- Список платформ -->
+            <ui:ListView name="PlatformsList" style="flex-grow: 1; min-height: 200px; background-color: rgba(0,0,0,0.3); border-width: 1px; border-color: #555; border-radius: 4px;"/>
+
+            <!-- Кнопки управления -->
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-shrink: 0;">
+                <ui:Button name="RefreshPlatformsButton" text="Обновить" style="background-color: #444; color: white; padding: 6px 16px;" tooltip="Обновить список платформ"/>
+                <ui:Button name="DevelopPlatformButton" text="Разработать выбранную" style="background-color: #2a6a2a; color: white; padding: 6px 16px;" tooltip="Начать разработку выбранной платформы"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
     <!-- Окно патентного бюро -->
     <ui:VisualElement name="PatentsOverlay" class="overlay">
         <ui:VisualElement style="width: 80%; max-width: 800px; height: 80%; max-height: 700px; background-color: rgb(40,40,40); padding:20px; border-radius:10px; flex-direction:column;">
@@ -507,6 +486,67 @@
     <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
         <ui:Label name="DemoTimerLabel" style="color: #ffd700; font-size: 16px; -unity-font-style: bold;" text="⏱️ 30:00"/>
         <ui:Label name="DemoProgressLabel" style="color: #00d4ff; font-size: 14px; margin-top: 4px;" text="🔬 Технологий: 0/5"/>
+    </ui:VisualElement>
+
+    <!-- ===== ОВЕРЛЕЙ НОВОСТЕЙ (перенесён в конец, чтобы рисоваться поверх всего) ===== -->
+    <ui:VisualElement name="NewsOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 90%; max-width: 700px; height: 85%; max-height: 800px; background-color: rgb(30, 30, 30); border-radius: 14px; flex-direction: column; padding: 0; overflow: hidden;">
+            <!-- Заголовок -->
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; padding: 16px 20px; background-color: rgb(45, 45, 45); border-bottom-width: 1px; border-bottom-color: rgb(70, 70, 70); flex-shrink: 0;">
+                <ui:Label text="📰 Новости рынка" style="font-size: 22px; color: #ffd700; -unity-font-style: bold;" />
+                <ui:Button text="✕" name="CloseNewsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: white; padding: 4px 10px;" />
+            </ui:VisualElement>
+
+            <!-- Прокручиваемое содержимое -->
+            <ui:ScrollView style="flex-grow: 1; padding: 16px 20px;">
+
+                <!-- ===== ТЕКУЩАЯ НОВОСТЬ ===== -->
+                <ui:VisualElement name="NewsCurrentBlock" style="flex-direction: column; margin-bottom: 20px;">
+
+                    <!-- Бейдж типа новости -->
+                    <ui:VisualElement name="NewsBadge" style="flex-direction: row; align-items: center; align-self: flex-start; padding: 4px 12px; border-radius: 12px; background-color: rgba(255, 215, 0, 0.15); margin-bottom: 12px;">
+                        <ui:Label name="NewsBadgeIcon" text="📰" style="font-size: 14px; margin-right: 6px;" />
+                        <ui:Label name="NewsBadgeText" text="Событие" style="font-size: 12px; color: #ffd700;" />
+                    </ui:VisualElement>
+
+                    <ui:Label name="NewsTitleLabel" text="Нет активных новостей" style="font-size: 22px; color: white; -unity-font-style: bold; white-space: normal; margin-bottom: 6px;" />
+                    <ui:Label name="NewsDescriptionLabel" text="Рынок стабилен." style="font-size: 14px; color: rgb(180, 180, 180); white-space: normal; margin-bottom: 14px;" />
+
+                    <!-- Полоса времени -->
+                    <ui:VisualElement name="NewsTimeRow" style="flex-direction: row; align-items: center; margin-bottom: 6px;">
+                        <ui:Label text="⏱" style="font-size: 14px; color: #ffd700; margin-right: 8px;" />
+                        <ui:VisualElement style="flex-grow: 1; height: 8px; background-color: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                            <ui:VisualElement name="NewsTimeBar" style="width: 0%; height: 100%; background-color: #ffd700; border-radius: 4px;" />
+                        </ui:VisualElement>
+                        <ui:Label name="NewsTimeLabel" text="—" style="font-size: 12px; color: rgb(180, 180, 180); min-width: 55px; margin-left: 8px; -unity-text-align: middle-right;" />
+                    </ui:VisualElement>
+
+                    <!-- Полоса влияния -->
+                    <ui:VisualElement name="NewsImportanceRow" style="flex-direction: row; align-items: center; margin-bottom: 16px;">
+                        <ui:Label text="📊" style="font-size: 14px; color: #ffd700; margin-right: 8px;" />
+                        <ui:VisualElement style="flex-grow: 1; height: 8px; background-color: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                            <ui:VisualElement name="NewsImportanceBar" style="width: 0%; height: 100%; background-color: #4CAF50; border-radius: 4px;" />
+                        </ui:VisualElement>
+                        <ui:Label name="NewsImportanceLabel" text="0%" style="font-size: 12px; color: rgb(180, 180, 180); min-width: 55px; margin-left: 8px; -unity-text-align: middle-right;" />
+                    </ui:VisualElement>
+
+                    <!-- Контейнер для кнопок действий (строится кодом) -->
+                    <ui:VisualElement name="NewsActionsContainer" style="flex-direction: column;" />
+                </ui:VisualElement>
+
+                <!-- ===== ИСТОРИЯ ===== -->
+                <ui:VisualElement name="NewsHistoryDivider" style="height: 1px; background-color: rgb(70, 70, 70); margin: 8px 0 16px 0;" />
+                <ui:VisualElement name="NewsHistoryBlock" style="flex-direction: column;">
+                    <ui:Label text="📜 История новостей" style="font-size: 16px; color: #ffd700; -unity-font-style: bold; margin-bottom: 10px;" />
+                    <ui:VisualElement name="NewsHistoryContainer" style="flex-direction: column;" />
+                </ui:VisualElement>
+            </ui:ScrollView>
+
+            <!-- Футер -->
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; padding: 12px 20px; background-color: rgb(45, 45, 45); border-top-width: 1px; border-top-color: rgb(70, 70, 70); flex-shrink: 0;">
+                <ui:Button text="Закрыть" name="CloseNewsButton2" style="background-color: #555; color: white; padding: 6px 24px; border-radius: 6px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 
     <!-- Notifications & Misc -->

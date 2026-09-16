@@ -480,3 +480,26 @@
     border-radius: 6px;
     width: 100%;
 }
+
+#newsActionsContainer {
+    flex-direction: column;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+.news-action-button {
+    margin: 4px 0;
+    padding: 10px 14px;
+    background-color: #2a2a2a;
+    border-radius: 6px;
+    color: #ffffff;
+    -unity-font-style: normal;
+    white-space: normal;
+    unity-text-align: middle-left;
+}
+.news-action-button:hover {
+    background-color: #3a3a3a;
+}
+.news-action-effect {
+    color: #c8c8c8;
+    font-size: 12px;
+}

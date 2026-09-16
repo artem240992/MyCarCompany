@@ -14,11 +14,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CarBlueprint
   carName: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u0430\u044F \u043C\u0430\u0448\u0438\u043D\u0430"
   carPrefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}
+  transmissionType: "\u0410\u041A\u041F\u041F"
   basePrice: 250
   productionCost: 50
   currentLevel: 0
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
+  demandHistory:
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  - 25
+  platform: {fileID: 11400000, guid: 3ec4380e6270bbc43ae5117b5efb01d0, type: 2}
   carType: {fileID: 11400000, guid: 26fefda604e93314794c6db15fe64d6e, type: 2}
   levels:
   - prefab: {fileID: 919132149155446097, guid: c8f9b2b07b89e994d9a84be4488ad532, type: 3}

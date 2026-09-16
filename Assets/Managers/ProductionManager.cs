@@ -119,27 +119,35 @@ public class ProductionManager : MonoBehaviour
             return false;
         }
 
-        // Проверка денег
-        int cost = car.GetModifiedAssemblyCost();
-        if (!CarCompanyManager.Instance.EconomyManager.SpendMoney(cost))
+        // ---- РАСЧЁТ СТОИМОСТИ С УЧЁТОМ ПЛАТФОРМЫ ----
+        int baseCost = car.GetModifiedAssemblyCost();
+        float discount = 0f;
+        if (car.platform != null && car.platform.isDeveloped)
         {
-            UIManager.Instance?.ShowNotification($"Не хватает денег для производства! Нужно ${cost}");
+            discount = PlatformManager.Instance.GetPlatformDiscount(car);
+            // Регистрируем использование платформы
+            PlatformManager.Instance.RegisterModelOnPlatform(car.platform);
+        }
+        int finalCost = Mathf.RoundToInt(baseCost * (1f - discount));
+
+        if (!CarCompanyManager.Instance.EconomyManager.SpendMoney(finalCost))
+        {
+            UIManager.Instance?.ShowNotification($"Не хватает денег для производства! Нужно ${finalCost}");
             return false;
         }
 
         // Списываем детали
         WarehouseManager.Instance.ConsumePartsForCar(recipe);
 
-        // ---- ДОБАВЛЯЕМ МАШИНУ НА СКЛАД ----
+        // Добавляем машину на склад
         if (!WarehouseManager.Instance.AddCar(car))
         {
             UIManager.Instance?.ShowNotification("Не удалось добавить машину на склад!");
             return false;
         }
 
-        // Визуализация (если нужна)
+        // Визуализация
         SpawnCar(car);
-
         return true;
     }
 
