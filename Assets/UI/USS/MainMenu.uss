@@ -1,0 +1,272 @@
+/* ============================================================
+   ГЛАВНОЕ МЕНЮ
+   ============================================================ */
+
+.main-menu-root {
+    flex-grow: 1;
+    background-color: rgb(10, 12, 20);
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ---------- Фон ---------- */
+
+.bg-layer {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    pointer-events: none;
+}
+
+/* Градиент */
+.bg-gradient {
+    background-image: linear-gradient(
+        160deg,
+        rgb(10, 12, 25) 0%,
+        rgb(20, 15, 40) 40%,
+        rgb(35, 20, 60) 100%
+    );
+}
+
+/* Сетка (создаётся через повторяющийся градиент) */
+.bg-grid {
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px,
+        transparent 60px
+    );
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 0.8;
+}
+
+/* ---------- Дорога с машинами ---------- */
+
+.road {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 60px;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.35);
+    border-top: 2px solid rgba(255, 215, 0, 0.4);
+    overflow: hidden;
+}
+
+.car {
+    position: absolute;
+    font-size: 40px;
+    top: 5px;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+.car-1 {
+    left: -60px;
+    animation-name: drive-right;
+    animation-duration: 12s;
+}
+.car-2 {
+    left: -60px;
+    animation-name: drive-right;
+    animation-duration: 18s;
+    animation-delay: 4s;
+}
+.car-3 {
+    left: -60px;
+    animation-name: drive-right;
+    animation-duration: 9s;
+    animation-delay: 7s;
+}
+
+@keyframes drive-right {
+    from { translate: 0 0; }
+    to   { translate: 110vw 0; }
+}
+
+/* ---------- Центральный блок ---------- */
+
+.menu-content {
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    flex-direction: column;
+}
+
+/* ---------- Логотип ---------- */
+
+.logo-block {
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.logo-icon {
+    font-size: 72px;
+    margin-bottom: 8px;
+    /* лёгкое покачивание */
+    animation-name: pulse;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+}
+
+@keyframes pulse {
+    0%   { scale: 1 1; opacity: 1; }
+    50%  { scale: 1.06 1.06; opacity: 0.95; }
+    100% { scale: 1 1; opacity: 1; }
+}
+
+.logo-title {
+    font-size: 56px;
+    color: rgb(255, 215, 0);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    -unity-text-align: middle-center;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.logo-subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 6px;
+    -unity-text-align: middle-center;
+    letter-spacing: 1px;
+}
+
+/* ---------- Кнопки ---------- */
+
+.menu-buttons {
+    flex-direction: column;
+    min-width: 320px;
+}
+
+.menu-btn {
+    font-size: 18px;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-color: rgba(255, 215, 0, 0.25);
+    border-bottom-color: rgba(255, 215, 0, 0.25);
+    border-left-color: rgba(255, 215, 0, 0.25);
+    border-right-color: rgba(255, 215, 0, 0.25);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding: 14px 24px;
+    margin-bottom: 10px;
+    transition-property: background-color, border-color, scale, translate;
+    transition-duration: 0.15s;
+    -unity-font-style: bold;
+}
+
+.menu-btn:hover {
+    background-color: rgba(255, 215, 0, 0.12);
+    border-top-color: rgb(255, 215, 0);
+    border-bottom-color: rgb(255, 215, 0);
+    border-left-color: rgb(255, 215, 0);
+    border-right-color: rgb(255, 215, 0);
+    scale: 1.02 1.02;
+    translate: 4px 0;
+}
+
+.menu-btn:active {
+    scale: 0.98 0.98;
+}
+
+.menu-btn.primary {
+    background-color: rgba(255, 215, 0, 0.18);
+    border-top-color: rgb(255, 215, 0);
+    border-bottom-color: rgb(255, 215, 0);
+    border-left-color: rgb(255, 215, 0);
+    border-right-color: rgb(255, 215, 0);
+    color: rgb(255, 235, 150);
+}
+
+.menu-btn.primary:hover {
+    background-color: rgba(255, 215, 0, 0.32);
+}
+
+.menu-btn.danger {
+    border-top-color: rgba(255, 80, 80, 0.4);
+    border-bottom-color: rgba(255, 80, 80, 0.4);
+    border-left-color: rgba(255, 80, 80, 0.4);
+    border-right-color: rgba(255, 80, 80, 0.4);
+}
+
+.menu-btn.danger:hover {
+    background-color: rgba(255, 60, 60, 0.18);
+    border-top-color: rgb(255, 80, 80);
+    border-bottom-color: rgb(255, 80, 80);
+    border-left-color: rgb(255, 80, 80);
+    border-right-color: rgb(255, 80, 80);
+}
+
+/* ---------- Подвал ---------- */
+
+.footer {
+    position: absolute;
+    bottom: 20px;
+    left: 0; right: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    padding-left: 40px;
+    padding-right: 40px;
+}
+
+.footer-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---------- Оверлей настроек ---------- */
+
+.settings-overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.settings-window {
+    background-color: rgb(25, 25, 35);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-color: rgba(255, 215, 0, 0.4);
+    border-bottom-color: rgba(255, 215, 0, 0.4);
+    border-left-color: rgba(255, 215, 0, 0.4);
+    border-right-color: rgba(255, 215, 0, 0.4);
+    padding: 24px;
+    min-width: 400px;
+}
+
+.settings-title {
+    font-size: 22px;
+    color: rgb(255, 215, 0);
+    -unity-font-style: bold;
+    margin-bottom: 16px;
+    -unity-text-align: middle-center;
+}
+
+.settings-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.settings-label {
+    font-size: 16px;
+    color: white;
+}

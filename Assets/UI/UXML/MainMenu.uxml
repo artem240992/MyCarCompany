@@ -1,0 +1,65 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi="http://www.w3.org/2001/XMLSchema-instance"
+         editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/USS/MainMenu.uss?fileID=...&amp;guid=...&amp;type=3#MainMenu"/>
+
+    <ui:VisualElement name="MainMenuRoot" class="main-menu-root">
+
+        <!-- Фон: градиент + декоративные полосы -->
+        <ui:VisualElement class="bg-layer bg-gradient"/>
+        <ui:VisualElement class="bg-layer bg-grid"/>
+
+        <!-- Машина, проезжающая по низу -->
+        <ui:VisualElement class="road">
+            <ui:Label text="🚗" class="car car-1"/>
+            <ui:Label text="🚙" class="car car-2"/>
+            <ui:Label text="🏎️" class="car car-3"/>
+        </ui:VisualElement>
+
+        <!-- Центральный блок -->
+        <ui:VisualElement class="menu-content">
+
+            <!-- Логотип -->
+            <ui:VisualElement class="logo-block">
+                <ui:Label text="🏭" class="logo-icon"/>
+                <ui:Label text="CAR COMPANY" class="logo-title"/>
+                <ui:Label text="Построй свою автомобильную империю" class="logo-subtitle"/>
+            </ui:VisualElement>
+
+            <!-- Кнопки меню -->
+            <ui:VisualElement class="menu-buttons">
+
+                <ui:Button name="NewGameButton" text="🎮  Новая игра" class="menu-btn primary"/>
+                <ui:Button name="ContinueButton" text="💾  Продолжить" class="menu-btn"/>
+                <ui:Button name="SettingsMenuButton" text="⚙️  Настройки" class="menu-btn"/>
+                <ui:Button name="AchievementsMenuButton" text="🏆  Достижения" class="menu-btn"/>
+                <ui:Button name="ExitButton" text="🚪  Выход" class="menu-btn danger"/>
+
+            </ui:VisualElement>
+
+            <!-- Подвал -->
+            <ui:VisualElement class="footer">
+                <ui:Label name="VersionLabel" text="v. 1.20.0" class="footer-text"/>
+                <ui:Label text="© 2025 MyCarCompany" class="footer-text"/>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- Оверлей настроек (появляется поверх) -->
+        <ui:VisualElement name="SettingsOverlay" class="settings-overlay" style="display: none;">
+            <ui:VisualElement class="settings-window">
+                <ui:Label text="Настройки" class="settings-title"/>
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Музыка" class="settings-label"/>
+                    <ui:Toggle name="MusicToggle" value="true"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Звук" class="settings-label"/>
+                    <ui:Slider name="VolumeSlider" low-value="0" high-value="1" value="0.7"/>
+                </ui:VisualElement>
+                <ui:Button name="CloseSettingsButton" text="Закрыть" class="menu-btn"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>
