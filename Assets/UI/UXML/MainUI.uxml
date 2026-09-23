@@ -117,14 +117,14 @@
                         <ui:Button text="Новости" name="OpenNewsButton" class="menu-button-compact" tooltip="Текущие рыночные новости"/>
 
                         <ui:Label text="💾 Сохранение" style="color: #ffd700; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
-                        <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 2px;">
+                        <!-- <ui:VisualElement style="flex-direction: row; flex-wrap: wrap; gap: 2px;">
                             <ui:Button text="С1💾" name="SaveSlot1" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 1"/>
                             <ui:Button text="С2💾" name="SaveSlot2" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 2"/>
                             <ui:Button text="С3💾" name="SaveSlot3" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Сохранить в слот 3"/>
                             <ui:Button text="С1📂" name="LoadSlot1" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 1"/>
                             <ui:Button text="С2📂" name="LoadSlot2" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 2"/>
                             <ui:Button text="С3📂" name="LoadSlot3" class="menu-button-compact" style="flex-grow: 1; min-width: 30px;" tooltip="Загрузить слот 3"/>
-                        </ui:VisualElement>
+                        </ui:VisualElement> -->
                         <ui:Button text="Сохранить" name="SaveButton" class="menu-button-compact" tooltip="Сохранить (текущий слот)"/>
                         <ui:Button text="Загрузить" name="LoadButton" class="menu-button-compact" tooltip="Загрузить (текущий слот)"/>
                         <ui:Button text="Новая игра" name="NewGameButton" class="menu-button-compact" tooltip="Начать новую игру"/>
@@ -483,10 +483,10 @@
     </ui:VisualElement>
 
     <!-- Демо-интерфейс (таймер и счётчик технологий) -->
-    <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
+    <!-- <ui:VisualElement style="position: absolute; left: 10px; bottom: 10px; flex-direction: column; align-items: flex-start;">
         <ui:Label name="DemoTimerLabel" style="color: #ffd700; font-size: 16px; -unity-font-style: bold;" text="⏱️ 30:00"/>
         <ui:Label name="DemoProgressLabel" style="color: #00d4ff; font-size: 14px; margin-top: 4px;" text="🔬 Технологий: 0/5"/>
-    </ui:VisualElement>
+    </ui:VisualElement> -->
 
     <!-- ===== ОВЕРЛЕЙ НОВОСТЕЙ (перенесён в конец, чтобы рисоваться поверх всего) ===== -->
     <ui:VisualElement name="NewsOverlay" class="overlay" style="display: none;">

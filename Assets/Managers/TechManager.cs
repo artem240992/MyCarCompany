@@ -462,6 +462,7 @@ public class TechManager : MonoBehaviour
     // ---- Исследование (с демо-ограничениями) ----
     public void ResearchTechnology(Technology tech)
     {
+        
         if (tech == null) return;
         if (tech.isResearched)
         {
@@ -578,6 +579,8 @@ public class TechManager : MonoBehaviour
                 break;
             }
         }
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdatePlatformsUI();
     }
 
     // ---- Тюнинг ----

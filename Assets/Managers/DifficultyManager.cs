@@ -298,6 +298,7 @@ public class DifficultyManager : MonoBehaviour
     private void ApplyDifficultySettings()
     {
         // Обновляем экономику в соответствии с текущей сложностью
+        if (economy == null || ui == null) return;
         economy.StartMoney = CurrentStartMoney;
         economy.RecalculateModifiers(null);
         ui.UpdateMoneyLabels();
