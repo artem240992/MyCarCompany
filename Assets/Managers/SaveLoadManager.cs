@@ -150,6 +150,9 @@ public class SaveLoadManager : MonoBehaviour
         InvestmentManager.Instance?.LoadFromSave(new SaveData());
 
         TutorialManager.Instance?.ResetProgress();
+        // Сброс платформ
+        if (PlatformManager.Instance != null)
+            PlatformManager.Instance.ResetPlatforms();
 
         var ui = CarCompanyManager.Instance.UIManager;
         ui.ShowWelcomeScreen();

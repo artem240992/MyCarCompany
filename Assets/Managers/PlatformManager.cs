@@ -233,4 +233,35 @@ public class PlatformManager : MonoBehaviour
     {
         UIManager.Instance?.UpdatePlatformsUI();
     }
+    /// <summary>
+    /// Полный сброс состояния платформ (при новой игре).
+    /// </summary>
+    public void ResetPlatforms()
+    {
+        // 1. Очищаем списки
+        developedPlatforms.Clear();
+        developingPlatforms.Clear();
+        developmentProgress.Clear();
+
+        // 2. Сбрасываем флаги у всех ассетов платформ
+        if (allPlatforms != null)
+        {
+            foreach (var platform in allPlatforms)
+            {
+                if (platform == null) continue;
+                platform.isDeveloped = false;
+                platform.usedModelsCount = 0;
+            }
+        }
+
+        // 3. Чистим PlayerPrefs
+        PlayerPrefs.DeleteKey("DevelopedPlatforms");
+        PlayerPrefs.DeleteKey("PlatformProgress");
+        PlayerPrefs.Save();
+
+        Debug.Log("PlatformManager: все платформы сброшены.");
+
+        // 4. Обновляем UI
+        UpdateUI();
+    }
 }
