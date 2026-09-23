@@ -2729,7 +2729,7 @@ public void ShowInteractiveNews(InteractiveNews news)
     {
         if (techScrollView == null)
         {
-            Debug.LogError("techScrollView == null! Проверьте, что в UXML есть элемент с name='TechContainer'");
+            Debug.LogError("techScrollView == null!");
             return;
         }
         techScrollView.Clear();
@@ -2742,29 +2742,48 @@ public void ShowInteractiveNews(InteractiveNews news)
             return;
         }
 
-        const float nodeWidth = 220;
-        const float nodeHeight = 100;
-        const float horizontalGap = 100;
-        const float verticalGap = 70;
+        // ---- Параметры сетки ----
+        const float nodeWidth = 260f;
+        const float nodeHeight = 140f;
+        const float horizontalGap = 120f;
+        const float verticalGap = 90f;
 
+        // ---- Определяем уровни (по зависимостям) ----
         Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
-        foreach (var tech in technologies) if (tech != null) techLevels[tech] = CalculateTechLevel(tech, technologies);
+        foreach (var tech in technologies)
+            if (tech != null) techLevels[tech] = CalculateTechLevel(tech, technologies);
         if (techLevels.Count == 0) return;
 
         int maxLevel = techLevels.Values.Max();
+
+        // ---- Группируем по уровню ----
         Dictionary<int, List<Technology>> levelGroups = new Dictionary<int, List<Technology>>();
         for (int i = 0; i <= maxLevel; i++) levelGroups[i] = new List<Technology>();
         foreach (var kvp in techLevels) levelGroups[kvp.Value].Add(kvp.Key);
 
-        int totalWidth = (maxLevel + 1) * (int)(nodeWidth + horizontalGap) + 50;
-        int totalHeight = Mathf.Max(300, technologies.Count * (int)(nodeHeight + verticalGap) + 50);
 
+        int totalWidth = (maxLevel + 1) * (int)(nodeWidth + horizontalGap) + 80;
+        int totalHeight = Mathf.Max(400, levelGroups.Values.Max(l => l.Count) * (int)(nodeHeight + verticalGap) + 120);
+
+        // ---- Корневой контейнер ----
         techGraphRoot = new VisualElement();
         techGraphRoot.style.width = new Length(totalWidth, LengthUnit.Pixel);
+        techGraphRoot.style.height = new Length(totalHeight, LengthUnit.Pixel);
         techGraphRoot.style.position = Position.Relative;
         techGraphRoot.style.overflow = Overflow.Visible;
         techScrollView.Add(techGraphRoot);
 
+        // ---- Слой для линий связей (под узлами) ----
+        VisualElement lineLayer = new VisualElement();
+        lineLayer.style.position = Position.Absolute;
+        lineLayer.style.left = 0;
+        lineLayer.style.top = 0;
+        lineLayer.style.right = 0;
+        lineLayer.style.bottom = 0;
+        lineLayer.pickingMode = PickingMode.Ignore;
+        techGraphRoot.Add(lineLayer);
+
+        // ---- Создаём узлы ----
         Dictionary<Technology, TechNode> nodeMap = new Dictionary<Technology, TechNode>();
         List<TechNode> techNodes = new List<TechNode>();
 
@@ -2778,6 +2797,7 @@ public void ShowInteractiveNews(InteractiveNews news)
             techNodes.Add(node);
         }
 
+        // ---- Заполняем связи (parent/child) ----
         foreach (var tech in technologies)
         {
             if (tech == null) continue;
@@ -2797,67 +2817,149 @@ public void ShowInteractiveNews(InteractiveNews news)
             }
         }
 
-        float containerHeight = totalHeight;
-        foreach (var kvp in levelGroups)
+        // ============================================================
+        // ЛЕЙАУТ ДЕРЕВА: родитель центрируется относительно своих детей.
+        // Цепочки технологий выстраиваются по вертикали — без пересечений.
+        // ============================================================
+
+        Dictionary<TechNode, float> nodeYPositions = new Dictionary<TechNode, float>();
+        float cursorY = 0f;
+
+        // Рекурсивная функция: расставляет поддерево и возвращает Y-позицию узла
+        float LayoutNode(TechNode node)
         {
-            int level = kvp.Key;
-            var techList = kvp.Value;
-            int count = techList.Count;
-            for (int i = 0; i < count; i++)
+            if (nodeYPositions.ContainsKey(node))
+                return nodeYPositions[node];
+
+            // Лист — занимает следующую свободную позицию
+            if (node.children.Count == 0)
             {
-                Technology tech = techList[i];
-                if (tech == null || !nodeMap.ContainsKey(tech)) continue;
-                TechNode node = nodeMap[tech];
-                float x = level * (nodeWidth + horizontalGap) + 20;
-                float y = i * (nodeHeight + verticalGap) + 5;
-                node.position = new Vector2(x, y);
-                node.element.style.position = Position.Absolute;
-                node.element.style.left = x;
-                node.element.style.top = y;
-                techGraphRoot.Add(node.element);
+                float y = cursorY;
+                cursorY += nodeHeight + verticalGap;
+                nodeYPositions[node] = y;
+                return y;
             }
+
+            // Сначала расставляем всех детей
+            float firstChildY = -1f;
+            float lastChildY = -1f;
+
+            foreach (var child in node.children)
+            {
+                float childY;
+                if (nodeYPositions.ContainsKey(child))
+                    childY = nodeYPositions[child];
+                else
+                    childY = LayoutNode(child);
+
+                if (firstChildY < 0f) firstChildY = childY;
+                lastChildY = childY;
+            }
+
+            // Если все дети уже были расставлены ранее — берём их реальные позиции
+            if (firstChildY < 0f)
+            {
+                firstChildY = node.children.Min(c => nodeYPositions[c]);
+                lastChildY = node.children.Max(c => nodeYPositions[c]);
+            }
+
+            // Родитель — по центру между первым и последним ребёнком
+            float parentY = (firstChildY + lastChildY) / 2f;
+            nodeYPositions[node] = parentY;
+            return parentY;
         }
 
-        float calculatedMaxY = 0;
+        // 1. Обрабатываем все корни (узлы без родителей)
+        foreach (var root in techNodes.Where(n => n.parents.Count == 0))
+            LayoutNode(root);
+
+        // 2. На всякий случай обрабатываем оставшиеся (если граф с циклами или мульти-родителями)
+        foreach (var node in techNodes)
+        {
+            if (!nodeYPositions.ContainsKey(node))
+                LayoutNode(node);
+        }
+
+        // 3. Применяем позиции к VisualElement'ам
+        float maxY = 0f;
         foreach (var node in techNodes)
         {
             if (node == null) continue;
-            float bottom = node.position.y + nodeHeight;
-            if (bottom > calculatedMaxY) calculatedMaxY = bottom;
+
+            int level = techLevels[node.tech];
+            float x = level * (nodeWidth + horizontalGap) + 40;
+            float y = nodeYPositions[node] + 40;
+
+            node.position = new Vector2(x, y);
+
+            node.element.style.position = Position.Absolute;
+            node.element.style.left = x;
+            node.element.style.top = y;
+            techGraphRoot.Add(node.element);
+
+            if (y + nodeHeight > maxY) maxY = y + nodeHeight;
         }
-        float calculatedHeight = Mathf.Max(calculatedMaxY + 20, 100);
-        techGraphRoot.style.height = new Length(calculatedHeight, LengthUnit.Pixel);
 
-        VisualElement lineLayer = new VisualElement();
-        lineLayer.style.position = Position.Absolute;
-        lineLayer.style.left = 0; lineLayer.style.top = 0; lineLayer.style.right = 0; lineLayer.style.bottom = 0;
-        lineLayer.pickingMode = PickingMode.Ignore;
-        techGraphRoot.Add(lineLayer);
+        // 4. Подгоняем высоту контейнера под фактический размер дерева
+        techGraphRoot.style.height = new Length(maxY + 60, LengthUnit.Pixel);
 
+        // ---- Рисуем связи ----
         lineLayer.generateVisualContent += (meshGenerationContext) =>
         {
             var rect = lineLayer.contentRect;
             if (rect.width < 1 || rect.height < 1) return;
             var painter = meshGenerationContext.painter2D;
-            painter.lineWidth = 3;
-            painter.strokeColor = Color.white;
+
             foreach (var node in techNodes)
             {
                 if (node == null) continue;
                 foreach (var child in node.children)
                 {
                     if (child == null) continue;
+
                     Vector2 start = node.position + new Vector2(nodeWidth, nodeHeight / 2);
                     Vector2 end = child.position + new Vector2(0, nodeHeight / 2);
+
+                    // Цвет связи: зелёный, если оба исследованы, иначе серый
+                    bool bothResearched = node.tech.isResearched && child.tech.isResearched;
+                    Color lineColor = bothResearched
+                        ? new Color(0.56f, 0.93f, 0.56f, 0.9f)
+                        : new Color(0.4f, 0.4f, 0.4f, 0.8f);
+
+                    painter.lineWidth = bothResearched ? 3f : 2f;
+                    painter.strokeColor = lineColor;
+
+                    // Красивая кривая Безье между узлами
                     painter.BeginPath();
                     painter.MoveTo(start);
-                    painter.LineTo(end);
+
+                    float controlOffset = (end.x - start.x) * 0.5f;
+                    Vector2 c1 = new Vector2(start.x + controlOffset, start.y);
+                    Vector2 c2 = new Vector2(end.x - controlOffset, end.y);
+                    painter.BezierCurveTo(c1, c2, end);
                     painter.Stroke();
+
+                    // Стрелка на конце
+                    DrawArrow(painter, end, lineColor, bothResearched);
                 }
             }
         };
         techGraphRoot.RegisterCallback<GeometryChangedEvent>(evt => lineLayer.MarkDirtyRepaint());
+
         RefreshTechButtons();
+    }
+
+    // ---- Рисует стрелку на конце линии ----
+    private void DrawArrow(Painter2D painter, Vector2 tip, Color color, bool bothResearched)
+    {
+        float arrowSize = bothResearched ? 8f : 6f;
+        painter.fillColor = color;
+        painter.BeginPath();
+        painter.MoveTo(tip);
+        painter.LineTo(new Vector2(tip.x - arrowSize, tip.y - arrowSize * 0.6f));
+        painter.LineTo(new Vector2(tip.x - arrowSize, tip.y + arrowSize * 0.6f));
+        painter.ClosePath();
+        painter.Fill();
     }
 
     public void RefreshTechButtons()
@@ -3547,55 +3649,144 @@ public void ShowInteractiveNews(InteractiveNews news)
     private VisualElement CreateTechNodeElement(Technology tech, float techCostMultiplier)
     {
         VisualElement node = new VisualElement();
-        node.style.width = 280;
-        node.style.height = 130;
-        node.style.backgroundColor = new StyleColor(new Color(0.2f, 0.2f, 0.2f));
-        node.style.borderTopLeftRadius = 8;
-        node.style.borderTopRightRadius = 8;
-        node.style.borderBottomLeftRadius = 8;
-        node.style.borderBottomRightRadius = 8;
-        node.style.paddingTop = 5;
-        node.style.paddingBottom = 5;
-        node.style.paddingLeft = 5;
-        node.style.paddingRight = 5;
-        node.style.alignItems = Align.Center;
-        node.style.justifyContent = Justify.Center;
-
-        Button btn = new Button();
-        btn.style.width = new Length(100, LengthUnit.Percent);
-        btn.style.height = new Length(100, LengthUnit.Percent);
-        btn.style.whiteSpace = WhiteSpace.Normal;
-        btn.style.unityTextAlign = TextAnchor.MiddleCenter;
-        btn.style.fontSize = 11;
-        btn.userData = tech;
-
-        UpdateTechButtonState(btn, tech);
-
-        btn.clicked += () =>
-        {
-            CarCompanyManager.Instance.TechManager.ResearchTechnology(tech);
-        };
-
-        node.Add(btn);
+        node.style.width = 260;
+        node.style.height = 140;
+        node.style.paddingTop = 10;
+        node.style.paddingBottom = 10;
+        node.style.paddingLeft = 12;
+        node.style.paddingRight = 12;
+        node.style.borderTopLeftRadius = 10;
+        node.style.borderTopRightRadius = 10;
+        node.style.borderBottomLeftRadius = 10;
+        node.style.borderBottomRightRadius = 10;
+        node.style.borderTopWidth = 2;
+        node.style.borderBottomWidth = 2;
+        node.style.borderLeftWidth = 2;
+        node.style.borderRightWidth = 2;
+        node.style.flexDirection = FlexDirection.Column;
+        node.style.justifyContent = Justify.SpaceBetween;
+        node.style.overflow = Overflow.Hidden;
         node.userData = tech;
+
+        // ---- Цветовая схема по категории ----
+        Color categoryColor = GetCategoryColor(tech.techName);
+        node.style.borderTopColor = categoryColor;
+        node.style.borderBottomColor = categoryColor;
+        node.style.borderLeftColor = categoryColor;
+        node.style.borderRightColor = categoryColor;
+        node.style.backgroundColor = new Color(0.14f, 0.14f, 0.16f, 1f);
+
+        // ---- Верхняя строка: иконка + название ----
+        VisualElement header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.alignItems = Align.Center;
+        header.style.marginBottom = 6;
+
+        Label iconLabel = new Label(GetCategoryIcon(tech.techName));
+        iconLabel.style.fontSize = 24;
+        iconLabel.style.marginRight = 6;
+        header.Add(iconLabel);
+
+        Label nameLabel = new Label(tech.techName);
+        nameLabel.style.fontSize = 13;
+        nameLabel.style.color = Color.white;
+        nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        nameLabel.style.whiteSpace = WhiteSpace.Normal;
+        nameLabel.style.flexShrink = 1;
+        header.Add(nameLabel);
+
+        node.Add(header);
+
+        // ---- Описание ----
+        Label descLabel = new Label(tech.description);
+        descLabel.style.fontSize = 10;
+        descLabel.style.color = new Color(0.75f, 0.75f, 0.75f);
+        descLabel.style.whiteSpace = WhiteSpace.Normal;
+        descLabel.style.flexGrow = 1;
+        node.Add(descLabel);
+
+        // ---- Нижняя строка: цена и статус ----
+        VisualElement footer = new VisualElement();
+        footer.style.flexDirection = FlexDirection.Row;
+        footer.style.justifyContent = Justify.SpaceBetween;
+        footer.style.alignItems = Align.Center;
+        footer.style.marginTop = 6;
+
+        int baseCost = Mathf.RoundToInt(tech.researchCost * techCostMultiplier);
+        Label costLabel = new Label($"💰 {baseCost}");
+        costLabel.style.fontSize = 12;
+        costLabel.style.color = new Color(1f, 0.85f, 0.3f);
+        costLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        footer.Add(costLabel);
+
+        Label statusLabel = new Label();
+        statusLabel.style.fontSize = 11;
+        statusLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        footer.Add(statusLabel);
+
+        node.Add(footer);
+
+        // ---- Кнопка (на весь узел) ----
+        Button btn = new Button();
+        btn.style.position = Position.Absolute;
+        btn.style.left = 0;
+        btn.style.top = 0;
+        btn.style.right = 0;
+        btn.style.bottom = 0;
+        btn.style.backgroundColor = Color.clear;
+        btn.style.borderTopWidth = 0;
+        btn.style.borderBottomWidth = 0;
+        btn.style.borderLeftWidth = 0;
+        btn.style.borderRightWidth = 0;
+        btn.userData = tech;
+        btn.clicked += () => CarCompanyManager.Instance.TechManager.ResearchTechnology(tech);
+        node.Add(btn);
+
+        // ---- Hover-эффект ----
+        node.RegisterCallback<MouseEnterEvent>(evt =>
+        {
+            node.style.scale = new Scale(new Vector3(1.03f, 1.03f, 1f));
+            node.style.backgroundColor = new Color(0.2f, 0.2f, 0.24f, 1f);
+        });
+        node.RegisterCallback<MouseLeaveEvent>(evt =>
+        {
+            node.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+            node.style.backgroundColor = new Color(0.14f, 0.14f, 0.16f, 1f);
+        });
+
+        // ---- Применяем текущее состояние ----
+        UpdateTechButtonState(btn, tech, node, statusLabel);
+
         return node;
     }
 
-    private void UpdateTechButtonState(Button button, Technology tech)
+    private void UpdateTechButtonState(Button button, Technology tech, VisualElement node = null, Label statusLabel = null)
     {
         if (button == null || tech == null) return;
 
-        string baseText = $"{tech.techName}\n{tech.description}";
+        // Находим node и statusLabel, если не переданы
+        if (node == null) node = button.parent;
+        if (statusLabel == null && node != null)
+            statusLabel = node.Q<Label>(className: "status-label");
 
+        // ---- Уже исследована ----
         if (tech.isResearched)
         {
-            button.text = $"{tech.techName} (Изучено)";
             button.SetEnabled(false);
-            button.style.backgroundColor = new StyleColor(Color.gray);
-            button.style.unityFontStyleAndWeight = FontStyle.Normal;
+            if (node != null)
+            {
+                node.style.opacity = 0.6f;
+                node.style.backgroundColor = new Color(0.12f, 0.2f, 0.12f, 1f);
+            }
+            if (statusLabel != null)
+            {
+                statusLabel.text = "✅ Изучено";
+                statusLabel.style.color = new Color(0.56f, 0.93f, 0.56f);
+            }
             return;
         }
 
+        // ---- Проверка требований ----
         bool requirementsMet = true;
         if (tech.requiredTechNames != null && tech.requiredTechNames.Length > 0)
         {
@@ -3610,29 +3801,120 @@ public void ShowInteractiveNews(InteractiveNews news)
             }
         }
 
-        string priceInfo = GetTechPriceInfo(tech);
+        // ---- Проверка доступности по времени ----
+        int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
+        int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
+        bool timeAvailable = tech.IsAvailable(currentYear, currentMonth);
 
+        // ---- Применяем визуал ----
         if (!requirementsMet)
         {
             button.SetEnabled(false);
-            button.style.backgroundColor = new StyleColor(Color.red);
-            button.text = $"{baseText}\n(Требования не выполнены){priceInfo}";
-            button.style.unityFontStyleAndWeight = FontStyle.Bold;
+            if (node != null)
+            {
+                node.style.opacity = 0.5f;
+                node.style.backgroundColor = new Color(0.18f, 0.12f, 0.12f, 1f);
+            }
+            if (statusLabel != null)
+            {
+                statusLabel.text = "🔒 Требования";
+                statusLabel.style.color = new Color(0.9f, 0.4f, 0.4f);
+            }
+        }
+        else if (!timeAvailable)
+        {
+            button.SetEnabled(true);
+            if (node != null)
+            {
+                node.style.opacity = 0.9f;
+                node.style.backgroundColor = new Color(0.22f, 0.18f, 0.1f, 1f);
+            }
+            if (statusLabel != null)
+            {
+                statusLabel.text = $"⏳ с {tech.availableMonth:D2}/{tech.availableYear}";
+                statusLabel.style.color = new Color(1f, 0.7f, 0.3f);
+            }
         }
         else
         {
             button.SetEnabled(true);
-            button.style.backgroundColor = new StyleColor(Color.green);
-            button.text = $"{baseText}{priceInfo}";
-            button.style.unityFontStyleAndWeight = FontStyle.Bold;
+            if (node != null)
+            {
+                node.style.opacity = 1f;
+                node.style.backgroundColor = new Color(0.14f, 0.14f, 0.16f, 1f);
+            }
+            if (statusLabel != null)
+            {
+                statusLabel.text = "🟢 Доступно";
+                statusLabel.style.color = new Color(0.5f, 0.9f, 0.5f);
+            }
         }
 
-        int currentYear = GameTimeManager.Instance?.currentYear ?? 2025;
-        int currentMonth = GameTimeManager.Instance?.currentMonth ?? 1;
-        if (requirementsMet && !tech.IsAvailable(currentYear, currentMonth))
+        // ---- Цвет границы: жёлтый при доступности, серый при блокировке ----
+        if (node != null)
         {
-            button.style.backgroundColor = new StyleColor(new Color(1f, 0.5f, 0f));
+            Color borderColor = requirementsMet
+                ? (timeAvailable ? new Color(1f, 0.85f, 0.3f) : new Color(1f, 0.6f, 0.2f))
+                : new Color(0.4f, 0.4f, 0.4f);
+            node.style.borderTopColor = borderColor;
+            node.style.borderBottomColor = borderColor;
+            node.style.borderLeftColor = borderColor;
+            node.style.borderRightColor = borderColor;
         }
+    }
+
+
+
+
+    private string GetCategoryIcon(string techName)
+    {
+        if (techName.StartsWith("power_")) return "⚡";
+        if (techName.StartsWith("economy_")) return "🌿";
+        if (techName.StartsWith("design_")) return "🎨";
+        if (techName.StartsWith("safety_")) return "🛡️";
+        if (techName.StartsWith("Производство")) return "🔧";
+        if (techName.StartsWith("Реклама")) return "📢";
+        if (techName.StartsWith("Улучшение склада")) return "📦";
+        if (techName.StartsWith("Разработка")) return "🛠️";
+        if (techName == "Электромобиль") return "🔋";
+        if (techName == "Гибридный двигатель") return "🌱";
+        if (techName == "Автопилот") return "🤖";
+        if (techName == "Массовое производство") return "🏭";
+        if (techName == "Улучшить авто") return "🔺";
+        if (techName == "Международная экспансия") return "🌍";
+        if (techName == "Патентное право") return "📜";
+        return "📘";
+    }
+
+    private Color GetCategoryColor(string techName)
+    {
+        if (techName.StartsWith("power_")) return new Color(0.9f, 0.4f, 0.2f);       // оранжевый
+        if (techName.StartsWith("economy_")) return new Color(0.3f, 0.8f, 0.4f);     // зелёный
+        if (techName.StartsWith("design_")) return new Color(0.8f, 0.4f, 0.9f);      // фиолетовый
+        if (techName.StartsWith("safety_")) return new Color(0.3f, 0.6f, 0.9f);      // синий
+        if (techName.StartsWith("Производство")) return new Color(0.7f, 0.7f, 0.3f); // жёлтый
+        if (techName.StartsWith("Реклама")) return new Color(0.9f, 0.6f, 0.3f);      // оранжевый
+        if (techName.StartsWith("Улучшение склада")) return new Color(0.6f, 0.5f, 0.3f);
+        if (techName.StartsWith("Разработка")) return new Color(0.4f, 0.8f, 0.9f);   // голубой
+        if (techName == "Электромобиль") return new Color(0.3f, 1f, 0.5f);
+        if (techName == "Гибридный двигатель") return new Color(0.5f, 0.9f, 0.3f);
+        if (techName == "Автопилот") return new Color(0.5f, 0.5f, 1f);
+        if (techName == "Международная экспансия") return new Color(0.4f, 0.7f, 1f);
+        if (techName == "Патентное право") return new Color(0.8f, 0.7f, 0.4f);
+        return new Color(0.5f, 0.5f, 0.5f);
+    }
+
+    private int GetCategoryOrder(string techName)
+    {
+        if (techName.StartsWith("power_")) return 0;
+        if (techName.StartsWith("economy_")) return 1;
+        if (techName.StartsWith("design_")) return 2;
+        if (techName.StartsWith("safety_")) return 3;
+        if (techName.StartsWith("Разработка")) return 4;
+        if (techName.StartsWith("Производство")) return 5;
+        if (techName.StartsWith("Улучшение склада")) return 6;
+        if (techName.StartsWith("Реклама")) return 7;
+        return 8;
     }
 
     private class TechNode

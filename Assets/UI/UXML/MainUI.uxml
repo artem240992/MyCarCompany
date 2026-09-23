@@ -173,7 +173,7 @@
                 <ui:Label text="Дерево технологий" style="font-size: 18px; color: white; flex-grow: 1; -unity-text-align: middle-center;" tooltip="Исследуйте технологии для улучшения производства и открытия новых возможностей"/>
                 <ui:Button text="✕" name="CloseTechButton" style="font-size: 18px; background-color: transparent; border-width: 0; color: white; padding: 0; margin-left: 8px; flex-shrink: 0; width: 28px; height: 28px;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
-            <ui:ScrollView name="TechContainer" vertical-scroller-visibility="Auto" style="flex-grow: 1; flex-shrink: 1; min-height: 80px; margin-top: 0;"/>
+            <ui:ScrollView name="TechContainer" class="tech-scroll-view" vertical-scroller-visibility="Auto"/>
         </ui:VisualElement>
     </ui:VisualElement>
 
