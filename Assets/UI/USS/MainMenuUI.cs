@@ -37,7 +37,7 @@ public class MainMenuUI : MonoBehaviour
     void BuildUI()
     {
         // EventSystem (если нет в сцене)
-        if (FindObjectOfType<EventSystem>() == null)
+        if (FindAnyObjectByType<EventSystem>() == null)
         {
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         }

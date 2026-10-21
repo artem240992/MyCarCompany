@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7875f0fe7975c794c9848b1b98be3f10, type: 3}
+  m_Name: ComfortTrim
+  m_EditorClassIdentifier: Assembly-CSharp::CarTrim
+  trimName: "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+  priceMultiplier: 1.15
+  availableOptions:
+  - {fileID: 11400000, guid: db1c1fd3862e90545bc50f9714827d38, type: 2}
+  defaultOptions:
+  - {fileID: 11400000, guid: 5f620f0553f0cb249bc37bfdc4d1f323, type: 2}
+  - {fileID: 11400000, guid: d9bbfbd5628a232479806cbe9d1640d8, type: 2}

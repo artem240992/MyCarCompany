@@ -13,6 +13,7 @@ public class CarBlueprint : ScriptableObject
     public int currentLevel = 0;
     public Sprite carIcon;
     public CarRecipe recipe;
+    [HideInInspector] public int finalAssemblyCostWithOptions = -1;
 
     [Header("История спроса")]
     public List<float> demandHistory = new List<float>(); // последние 12 месяцев

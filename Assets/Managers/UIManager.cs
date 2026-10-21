@@ -180,6 +180,12 @@ public class UIManager : MonoBehaviour
         public Label priceLabel;            // лейбл текущей цены для регулировки
         public Button decreasePriceBtn;
         public Button increasePriceBtn;
+
+        // ========== НОВЫЕ ПОЛЯ ДЛЯ КОМПЛЕКТАЦИЙ ==========
+        public DropdownField trimDropdown;
+        public VisualElement optionsContainer;
+        public CarTrim selectedTrim;
+        public List<CarOption> selectedOptions = new List<CarOption>();
     }
 
     private string[] tuningParamNames = { "power", "economy", "design", "safety" };
@@ -701,12 +707,38 @@ public void ShowInteractiveNews(InteractiveNews news)
         return months[month - 1];
     }
 
-    public void Initialize(UIDocument document)
+        public void Initialize(UIDocument document)
     {
         uiDoc = document;
         if (uiDoc == null) { Debug.LogError("UIDocument не передан!"); return; }
         root = uiDoc.rootVisualElement;
         if (root == null) return;
+
+        // ==========================================
+        // --- ИНИЦИАЛИЗАЦИЯ БРЕНДА (ЛОГОТИП И НАЗВАНИЕ) ---
+        // ==========================================
+        // 1. Обновляем UI при старте (подтягиваем сохраненный логотип и имя)
+        UpdateLogoUI();
+        UpdateCompanyNameUI();
+
+        // 2. Подписка на кнопку "✏️ Бренд" в верхней панели
+        var editBrandBtn = root.Q<Button>("EditBrandButton");
+        if (editBrandBtn != null)
+        {
+            editBrandBtn.clicked += () => 
+            {
+                // При клике открываем окно выбора логотипа
+                OpenLogoFileDialog(); 
+            };
+        }
+        else
+        {
+            Debug.LogWarning("Кнопка EditBrandButton не найдена в UXML!");
+        }
+
+        // 3. Включаем редактирование названия по клику на текст
+        // (Если логотип на фоне, возможно, вы захотите сделать кликабельным и его, но сейчас он ignore)
+        SetupCompanyNameEditing();
 
         // ---- НОВОСТИ (единая страница) ----
         newsOverlay          = root.Q<VisualElement>("NewsOverlay");
@@ -723,7 +755,6 @@ public void ShowInteractiveNews(InteractiveNews news)
         newsHistoryContainer = root.Q<VisualElement>("NewsHistoryContainer");
         closeNewsButton      = root.Q<Button>("CloseNewsButton");
         carStockLabel        = root.Q<Label>("CarStockLabel");
-
 
         // ---- График спроса ----
         demandGraphOverlay = root.Q<VisualElement>("DemandGraphOverlay");
@@ -748,7 +779,6 @@ public void ShowInteractiveNews(InteractiveNews news)
         if (demandGraphOverlay != null)
             demandGraphOverlay.style.display = DisplayStyle.None;
 
-        // Кнопка в главном меню (убедитесь, что она есть в UXML)
         SubscribeButton("OpenDemandGraphButton", OpenDemandGraph);
 
         SubscribeButton("OpenNewsButton", OpenNewsWindow);
@@ -761,13 +791,12 @@ public void ShowInteractiveNews(InteractiveNews news)
         musicToggle = root.Q<Toggle>("MusicToggle");
         if (musicToggle != null)
         {
-            // Загружаем сохранённое состояние и устанавливаем переключатель
             int savedMute = PlayerPrefs.GetInt("MusicMuted", 0);
-            musicToggle.value = (savedMute == 0); // true = музыка включена
+            musicToggle.value = (savedMute == 0); 
             musicToggle.RegisterValueChangedCallback(evt =>
             {
                 if (MusicManager.Instance != null)
-                    MusicManager.Instance.SetMute(!evt.newValue); // если toggle выключен, музыка mute = true
+                    MusicManager.Instance.SetMute(!evt.newValue);
             });
         }
 
@@ -827,6 +856,7 @@ public void ShowInteractiveNews(InteractiveNews news)
         patentsOverlay = root.Q<VisualElement>("PatentsOverlay");
         demoTimerLabel = root.Q<Label>("DemoTimerLabel");
         demoProgressLabel = root.Q<Label>("DemoProgressLabel");
+        
         SetupLoansUI();
         SetupInvestmentsUI();
         SetupLoansListView();
@@ -889,9 +919,9 @@ public void ShowInteractiveNews(InteractiveNews news)
         SubscribeButton("SaveButton", () => CarCompanyManager.Instance.SaveLoadManager.SaveGame());
         SubscribeButton("LoadButton", () => CarCompanyManager.Instance.SaveLoadManager.LoadGame());
         SubscribeButton("NewGameButton", () => CarCompanyManager.Instance.SaveLoadManager.NewGame());
+        
         if (DemoManager.IsDemoBuild)
         {
-            // Деактивируем все кнопки, связанные с сохранением
             var saveButton = root.Q<Button>("SaveButton");
             if (saveButton != null) saveButton.SetEnabled(false);
             var loadButton = root.Q<Button>("LoadButton");
@@ -899,7 +929,6 @@ public void ShowInteractiveNews(InteractiveNews news)
             var newGameButton = root.Q<Button>("NewGameButton");
             if (newGameButton != null) newGameButton.SetEnabled(false);
 
-            // Кнопки слотов
             for (int i = 1; i <= 3; i++)
             {
                 var saveSlot = root.Q<Button>($"SaveSlot{i}");
@@ -908,6 +937,7 @@ public void ShowInteractiveNews(InteractiveNews news)
                 if (loadSlot != null) loadSlot.SetEnabled(false);
             }
         }
+        
         SubscribeButton("ProduceButton", ProduceSingleCar);
 
         SubscribeButton("EasyButton", () => { SetDifficulty(Difficulty.Easy); CloseSettingsWindow(); });
@@ -940,7 +970,6 @@ public void ShowInteractiveNews(InteractiveNews news)
         if (upgradeTabPartsButton != null)
             upgradeTabPartsButton.clicked += () => SwitchUpgradeTab(false);
 
-        // ---- ПОДПИСКИ НОВЫХ КНОПОК (релиз 1.13.0) ----
         SubscribeButton("OpenMarketVisualizationButton", OpenMarketVisualizationWindow);
         SubscribeButton("CloseMarketVisButton", CloseMarketVisWindow);
         SubscribeButton("OpenLoansButton", OpenLoansWindow);
@@ -957,7 +986,6 @@ public void ShowInteractiveNews(InteractiveNews news)
         SubscribeButton("LoadSlot2", () => CarCompanyManager.Instance.SaveLoadManager.LoadSlot2());
         SubscribeButton("LoadSlot3", () => CarCompanyManager.Instance.SaveLoadManager.LoadSlot3());
 
-        // ---- Кнопки продажи и производства деталей ----
         SubscribeButton("SellEngineButton", () => TrySellPart(PartType.Engine));
         SubscribeButton("SellBodyButton", () => TrySellPart(PartType.Body));
         SubscribeButton("SellWheelsButton", () => TrySellPart(PartType.Wheels));
@@ -974,7 +1002,6 @@ public void ShowInteractiveNews(InteractiveNews news)
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
 
-        // ---- ИНИЦИАЛИЗАЦИЯ КОНТРОЛЛЕРА ВИЗУАЛИЗАЦИИ ----
         var visController = GetComponent<MarketVisualizationController>();
         if (visController != null)
         {
@@ -1005,9 +1032,7 @@ public void ShowInteractiveNews(InteractiveNews news)
         if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
         if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
 
-        // ========== НОВОЕ: СОЗДАНИЕ ДЕМО-ЛЕЙБЛОВ ==========
         #if DEMO_BUILD
-        // Ищем или создаём таймер
         demoTimerLabel = root.Q<Label>("DemoTimerLabel");
         if (demoTimerLabel == null)
         {
@@ -1037,8 +1062,31 @@ public void ShowInteractiveNews(InteractiveNews news)
         #endif
         if (NewsManager.Instance != null)
             NewsManager.Instance.OnNewsChanged += UpdateNewsUI;
+    }
 
-        
+
+    public void OpenLogoFileDialog()
+    {
+        #if UNITY_EDITOR
+        // В редакторе используем встроенный метод
+        string path = UnityEditor.EditorUtility.OpenFilePanel("Выберите логотип (PNG)", "", "png");
+        if (!string.IsNullOrEmpty(path))
+        {
+            BrandManager.Instance.LoadLogoFromFile(path);
+        }
+        #else
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        // В собранной игре под Windows используем наш диалог
+        string filter = "Image Files\0*.png;*.jpg;*.jpeg\0All Files\0*.*\0\0";
+        string path = WindowsFileDialog.OpenFileDialog("Выберите логотип", filter, "");
+        if (!string.IsNullOrEmpty(path))
+        {
+            BrandManager.Instance.LoadLogoFromFile(path);
+        }
+        #else
+        ShowNotification("Загрузка логотипа доступна только на Windows или в редакторе.");
+        #endif
+        #endif
     }
 
     private void SubscribeButton(string name, Action action)
@@ -1046,6 +1094,23 @@ public void ShowInteractiveNews(InteractiveNews news)
         var btn = root.Q<Button>(name);
         if (btn != null) btn.clicked += () => action?.Invoke();
         else Debug.LogWarning($"Кнопка '{name}' не найдена");
+    }
+
+
+
+        private void TestLoadLogo()
+    {
+        // Application.streamingAssetsPath автоматически подставит путь к папке игры (или к Assets/StreamingAssets в редакторе)
+        string pathToTestImage = System.IO.Path.Combine(Application.streamingAssetsPath, "IMG", "logo.png");
+        
+        if (System.IO.File.Exists(pathToTestImage))
+        {
+            BrandManager.Instance.LoadLogoFromFile(pathToTestImage);
+        }
+        else
+        {
+            ShowNotification("Файл не найден по пути: " + pathToTestImage);
+        }
     }
 
 
@@ -1087,7 +1152,10 @@ public void ShowInteractiveNews(InteractiveNews news)
             }
 
             // 2. Проверяем наличие денег
-            int assemblyCost = car.GetModifiedAssemblyCost();
+                        // 2. Проверяем наличие денег (с учетом опций)
+            int assemblyCost = car.finalAssemblyCostWithOptions > 0 
+                ? car.finalAssemblyCostWithOptions 
+                : car.GetModifiedAssemblyCost();
             if (economy.Money < assemblyCost)
             {
                 ShowNotification($"❌ Недостаточно денег! Нужно ${assemblyCost} для сборки.");
@@ -1146,16 +1214,19 @@ public void ShowInteractiveNews(InteractiveNews news)
     }
 
     // ---- Производство конкретной машины ----
-    private void TryProduceSpecificCar(CarBlueprint car)
+        private void TryProduceSpecificCar(CarCardData cardData)
     {
-        if (car == null) return;
+        if (cardData == null || cardData.car == null) return;
 
-        // Получаем количество из CountLabel
+        // Передаем в блюпринт текущую комплектацию, чтобы завод её учел
+        cardData.car.finalAssemblyCostWithOptions = -1; // Сбрасываем, чтобы UpdateCarCards пересчитал
+        UpdateCarCards(); // Вызываем для пересчета
+
         int count = 1;
         if (countLabel != null && int.TryParse(countLabel.text, out int parsed))
             count = Mathf.Max(1, parsed);
 
-        ProduceCars(car, count);
+        ProduceCars(cardData.car, count);
     }
 
 
@@ -1737,8 +1808,23 @@ public void ShowInteractiveNews(InteractiveNews news)
     }
 
 
-    // ---- Карточки машин ----
-    public void CreateCarCards(CarBlueprint[] availableCars)
+ 
+
+   
+   public void RefreshMarketGraphIfOpen()
+    {
+        if (marketVisOverlay != null && marketVisOverlay.style.display == DisplayStyle.Flex)
+        {
+            var visController = GetComponent<MarketVisualizationController>();
+            if (visController != null)
+            {
+                visController.DrawIncomeGraph(economy.monthlyIncomeHistory);
+            }
+        }
+    }
+
+
+        public void CreateCarCards(CarBlueprint[] availableCars)
     {
         if (carsContainer == null) return;
         carsContainer.Clear();
@@ -1748,6 +1834,10 @@ public void ShowInteractiveNews(InteractiveNews news)
         foreach (CarBlueprint car in availableCars)
         {
             if (car == null) continue;
+
+            // 1. Создаем cardData в САМОМ НАЧАЛЕ
+            CarCardData cardData = new CarCardData();
+            cardData.car = car;
 
             bool hasHigherLevel = availableCars.Any(c => c != car && c.carName == car.carName && c.currentLevel > car.currentLevel);
             bool canUpgrade = !hasHigherLevel
@@ -1812,6 +1902,7 @@ public void ShowInteractiveNews(InteractiveNews news)
             platformLabel.style.color = new Color(0.7f, 0.8f, 1f);
             platformLabel.style.marginTop = 2;
             textContainer.Add(platformLabel);
+            cardData.platformLabel = platformLabel;
 
             Label typeLabel = new Label(car.carType != null ? car.carType.typeName : "Без типа");
             typeLabel.style.fontSize = 11;
@@ -1867,6 +1958,78 @@ public void ShowInteractiveNews(InteractiveNews news)
             transmissionRow.Add(transmissionDropdown);
             textContainer.Add(transmissionRow);
             // =================================================
+
+            // ========== НОВЫЙ БЛОК КОМПЛЕКТАЦИЙ И ОПЦИЙ ==========
+            if (car.recipe != null && car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0)
+            {
+                VisualElement configPanel = new VisualElement();
+                configPanel.style.marginTop = 5;
+                configPanel.style.paddingTop = 5;
+                configPanel.style.paddingBottom = 5;
+                configPanel.style.paddingLeft = 5;
+                configPanel.style.paddingRight = 5;
+                configPanel.style.backgroundColor = new Color(0.15f, 0.15f, 0.15f);
+                configPanel.style.borderTopLeftRadius = 4;
+                configPanel.style.borderTopRightRadius = 4;
+                configPanel.style.borderBottomLeftRadius = 4;
+                configPanel.style.borderBottomRightRadius = 4;
+
+                Label configTitle = new Label("Комплектация:");
+                configTitle.style.color = Color.white;
+                configTitle.style.fontSize = 11;
+                configPanel.Add(configTitle);
+
+                List<string> trimNames = car.recipe.availableTrims.Select(t => t.trimName).ToList();
+                DropdownField trimDropdown = new DropdownField(trimNames, 0);
+                trimDropdown.style.fontSize = 11;
+                trimDropdown.style.marginBottom = 4;
+                configPanel.Add(trimDropdown);
+
+                VisualElement optionsContainer = new VisualElement();
+                configPanel.Add(optionsContainer);
+
+                cardData.trimDropdown = trimDropdown;
+                cardData.optionsContainer = optionsContainer;
+
+                Action updateOptionsUI = () =>
+                {
+                    optionsContainer.Clear();
+                    if (car.recipe.availableTrims.Count == 0) return;
+                    
+                    cardData.selectedTrim = car.recipe.availableTrims[trimDropdown.index];
+                    cardData.selectedOptions.Clear();
+
+                    foreach (var option in cardData.selectedTrim.availableOptions)
+                    {
+                        Toggle toggle = new Toggle(option.optionName);
+                        toggle.style.fontSize = 11;
+                        toggle.style.color = Color.white;
+                        
+                        bool isDefault = cardData.selectedTrim.defaultOptions.Contains(option);
+                        toggle.value = isDefault;
+
+                        if (isDefault) cardData.selectedOptions.Add(option);
+
+                        toggle.RegisterValueChangedCallback(evt =>
+                        {
+                            if (evt.newValue) cardData.selectedOptions.Add(option);
+                            else cardData.selectedOptions.Remove(option);
+                            
+                            UpdateCarCards(); 
+                        });
+
+                        optionsContainer.Add(toggle);
+                    }
+                    UpdateCarCards();
+                };
+
+                trimDropdown.RegisterValueChangedCallback(evt => updateOptionsUI());
+
+                updateOptionsUI();
+
+                textContainer.Add(configPanel);
+            }
+            // ===============================================
 
             Label nameLabel = new Label(car.GetDisplayName());
             nameLabel.style.fontSize = 15;
@@ -1957,7 +2120,6 @@ public void ShowInteractiveNews(InteractiveNews news)
             modifierLabel.style.display = DisplayStyle.None;
             textContainer.Add(modifierLabel);
 
-            // ---- Рейтинг (размещён в textContainer) ----
             Label ratingLabelElement = new Label($"Рейтинг: {car.CalculateRating(economy.TotalPriceModifier):F1}");
             ratingLabelElement.style.fontSize = 11;
             ratingLabelElement.style.color = new Color(1f, 0.8f, 0.2f);
@@ -1984,7 +2146,7 @@ public void ShowInteractiveNews(InteractiveNews news)
             produceButton.style.height = 26;
             produceButton.style.marginLeft = 4;
             produceButton.style.alignSelf = Align.Center;
-            produceButton.clicked += () => TryProduceSpecificCar(localCar);
+            produceButton.clicked += () => TryProduceSpecificCar(cardData); // Передаем cardData
             topRow.Add(produceButton);
 
             // ---- Кнопка "Продать 1" ----
@@ -2034,8 +2196,8 @@ public void ShowInteractiveNews(InteractiveNews news)
             tuningPanel.style.borderBottomLeftRadius = 4;
             tuningPanel.style.borderBottomRightRadius = 4;
 
-            CarCardData cardData = new CarCardData();
-            cardData.car = car;
+            // ТЕПЕРЬ ЗДЕСЬ НЕТ ОБЪЯВЛЕНИЯ cardData, ТАК КАК ОНО СДЕЛАНО ВЫШЕ
+            
             cardData.card = card;
             cardData.profitLabel = profitLabel;
             cardData.profitDetailsLabel = profitDetailsLabel;
@@ -2045,11 +2207,9 @@ public void ShowInteractiveNews(InteractiveNews news)
             cardData.upgradeButton = upgradeButton;
             cardData.taxRateLabel = taxRateLabel;
             cardData.modifierLabel = modifierLabel;
-            cardData.ratingLabel = ratingLabelElement; // ТОЛЬКО ОДНА СТРОКА
+            cardData.ratingLabel = ratingLabelElement;
 
-            // Сохраняем ссылки
             cardData.detailsLabel = detailsLabel;
-            cardData.platformLabel = platformLabel;
             cardData.priceLabel = priceLabel;
             cardData.decreasePriceBtn = decreasePriceBtn;
             cardData.increasePriceBtn = increasePriceBtn;
@@ -2227,19 +2387,92 @@ public void ShowInteractiveNews(InteractiveNews news)
         }
     }
 
-   
-   public void RefreshMarketGraphIfOpen()
+
+
+
+    public void UpdateCompanyNameUI()
     {
-        if (marketVisOverlay != null && marketVisOverlay.style.display == DisplayStyle.Flex)
+        if (root == null) return;
+        var nameLabel = root.Q<Label>("CompanyNameLabel");
+        if (nameLabel != null && BrandManager.Instance != null)
         {
-            var visController = GetComponent<MarketVisualizationController>();
-            if (visController != null)
-            {
-                visController.DrawIncomeGraph(economy.monthlyIncomeHistory);
-            }
+            nameLabel.text = BrandManager.Instance.companyName;
         }
     }
 
+    // Логика редактирования названия по клику
+    private void SetupCompanyNameEditing()
+    {
+        var nameLabel = root.Q<Label>("CompanyNameLabel");
+        if (nameLabel == null) return;
+
+        // При клике на текст...
+        nameLabel.RegisterCallback<ClickEvent>(evt =>
+        {
+            // Создаем поле ввода на месте лейбла
+            var textField = new TextField();
+            textField.value = nameLabel.text;
+            textField.style.width = 150;
+            textField.style.fontSize = 14;
+            textField.style.color = Color.black; // чтобы текст было видно на белом фоне инпута
+
+            // Заменяем Label на TextField
+            var parent = nameLabel.parent;
+            int index = parent.IndexOf(nameLabel);
+            parent.Insert(index, textField);
+            nameLabel.style.display = DisplayStyle.None; // Скрываем лейбл
+
+            textField.Focus(); // Автоматически ставим курсор
+
+            // Функция завершения редактирования
+            void FinishEditing(string newName)
+            {
+                if (!string.IsNullOrWhiteSpace(newName))
+                {
+                    BrandManager.Instance.SetCompanyName(newName);
+                }
+                
+                // Возвращаем лейбл обратно
+                textField.RemoveFromHierarchy();
+                nameLabel.style.display = DisplayStyle.Flex;
+                nameLabel.text = BrandManager.Instance.companyName;
+            }
+
+            // При нажатии Enter
+            textField.RegisterCallback<KeyDownEvent>(keyEvt =>
+            {
+                if (keyEvt.keyCode == KeyCode.Return || keyEvt.keyCode == KeyCode.KeypadEnter)
+                    FinishEditing(textField.value);
+            });
+
+            // Если кликнули мимо (потеряли фокус)
+            textField.RegisterCallback<BlurEvent>(blurEvt =>
+            {
+                FinishEditing(textField.value);
+            });
+        });
+    }
+
+
+    public void UpdateLogoUI()
+    {
+        if (root == null) return;
+        
+        var logoElement = root.Q<VisualElement>("CompanyLogoElement");
+        if (logoElement != null)
+        {
+            if (BrandManager.Instance != null && BrandManager.Instance.companyLogo != null)
+            {
+                // Подставляем текстуру на фон элемента
+                logoElement.style.backgroundImage = new StyleBackground(BrandManager.Instance.companyLogo);
+            }
+            else
+            {
+                // Если логотипа нет, можно показать дефолтную иконку
+                logoElement.style.backgroundImage = null; 
+            }
+        }
+    }
 
     public void UpdateCarCards()
     {
@@ -2250,9 +2483,20 @@ public void ShowInteractiveNews(InteractiveNews news)
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
-            // ---- Расчёт себестоимости с учётом платформы ----
+            // ---- Расчёт себестоимости с учётом платформы и ОПЦИЙ ----
             float partCost = economy.GetPartCostForCar(car);
             float baseCost = car.GetProductionCostWithLevel() + partCost;
+
+            // Считаем стоимость выбранных опций
+            float optionsCost = 0f;
+            if (cardData.selectedOptions != null)
+            {
+                foreach (var opt in cardData.selectedOptions) optionsCost += opt.additionalCost;
+            }
+
+            // Применяем множитель комплектации (если выбрана)
+            float trimMultiplier = cardData.selectedTrim != null ? cardData.selectedTrim.priceMultiplier : 1f;
+            float costWithOptions = (baseCost + optionsCost) * trimMultiplier;
 
             // Скидка от платформы
             float platformDiscount = 0f;
@@ -2260,7 +2504,12 @@ public void ShowInteractiveNews(InteractiveNews news)
             {
                 platformDiscount = PlatformManager.Instance.GetPlatformDiscount(car);
             }
-            float productionCost = baseCost * (1f - platformDiscount);
+            
+            // Итоговая себестоимость
+            float productionCost = costWithOptions * (1f - platformDiscount);
+            
+            // Записываем итоговую стоимость в сам Blueprint, чтобы завод знал, сколько списывать
+            car.finalAssemblyCostWithOptions = Mathf.RoundToInt(productionCost);
 
             // ---- Платформа ----
             if (cardData.platformLabel != null)
@@ -2456,18 +2705,17 @@ public void ShowInteractiveNews(InteractiveNews news)
             if (cardData.detailsLabel != null)
             {
                 int currentModPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-                // Себестоимость с учётом скидки платформы
-                int currentBaseCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-                int currentModCost = Mathf.RoundToInt(currentBaseCost * (1f - platformDiscount));
+                int currentModCost = Mathf.RoundToInt(productionCost);
                 string costSuffix = platformDiscount > 0f ? $" (🛠️-{platformDiscount * 100:F0}%)" : "";
-                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}{costSuffix}";
+                string trimSuffix = cardData.selectedTrim != null ? $" [{cardData.selectedTrim.trimName}]" : "";
+                
+                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}{costSuffix}{trimSuffix}";
             }
 
             if (cardData.priceLabel != null)
             {
                 cardData.priceLabel.text = $"${car.currentPrice}";
             }
-            // ======================================
 
             // ========== СИНХРОНИЗАЦИЯ ВЫПАДАЮЩЕГО СПИСКА КОРОБОК ПЕРЕДАЧ ==========
             if (cardData.transmissionDropdown != null)
@@ -2486,13 +2734,11 @@ public void ShowInteractiveNews(InteractiveNews news)
                     car.transmissionType = newOptions[0];
                 cardData.transmissionDropdown.value = car.transmissionType;
             }
-            // =============================================================
         }
 
         UpdateWarehouseLabels();
         UpdateProductionButtonsState();
     }
-
 
     private void UpdateTuningSliders(CarCardData cardData, CarBlueprint car)
     {

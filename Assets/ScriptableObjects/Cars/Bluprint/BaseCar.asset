@@ -20,19 +20,20 @@ MonoBehaviour:
   currentLevel: 0
   carIcon: {fileID: -621767056, guid: 6d643a6ad9fb7b948ae120ac5ac9d2d4, type: 3}
   recipe: {fileID: 11400000, guid: 9179d5016eab03a439b2a8d620acee87, type: 2}
+  finalAssemblyCostWithOptions: 153
   demandHistory:
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
-  - 25
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
+  - 0.3
   platform: {fileID: 11400000, guid: 3ec4380e6270bbc43ae5117b5efb01d0, type: 2}
   carType: {fileID: 11400000, guid: 26fefda604e93314794c6db15fe64d6e, type: 2}
   levels:
@@ -54,20 +55,20 @@ MonoBehaviour:
     tuningEconomy: 0
     tuningDesign: 0
     tuningSafety: 0
-  tuningPower: 2
-  tuningEconomy: 1
-  tuningDesign: 1
+  tuningPower: 0
+  tuningEconomy: 0
+  tuningDesign: 0
   tuningSafety: 0
-  currentPower: 2
-  currentEconomy: 1
-  currentDesign: 1
+  currentPower: 0
+  currentEconomy: 0
+  currentDesign: 0
   currentSafety: 0
-  bodyColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
+  bodyColor: {r: 1, g: 1, b: 1, a: 1}
   bodyColorIndex: 0
   tintLevel: 0
-  hasTint: 1
+  hasTint: 0
   currentPrice: 250
-  demandMultiplier: 2.5
+  demandMultiplier: 0.3
   newsDemandRanges:
   - min: -1
     max: 10
