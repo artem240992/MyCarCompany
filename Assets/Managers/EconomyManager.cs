@@ -49,6 +49,14 @@ public class EconomyManager : MonoBehaviour
 
     public event Action OnMoneyChanged;
 
+    public int DesignerCount { get; private set; } = 0;
+    public int MarketerCount { get; private set; } = 0;
+    public int ManagerCount { get; private set; } = 0;
+
+    // Геттеры для бонусов
+    public float DesignSpeedMultiplier => 1f + (DesignerCount * 0.1f); // +10% к скорости тюнинга
+    public float MarketingEfficiency => 1f + (MarketerCount * 0.15f); // +15% к эффекту рекламы
+
     public void Initialize(float startMoney, float profitMultiplier)
     {
         Money = startMoney;

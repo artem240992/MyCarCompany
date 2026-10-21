@@ -10,6 +10,9 @@ public class MarketVisualizationController : MonoBehaviour
     private VisualElement incomeGraphContainer;
     private Label chartTitle;
 
+    // Вспомогательное свойство для проверки темы
+    private bool IsDarkTheme => PlayerPrefs.GetInt("DarkTheme", 0) == 1;
+
     private void Awake()
     {
         var doc = GetComponent<UIDocument>();
@@ -19,11 +22,11 @@ public class MarketVisualizationController : MonoBehaviour
 
     public void Initialize()
     {
+        if (root == null) return;
         pieChartContainer = root.Q<VisualElement>("PieChartContainer");
         incomeGraphContainer = root.Q<VisualElement>("IncomeGraphContainer");
         chartTitle = root.Q<Label>("PieChartTitle");
         if (chartTitle != null) chartTitle.text = "Рыночная доля";
-
     }
 
     public void UpdatePieChart(List<Competitor> competitors, float playerShare)
@@ -31,7 +34,6 @@ public class MarketVisualizationController : MonoBehaviour
         if (pieChartContainer == null) return;
         pieChartContainer.Clear();
 
-        // Собираем данные
         var slices = new List<(string name, float share, Color color)>();
         slices.Add(("Игрок", playerShare, new Color(0.2f, 0.8f, 0.2f)));
         foreach (var comp in competitors)
@@ -44,11 +46,13 @@ public class MarketVisualizationController : MonoBehaviour
         float total = slices.Sum(s => s.share);
         if (total <= 0)
         {
-            pieChartContainer.Add(new Label("Нет данных о рыночной доле"));
+            pieChartContainer.Add(new Label("Нет данных о рыночной доле") 
+            { 
+                style = { color = IsDarkTheme ? Color.white : Color.black } 
+            });
             return;
         }
 
-        // Строим диаграмму
         float startAngle = -90f;
         foreach (var slice in slices)
         {
@@ -59,7 +63,6 @@ public class MarketVisualizationController : MonoBehaviour
             startAngle += angle;
         }
 
-        // Легенда
         var legend = root?.Q<VisualElement>("LegendContainer");
         if (legend != null)
         {
@@ -72,17 +75,15 @@ public class MarketVisualizationController : MonoBehaviour
                 item.style.marginBottom = 2;
 
                 var colorBox = new VisualElement();
-                colorBox.style.width = 16;
-                colorBox.style.height = 16;
+                colorBox.style.width = 16; colorBox.style.height = 16;
                 colorBox.style.backgroundColor = slice.color;
                 colorBox.style.marginRight = 6;
-                colorBox.style.borderTopLeftRadius = 3;
-                colorBox.style.borderTopRightRadius = 3;
-                colorBox.style.borderBottomLeftRadius = 3;
-                colorBox.style.borderBottomRightRadius = 3;
+                colorBox.style.borderTopLeftRadius = 3; colorBox.style.borderTopRightRadius = 3;
+                colorBox.style.borderBottomLeftRadius = 3; colorBox.style.borderBottomRightRadius = 3;
 
                 var label = new Label($"{slice.name} ({slice.share * 100:F1}%)");
-                label.style.color = Color.white;
+                // Текст легенды зависит от темы
+                label.style.color = IsDarkTheme ? Color.white : Color.black;
                 label.style.fontSize = 13;
                 label.style.unityFontStyleAndWeight = FontStyle.Bold;
 
@@ -92,7 +93,6 @@ public class MarketVisualizationController : MonoBehaviour
             }
         }
     }
-
 
     public void UpdateBarChart(List<Competitor> competitors, float playerShare)
     {
@@ -112,11 +112,13 @@ public class MarketVisualizationController : MonoBehaviour
         float total = slices.Sum(s => s.share);
         if (total <= 0)
         {
-            container.Add(new Label("Нет данных о рыночной доле"));
+            container.Add(new Label("Нет данных о рыночной доле") 
+            { 
+                style = { color = IsDarkTheme ? Color.white : Color.black } 
+            });
             return;
         }
 
-        // Сортируем по убыванию для наглядности
         slices = slices.OrderByDescending(s => s.share).ToList();
 
         foreach (var slice in slices)
@@ -128,31 +130,28 @@ public class MarketVisualizationController : MonoBehaviour
             row.style.marginBottom = 4;
             row.style.height = 22;
 
-            // Название
             var nameLabel = new Label(slice.name);
             nameLabel.style.width = 80;
-            nameLabel.style.color = Color.white;
+            // Текст названия компании зависит от темы
+            nameLabel.style.color = IsDarkTheme ? Color.white : Color.black;
             nameLabel.style.fontSize = 13;
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             row.Add(nameLabel);
 
-            // Цветная полоса
             var bar = new VisualElement();
             bar.style.height = 16;
             bar.style.backgroundColor = slice.color;
-            bar.style.borderTopLeftRadius = 4;
-            bar.style.borderBottomLeftRadius = 4;
-            bar.style.borderTopRightRadius = 4;
-            bar.style.borderBottomRightRadius = 4;
+            bar.style.borderTopLeftRadius = 4; bar.style.borderBottomLeftRadius = 4;
+            bar.style.borderTopRightRadius = 4; bar.style.borderBottomRightRadius = 4;
             bar.style.marginRight = 6;
             float barWidth = Mathf.Clamp((slice.share / total) * 200, 10, 200);
             bar.style.width = barWidth;
 
             row.Add(bar);
 
-            // Проценты
             var percentLabel = new Label($"{percent:F1}%");
-            percentLabel.style.color = Color.white;
+            // Текст процентов зависит от темы
+            percentLabel.style.color = IsDarkTheme ? Color.white : Color.black;
             percentLabel.style.fontSize = 13;
             percentLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             percentLabel.style.minWidth = 45;
@@ -161,7 +160,6 @@ public class MarketVisualizationController : MonoBehaviour
             container.Add(row);
         }
     }
-
 
     private VisualElement CreatePieSlice(float startAngle, float angle, Color color, string label)
     {
@@ -177,18 +175,19 @@ public class MarketVisualizationController : MonoBehaviour
             painter.ClosePath();
             painter.fillColor = color;
             painter.Fill();
-            painter.strokeColor = Color.white;
+            // Обводка сектора (в темной теме белая, в светлой - темная)
+            painter.strokeColor = IsDarkTheme ? Color.white : new Color(0.2f, 0.2f, 0.2f);
             painter.lineWidth = 1;
             painter.Stroke();
         };
-        // Метка только для больших секторов
+        
         if (angle > 20)
         {
             var labelElement = new Label(label);
             labelElement.style.position = Position.Absolute;
-            labelElement.style.left = 100;
-            labelElement.style.top = 100;
-            labelElement.style.color = Color.white;
+            labelElement.style.left = 100; labelElement.style.top = 100;
+            // Цвет текста на самом секторе всегда белый для контраста (или черный, если сектор светлый)
+            labelElement.style.color = Color.white; 
             labelElement.style.fontSize = 11;
             labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
             labelElement.style.unityTextAlign = TextAnchor.MiddleCenter;
@@ -205,7 +204,14 @@ public class MarketVisualizationController : MonoBehaviour
 
         if (data == null || data.Count == 0)
         {
-            incomeGraphContainer.Add(new Label("Нет данных для графика") { style = { color = Color.gray, fontSize = 14, unityTextAlign = TextAnchor.MiddleCenter } });
+            incomeGraphContainer.Add(new Label("Нет данных для графика") 
+            { 
+                style = { 
+                    color = IsDarkTheme ? Color.gray : new Color(0.4f, 0.4f, 0.4f), 
+                    fontSize = 14, 
+                    unityTextAlign = TextAnchor.MiddleCenter 
+                } 
+            });
             return;
         }
 
@@ -217,11 +223,10 @@ public class MarketVisualizationController : MonoBehaviour
         var graph = new VisualElement();
         graph.style.width = new Length(100, LengthUnit.Percent);
         graph.style.height = 120;
-        graph.style.backgroundColor = new Color(0.1f, 0.1f, 0.1f);
-        graph.style.borderTopLeftRadius = 4;
-        graph.style.borderTopRightRadius = 4;
-        graph.style.borderBottomLeftRadius = 4;
-        graph.style.borderBottomRightRadius = 4;
+        // Фон графика зависит от темы
+        graph.style.backgroundColor = IsDarkTheme ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.85f, 0.85f, 0.85f);
+        graph.style.borderTopLeftRadius = 4; graph.style.borderTopRightRadius = 4;
+        graph.style.borderBottomLeftRadius = 4; graph.style.borderBottomRightRadius = 4;
 
         graph.generateVisualContent += (ctx) =>
         {
@@ -232,7 +237,7 @@ public class MarketVisualizationController : MonoBehaviour
             if (width <= 1 || height <= 1) return;
 
             // Сетка (горизонтальные линии)
-            painter.strokeColor = new Color(0.3f, 0.3f, 0.3f);
+            painter.strokeColor = IsDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
             painter.lineWidth = 1;
             for (int i = 0; i < 4; i++)
             {
@@ -256,7 +261,7 @@ public class MarketVisualizationController : MonoBehaviour
             }
             painter.Stroke();
 
-            // Заливка под графиком (полупрозрачная)
+            // Заливка под графиком
             painter.fillColor = new Color(0, 1, 0, 0.2f);
             painter.BeginPath();
             painter.MoveTo(new Vector2(0, height));

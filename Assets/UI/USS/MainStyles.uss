@@ -508,3 +508,27 @@
     border-radius: 8px;
     padding: 8px;
 }
+
+/* ===== СВЕТЛАЯ ТЕМА ДЛЯ ОКОН ===== */
+
+/* Делаем текст во всех окнах (оверлеях) черным и жирным */
+.overlay Label, 
+.overlay Button, 
+.overlay Toggle,
+.overlay DropdownField,
+.overlay IntegerField,
+.overlay TextField {
+    color: rgb(0, 0, 0);
+    -unity-font-style: bold;
+}
+
+/* Меняем цвет фона самих окон на светло-серый, чтобы черный текст было видно */
+.overlay > VisualElement > VisualElement {
+    background-color: rgb(230, 230, 230) !important;
+}
+
+/* Немного затемняем второстепенный текст, чтобы он не сливался */
+.overlay .resource-info, 
+.overlay Label[style*="color: rgb(170, 170, 170)"] {
+    color: rgb(80, 80, 80);
+}
