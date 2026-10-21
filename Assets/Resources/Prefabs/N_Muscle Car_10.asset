@@ -16,4 +16,29 @@ MonoBehaviour:
   bodyRequired: 3
   wheelsRequired: 4
   electronicsRequired: 1
+  availableTrims:
+  - {fileID: 11400000, guid: d1aee3c57a78d28458c1657490c32b9c, type: 2}
+  - {fileID: 11400000, guid: 7be7414a7bb07ec4a81518f51ea6f142, type: 2}
+  - {fileID: 11400000, guid: b52e0433bf6d2614ca4a03415a867d7e, type: 2}
   assemblyCost: 20
+  reliability: 50
+  safety: 50
+  comfort: 50
+  tech: 50
+  enginePrice: -1
+  bodyPrice: -1
+  wheelsPrice: -1
+  electronicsPrice: -1
+  seasonalCostMultipliers:
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1

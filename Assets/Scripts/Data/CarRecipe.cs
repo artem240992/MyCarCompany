@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [CreateAssetMenu(fileName = "NewCarRecipe", menuName = "Car Company/Car Recipe")]
 public class CarRecipe : ScriptableObject
@@ -9,8 +10,16 @@ public class CarRecipe : ScriptableObject
     public int wheelsRequired;
     public int electronicsRequired;
 
+    [Header("Комплектации")]
+    public List<CarTrim> availableTrims; // список доступных комплектаций для этого рецепта
+
     [Header("Стоимость сборки")]
     public int assemblyCost;
+    [Header("Характеристики модели (для контрактов и рынка)")]
+    [Range(0f, 100f)] public float reliability = 50f;
+    [Range(0f, 100f)] public float safety = 50f;
+    [Range(0f, 100f)] public float comfort = 50f;
+    [Range(0f, 100f)] public float tech = 50f;
 
     [Header("Индивидуальные цены деталей (если не заданы, берутся из PartsMarketManager)")]
     public float enginePrice = -1f;  // -1 означает использовать глобальную цену

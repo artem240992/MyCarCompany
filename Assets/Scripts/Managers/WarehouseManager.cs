@@ -10,6 +10,9 @@ public class WarehouseManager : MonoBehaviour
     public int warehouseLevel = 0;
     public int maxCapacity = 100; // для деталей
 
+    public CarTrim trim; 
+    public List<CarOption> installedOptions;
+
     [Header("Car Stock")]
     public int maxCarCapacity = 100;
     private Dictionary<CarBlueprint, int> carStockByModel = new Dictionary<CarBlueprint, int>();
@@ -91,6 +94,7 @@ public class WarehouseManager : MonoBehaviour
         if (car == null || count <= 0) return false;
         int current = GetCarCount(car);
         int total = carStockByModel.Values.Sum();
+        
         if (total + count > maxCarCapacity)
         {
             UIManager.Instance?.ShowNotification("Склад машин переполнен!");
