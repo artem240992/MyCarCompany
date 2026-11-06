@@ -72,19 +72,34 @@ public class WarehouseManager : MonoBehaviour
 
     public bool CanProduceCar(CarRecipe recipe)
     {
-        return HasParts(PartType.Engine, recipe.engineRequired) &&
-               HasParts(PartType.Body, recipe.bodyRequired) &&
-               HasParts(PartType.Wheels, recipe.wheelsRequired) &&
-               HasParts(PartType.Electronics, recipe.electronicsRequired);
+        if (recipe == null) return false;
+
+        bool hasBaseParts = HasParts(PartType.Engine, recipe.engineRequired) &&
+                            HasParts(PartType.Body, recipe.bodyRequired) &&
+                            HasParts(PartType.Wheels, recipe.wheelsRequired) &&
+                            HasParts(PartType.Electronics, recipe.electronicsRequired);
+
+        if (!hasBaseParts) return false;
+
+        // Для электромобилей дополнительно нужны батареи
+        if (recipe.isElectric && recipe.batteryRequired > 0)
+            return HasParts(PartType.Battery, recipe.batteryRequired);
+
+        return true;
     }
 
     public void ConsumePartsForCar(CarRecipe recipe)
     {
-        if (!CanProduceCar(recipe)) return;
+        if (recipe == null || !CanProduceCar(recipe)) return;
+
         RemoveParts(PartType.Engine, recipe.engineRequired);
         RemoveParts(PartType.Body, recipe.bodyRequired);
         RemoveParts(PartType.Wheels, recipe.wheelsRequired);
         RemoveParts(PartType.Electronics, recipe.electronicsRequired);
+
+        // Списываем батарею для электромобиля
+        if (recipe.isElectric && recipe.batteryRequired > 0)
+            RemoveParts(PartType.Battery, recipe.batteryRequired);
     }
 
     public int GetCurrentCapacity() => maxCapacity;
@@ -312,6 +327,7 @@ public class WarehouseManager : MonoBehaviour
             PartType.Body => "Производство Body",
             PartType.Wheels => "Производство Wheels",
             PartType.Electronics => "Производство Electronics",
+            PartType.Battery => "Производство Battery", // ✅ правильно
             _ => ""
         };
         return CarCompanyManager.Instance.TechManager.IsTechResearched(techName);
@@ -338,6 +354,7 @@ public class WarehouseManager : MonoBehaviour
             PartType.Body => 25f,
             PartType.Wheels => 20f,
             PartType.Electronics => 35f,
+            PartType.Battery => 80f,   // <-- добавлено
             _ => 20f
         };
         return basePrice * CarCompanyManager.Instance.EconomyManager.TotalPriceModifier;
@@ -375,6 +392,7 @@ public class WarehouseManager : MonoBehaviour
                 hasTint          = car.hasTint
             });
         }
+        
     }
 
     public void LoadFromSave(SaveData data)

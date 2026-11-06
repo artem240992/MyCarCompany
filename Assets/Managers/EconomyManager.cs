@@ -44,8 +44,13 @@ public class EconomyManager : MonoBehaviour
     // ---- Скидка на производство (от инвестиций) ----
     private float productionDiscount = 0f;
 
-    // ---- Достижения по продаже машин ----
+        // ---- Достижения по продаже машин ----
     private int totalCarsSold = 0;
+
+    // ---- Субсидии на электромобили ----
+    private bool evSubsidyActive = false;
+    private int evSubsidyMonthsLeft = 0;
+    public bool IsEvSubsidyActive => evSubsidyActive;
 
     public event Action OnMoneyChanged;
 
@@ -196,7 +201,16 @@ public class EconomyManager : MonoBehaviour
         OnMoneyChanged?.Invoke();
         yearlyIncome = 0;
         yearlyExpenses = 0;
+
         ApplyDifficultySettings(true); // применяем настройки сложности при старте
+    }
+
+
+    public void ActivateEvSubsidy(int months)
+    {
+        if (months <= 0) return;
+        evSubsidyActive = true;
+        evSubsidyMonthsLeft = Mathf.Max(evSubsidyMonthsLeft, months);
     }
 
     public void AddMoney(double amount)
@@ -387,6 +401,10 @@ public class EconomyManager : MonoBehaviour
         data.designerCount = DesignerCount;
         data.marketerCount = MarketerCount;
         data.managerCount  = ManagerCount;
+
+        // ---- Субсидии на EV ----
+        data.evSubsidyActive = evSubsidyActive;
+        data.evSubsidyMonthsLeft = evSubsidyMonthsLeft;
     }
 
     public void LoadFromSave(SaveData data)
@@ -407,6 +425,11 @@ public class EconomyManager : MonoBehaviour
         DesignerCount = data.designerCount;
         MarketerCount = data.marketerCount;
         ManagerCount  = data.managerCount;
+
+        // ---- Субсидии на EV ----
+        evSubsidyActive = data.evSubsidyActive;
+        evSubsidyMonthsLeft = data.evSubsidyMonthsLeft;
+
         OnMoneyChanged?.Invoke();
     }
 
@@ -428,6 +451,8 @@ public class EconomyManager : MonoBehaviour
         monthlyIncome = 0;
         if (GameTimeManager.Instance != null)
             lastTaxYear = GameTimeManager.Instance.currentYear;
+        evSubsidyActive = false;
+        evSubsidyMonthsLeft = 0;
         OnMoneyChanged?.Invoke();
     }
 
@@ -483,6 +508,17 @@ public class EconomyManager : MonoBehaviour
 
     private void OnMonthChanged()
     {
+        if (evSubsidyActive)
+        {
+            evSubsidyMonthsLeft--;
+            if (evSubsidyMonthsLeft <= 0)
+            {
+                evSubsidyActive = false;
+                evSubsidyMonthsLeft = 0;
+                CarCompanyManager.Instance?.UIManager?.ShowNotification("Государственная субсидия на электромобили закончилась.");
+            }
+        }
+
         basePriceMultiplier *= (1f + inflationRate);
         UpdateDiscount();
         RecalculateModifiers(null);

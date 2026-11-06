@@ -125,7 +125,7 @@ public class DemandManager : MonoBehaviour
             float levelBonus = 1f + car.currentLevel * demandBonusPerLevel;
 
             // ----- ИТОГОВЫЙ СПРОС -----
-            float finalDemand = baseDemand * interactiveNewsMultiplier
+            float finalDemand = baseDemand * interactiveNewsMultiplier*GetElectricDemandModifier(car)
                 * priceFactor
                 * marketingBonus
                 * brandModifier
@@ -200,6 +200,20 @@ public class DemandManager : MonoBehaviour
         }
         return count > 0 ? sum / count : 100f;
     }
+
+
+    public float GetElectricDemandModifier(CarBlueprint car)
+    {
+        if (car == null || !car.isElectric) return 1f;
+        
+        // Временно: если менеджера нет, инфраструктура считается развитой на 50%
+        float coverage = 0.5f; 
+        if (ChargingManager.Instance != null)
+            coverage = ChargingManager.Instance.GetGlobalCoverage();
+            
+        return 0.7f + 0.3f * coverage;
+    }
+
 
     private float CalculatePriceFactor(CarBlueprint car, float avgPrice)
     {

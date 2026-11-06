@@ -162,7 +162,7 @@ public class TechManager : MonoBehaviour
     }
 
     // ---- Создание специальных технологий ----
-    private void GenerateSpecialTechnologies()
+        private void GenerateSpecialTechnologies()
     {
         if (technologies == null) return;
         List<Technology> techList = technologies.ToList();
@@ -206,7 +206,7 @@ public class TechManager : MonoBehaviour
         }
 
         // ---- Производство деталей ----
-        string[] partTypes = { "Engine", "Body", "Wheels", "Electronics" };
+        string[] partTypes = { "Engine", "Body", "Wheels", "Electronics", "Battery" };
         foreach (string part in partTypes)
         {
             string techName = $"Производство {part}";
@@ -214,7 +214,9 @@ public class TechManager : MonoBehaviour
             {
                 Technology tech = new Technology();
                 tech.techName = techName;
-                tech.description = $"Позволяет производить {part} на складе";
+                tech.description = part == "Battery"
+                    ? "Позволяет производить батареи для электромобилей и гибридов"
+                    : $"Позволяет производить {part} на складе";
                 tech.researchCost = 100 + Array.IndexOf(partTypes, part) * 50;
                 tech.isResearched = false;
                 tech.requiredTechNames = new string[0];
@@ -250,7 +252,7 @@ public class TechManager : MonoBehaviour
             }
         }
 
-        // ---- Типы рекламы как технологии ----
+        // ---- Типы рекламы ----
         string[] adTypes = { "TV", "Internet", "Print", "Social" };
         int[] adCosts = { 150, 200, 120, 180 };
         int[] adYears = { 2025, 2025, 2025, 2026 };
@@ -282,18 +284,30 @@ public class TechManager : MonoBehaviour
         int[] costs = { 800, 600, 1200 };
         int[] years = { 2026, 2025, 2027 };
         int[] months = { 1, 7, 1 };
+        
         for (int i = 0; i < newTechs.Length; i++)
         {
             string techName = newTechs[i];
             if (techList.Any(t => t != null && t.techName == techName)) continue;
+            
             Technology tech = new Technology();
             tech.techName = techName;
-            tech.description = techName == "Электромобиль" ? "Позволяет производить электромобили (высокий спрос, дороже в производстве)" :
+            tech.description = techName == "Электромобиль" ? "Позволяет производить электромобили (требует батареи)" :
                                 techName == "Гибридный двигатель" ? "Позволяет производить гибридные машины (средний спрос, экономичные)" :
                                 "Повышает привлекательность всех машин на 30%";
             tech.researchCost = costs[i];
             tech.isResearched = false;
-            tech.requiredTechNames = techName == "Электромобиль" ? new string[] { "Гибридный двигатель" } : new string[0];
+
+            // --- ЦЕПОЧКА ЗАВИСИМОСТЕЙ ---
+            if (techName == "Электромобиль")
+                tech.requiredTechNames = new string[] { "Гибридный двигатель" };
+            else if (techName == "Гибридный двигатель")
+                tech.requiredTechNames = new string[] { "Производство Battery" };
+            else if (techName == "Автопилот")
+                tech.requiredTechNames = new string[] { "Электромобиль" };
+            else
+                tech.requiredTechNames = new string[0];
+
             tech.priceModifier = techName == "Автопилот" ? 1.3f : 1f;
             tech.demandModifier = techName == "Автопилот" ? 1.2f : 1f;
             tech.unlockCarOnResearch = techName != "Автопилот";
@@ -304,12 +318,12 @@ public class TechManager : MonoBehaviour
             techList.Add(tech);
         }
 
-        // ========== НОВЫЕ ТЕХНОЛОГИИ ДЛЯ РЕЛИЗА 1.14.0 ==========
-        // ---- Технологии для международной экспансии и патентов ----
+        // ---- Международная экспансия и патенты ----
         string[] specialTechs = { "Международная экспансия", "Патентное право" };
         int[] specialCosts = { 600, 500 };
         int[] specialYears = { 2025, 2025 };
         int[] specialMonths = { 1, 1 };
+        
         for (int i = 0; i < specialTechs.Length; i++)
         {
             string techName = specialTechs[i];
@@ -335,7 +349,7 @@ public class TechManager : MonoBehaviour
         technologies = techList.ToArray();
     }
 
-    /// <summary>
+        /// <summary>
     /// Создание электромобиля.
     /// </summary>
     private CarBlueprint CreateElectricCar()
@@ -343,13 +357,32 @@ public class TechManager : MonoBehaviour
         CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
         car.carName = "Электромобиль";
         car.basePrice = 400;
-        car.recipe = CreateRecipe(2, 2, 3, 4);
+        car.currentPrice = 400;
+        
+        // Создаем уникальный рецепт для EV
+        car.recipe = ScriptableObject.CreateInstance<CarRecipe>();
+        car.recipe.engineRequired = 0;      // ДВС не нужен!
+        car.recipe.bodyRequired = 1;
+        car.recipe.wheelsRequired = 4;
+        car.recipe.electronicsRequired = 3; // Больше электроники
+        car.recipe.batteryRequired = 1;     // Нужна 1 батарея
+        car.recipe.isElectric = true;
+        car.recipe.assemblyCost = 150;      // Электромобили дороже в сборке
+        car.recipe.batteryPrice = 80f;      // Цена батареи для расчета себестоимости
+
+        // Характеристики
         car.demandMultiplier = 1.5f;
         car.currentLevel = 0;
+        
+        // Флаги электромобиля
+        car.isElectric = true;
+        car.maxRange = 400;
+        car.currentRange = 400;
+        
         return car;
     }
 
-    /// <summary>
+        /// <summary>
     /// Создание гибридного автомобиля.
     /// </summary>
     private CarBlueprint CreateHybridCar()
@@ -357,9 +390,25 @@ public class TechManager : MonoBehaviour
         CarBlueprint car = ScriptableObject.CreateInstance<CarBlueprint>();
         car.carName = "Гибрид";
         car.basePrice = 300;
-        car.recipe = CreateRecipe(2, 2, 2, 2);
+        car.currentPrice = 300;
+        
+        // Гибридный рецепт: 1 ДВС, 1 кузов, 4 колеса, 2 электроники, 1 батарея
+        car.recipe = ScriptableObject.CreateInstance<CarRecipe>();
+        car.recipe.engineRequired = 1; 
+        car.recipe.bodyRequired = 1;
+        car.recipe.wheelsRequired = 4;
+        car.recipe.electronicsRequired = 2;
+        car.recipe.batteryRequired = 1; // Гибриду тоже нужна батарея
+        car.recipe.isElectric = true;   // Считаем гибрид частично электрическим
+        car.recipe.assemblyCost = 100;
+        
         car.demandMultiplier = 1.2f;
         car.currentLevel = 0;
+        
+        car.isElectric = true;
+        car.maxRange = 600; // Больший запас хода за счет ДВС
+        car.currentRange = 600;
+        
         return car;
     }
 

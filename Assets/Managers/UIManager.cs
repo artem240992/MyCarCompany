@@ -969,6 +969,9 @@ public class UIManager : MonoBehaviour
         SubscribeButton("CloseNewsButton", CloseNewsWindow);
         SubscribeButton("CloseNewsButton2", CloseNewsWindow);
 
+        SubscribeButton("ProduceBatteryButton", () => TryProducePart(PartType.Battery));
+        SubscribeButton("SellBatteryButton", () => TrySellPart(PartType.Battery));
+
         SubscribeButton("OpenOfficesButton", OpenOfficesWindow);
         SubscribeButton("CloseOfficesButton", CloseOfficesWindow);
         SubscribeButton("OpenPatentsButton", OpenPatentsWindow);
@@ -3274,8 +3277,8 @@ public class UIManager : MonoBehaviour
         // ---- Параметры сетки ----
         const float nodeWidth = 260f;
         const float nodeHeight = 140f;
-        const float horizontalGap = 120f;
-        const float verticalGap = 90f;
+        const float horizontalGap = 180f; // Увеличили расстояние между колонками
+        const float verticalGap = 60f;    // Уменьшили расстояние по вертикали (чтобы дерево не было слишком длинным)
 
         // ---- Определяем уровни (по зависимостям) ----
         Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
@@ -4671,9 +4674,7 @@ public class UIManager : MonoBehaviour
             {
                 var openBtn = new Button(() =>
                 {
-                    float rent = def.baseRent * 1.2f;
-                    float salaries = def.baseSalaries * 1.2f;
-                    manager.OpenOffice(def.id, rent, salaries);
+                    manager.OpenOffice(def.id);
                     UpdateOfficesUI();
                 });
                 openBtn.text = "Открыть";
