@@ -31,6 +31,9 @@ public class UIManager : MonoBehaviour
     private ListView platformsListView;
     private Button developPlatformButton;
 
+    private VisualElement chargingOverlay;
+    private ScrollView chargingContainer;
+
     private VisualElement demandGraphOverlay;
     private DropdownField demandGraphCarDropdown;
     private VisualElement demandGraphContainer;
@@ -115,6 +118,11 @@ public class UIManager : MonoBehaviour
     private Button hireDesignerButton;
     private Button hireMarketerButton;
     private Button hireManagerButton;
+
+    // Поля
+    private VisualElement carConfiguratorOverlay;
+    private ScrollView carConfiguratorContainer;
+    private CarBlueprint currentConfigCar;
 
     // ---- Персонал ----
     private VisualElement staffOverlay;
@@ -541,6 +549,7 @@ public class UIManager : MonoBehaviour
             case NewsType.EcoTrend:          return ("🌱", "Эко-тренд",          new Color(0.56f, 0.93f, 0.56f));
             case NewsType.CompetitorScandal: return ("⚔️", "Скандал",            new Color(1f, 0.8f, 0.2f));
             case NewsType.MarketSlowdown:    return ("📉", "Замедление рынка",   new Color(1f, 0.42f, 0.42f));
+            case NewsType.EvSubsidy:         return ("🔋", "Субсидии на EV", new Color(0.56f, 0.93f, 0.56f));
             default:                         return ("📰", "Событие",            new Color(0.7f, 0.7f, 0.7f));
         }
     }
@@ -787,6 +796,13 @@ public class UIManager : MonoBehaviour
         platformsOverlay = root.Q<VisualElement>("PlatformsOverlay");
         platformsListView = root.Q<ListView>("PlatformsList");
         developPlatformButton = root.Q<Button>("DevelopPlatformButton");
+        chargingOverlay = root.Q<VisualElement>("ChargingOverlay");
+        chargingContainer = root.Q<ScrollView>("ChargingContainer");
+        if (chargingOverlay != null) chargingOverlay.style.display = DisplayStyle.None;
+
+        SubscribeButton("OpenChargingButton", OpenChargingWindow);
+        SubscribeButton("CloseChargingButton", CloseChargingWindow);
+        SubscribeButton("RefreshChargingButton", RefreshChargingUI);
         SubscribeButton("OpenPlatformsButton", OpenPlatformsWindow);
         SubscribeButton("ClosePlatformsButton", ClosePlatformsWindow);
         if (developPlatformButton != null)
@@ -949,6 +965,13 @@ public class UIManager : MonoBehaviour
 
         if (hamburgerButton != null)
             hamburgerButton.clicked += OpenMenuWindow;
+
+
+        carConfiguratorOverlay = root.Q<VisualElement>("CarConfiguratorOverlay");
+        carConfiguratorContainer = root.Q<ScrollView>("ConfiguratorContainer");
+        if (carConfiguratorOverlay != null) carConfiguratorOverlay.style.display = DisplayStyle.None;
+        SubscribeButton("CloseConfiguratorButton", CloseConfigurator);
+        SubscribeButton("SaveConfiguratorButton", ApplyConfigurator);
 
         // ---- Подписки ----
         SubscribeButton("OpenCarsButton", OpenCarsWindow);
@@ -1158,7 +1181,22 @@ public class UIManager : MonoBehaviour
     }
 
 
-        private void QuitGame()
+    
+    private void ApplyConfigurator()
+    {
+        if (currentConfigCar == null) return;
+        
+        // Здесь сохраняются изменения (сейчас просто обновляет UI)
+        UpdateCarCards();
+        demand.UpdateDemand();
+        UpdateMoneyLabels();
+        
+        ShowNotification($"Настройки для {currentConfigCar.GetDisplayName()} применены.");
+        CloseConfigurator();
+    }
+    
+    
+    private void QuitGame()
     {
         #if UNITY_EDITOR
             // Если мы в редакторе Unity — останавливаем Play Mode
@@ -1172,7 +1210,136 @@ public class UIManager : MonoBehaviour
 
 
 
-         private void ApplyTheme(bool isDark)
+    // Метод открытия (вызывать по кнопке "Настроить" из карточки машины)
+    public void OpenConfigurator(CarBlueprint car)
+    {
+        if (car == null || carConfiguratorOverlay == null) return;
+        currentConfigCar = car;
+        
+        CloseMenuWindow();
+        HideAllOverlays();
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(carConfiguratorOverlay);
+        
+        // Заполняем контейнер
+        carConfiguratorContainer.Clear();
+        
+        // ВАЖНО: Здесь вы можете скопировать логику генерации тюнинга и комплектаций
+        // из метода CreateCarCards, но применять её к currentConfigCar и добавлять в carConfiguratorContainer.
+        // Для краткости ответа, я рекомендую просто переиспользовать код создания слайдеров и дропдаунов.
+        
+        var title = carConfiguratorOverlay.Q<Label>("ConfiguratorTitle");
+        if (title != null) title.text = $"Настройка: {car.GetDisplayName()}";
+        
+        // Пример добавления кнопки (вам нужно будет перенести сюда слайдеры тюнинга и выбор комплектации):
+        var info = new Label("Здесь будут настройки тюнинга, комплектации и цвета.");
+        info.style.color = Color.black;
+        carConfiguratorContainer.Add(info);
+    }
+
+    private void CloseConfigurator()
+    {
+        if (carConfiguratorOverlay != null)
+            AnimateWindowClose(carConfiguratorOverlay, () => {
+                carConfiguratorOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    // Методы
+    private void OpenChargingWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (chargingOverlay == null) return;
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(chargingOverlay);
+        RefreshChargingUI();
+    }
+
+    private void CloseChargingWindow()
+    {
+        if (chargingOverlay != null)
+            AnimateWindowClose(chargingOverlay, () => {
+                chargingOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    public void RefreshChargingUI()
+    {
+        if (chargingContainer == null || InternationalManager.Instance == null) return;
+        chargingContainer.Clear();
+
+        var regions = InternationalManager.Instance.regionDefinitions;
+        var stations = InternationalManager.Instance.chargingStations;
+
+        // Заголовок таблицы
+        var header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        header.style.paddingTop = 4; header.style.paddingBottom = 4; header.style.paddingLeft = 8; header.style.paddingRight = 8;
+        header.style.marginBottom = 4;
+
+        string[] headers = { "Регион", "Уровень", "Покрытие", "Действие" };
+        float[] widths = { 200, 80, 100, 150 };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var lbl = new Label(headers[i]);
+            lbl.style.width = widths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(lbl);
+        }
+        chargingContainer.Add(header);
+
+        foreach (var region in regions)
+        {
+            var station = stations.FirstOrDefault(s => s.regionId == region.id);
+            int level = station?.level ?? 0;
+            float coverage = station?.coverage ?? 0f;
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 4; row.style.paddingBottom = 4; row.style.paddingLeft = 8; row.style.paddingRight = 8;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
+
+            var nameLabel = new Label(region.displayName);
+            nameLabel.style.width = widths[0];
+            nameLabel.style.color = isDarkTheme ? Color.white : Color.black;
+            row.Add(nameLabel);
+
+            var levelLabel = new Label(level > 0 ? $"Ур. {level}" : "—");
+            levelLabel.style.width = widths[1];
+            levelLabel.style.color = level > 0 ? Color.green : Color.gray;
+            row.Add(levelLabel);
+
+            var coverageLabel = new Label($"{coverage * 100:F0}%");
+            coverageLabel.style.width = widths[2];
+            coverageLabel.style.color = Color.yellow;
+            row.Add(coverageLabel);
+
+            var btn = new Button(() =>
+            {
+                ChargingManager.Instance?.BuildOrUpgrade(region.id);
+                RefreshChargingUI();
+            });
+            btn.text = level == 0 ? "Построить" : "Улучшить";
+            btn.style.width = widths[3];
+            btn.style.height = 22;
+            btn.style.backgroundColor = level == 0 ? new Color(0.5f, 0.85f, 0.5f) : new Color(0.8f, 0.6f, 0.2f);
+            btn.style.color = Color.black;
+            row.Add(btn);
+
+            chargingContainer.Add(row);
+        }
+    }
+
+    private void ApplyTheme(bool isDark)
     {
         isDarkTheme = isDark;
         PlayerPrefs.SetInt("DarkTheme", isDark ? 1 : 0);
@@ -2241,6 +2408,14 @@ public class UIManager : MonoBehaviour
             actions.style.flexDirection = FlexDirection.Column;
             actions.style.width = 120;
             actions.style.marginLeft = 10;
+
+            Button configBtn = new Button(() => OpenConfigurator(car));
+            configBtn.text = "Настроить";
+            configBtn.style.height = 26;
+            configBtn.style.marginTop = 5;
+            configBtn.style.backgroundColor = new Color(0.8f, 0.8f, 0.8f);
+            configBtn.style.color = Color.black;
+            actions.Add(configBtn);
 
             Button upgradeButton = new Button();
             upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
@@ -4043,6 +4218,8 @@ public class UIManager : MonoBehaviour
         if (contractsOverlay != null) contractsOverlay.style.display = DisplayStyle.None;
         if (dealerOverlay != null) dealerOverlay.style.display = DisplayStyle.None;
         if (staffOverlay != null) staffOverlay.style.display = DisplayStyle.None;
+        if (chargingOverlay != null) chargingOverlay.style.display = DisplayStyle.None;
+        if (carConfiguratorOverlay != null) carConfiguratorOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -5209,6 +5386,55 @@ public class UIManager : MonoBehaviour
 
             row.Add(actions);
             dealerContainer.Add(row);
+        }
+
+          // Блок трейд-ин предложений
+        if (CustomerManager.Instance != null && CustomerManager.Instance.tradeInOffers.Count > 0)
+        {
+            var tradeInHeader = new Label("🔄 Трейд-ин предложения"); // <--- ИСПРАВЛЕНО
+            tradeInHeader.style.fontSize = 16;
+            tradeInHeader.style.color = isDarkTheme ? Color.white : Color.black;
+            tradeInHeader.style.unityFontStyleAndWeight = FontStyle.Bold;
+            tradeInHeader.style.marginTop = 20;
+            tradeInHeader.style.marginBottom = 10;
+            dealerContainer.Add(tradeInHeader);
+
+            foreach (var offer in CustomerManager.Instance.tradeInOffers)
+            {
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.paddingTop = 8;
+                row.style.paddingBottom = 8;
+                row.style.paddingLeft = 10;
+                row.style.paddingRight = 10;
+                row.style.marginBottom = 4;
+                row.style.backgroundColor = isDarkTheme ? new Color(0.22f, 0.22f, 0.22f) : new Color(0.9f, 0.9f, 0.9f);
+                row.style.borderTopLeftRadius = 6;
+                row.style.borderTopRightRadius = 6;
+                row.style.borderBottomLeftRadius = 6;
+                row.style.borderBottomRightRadius = 6;
+
+                var label = new Label($"Клиент хочет сдать {offer.oldCarName} (ур. {offer.oldCarLevel + 1}) и купить новый со скидкой {offer.discountPercent * 100:F0}%");
+                label.style.flexGrow = 1;
+                label.style.color = isDarkTheme ? Color.white : Color.black;
+                row.Add(label);
+
+                var btn = new Button(() =>
+                {
+                    if (CustomerManager.Instance.AcceptTradeIn(offer))
+                        RefreshDealerUI();
+                });
+                btn.text = "Принять";
+                btn.style.width = 100;
+                btn.style.height = 28;
+                btn.style.backgroundColor = new Color(0.5f, 0.85f, 0.5f);
+                btn.style.color = Color.black;
+                btn.style.unityFontStyleAndWeight = FontStyle.Bold;
+                row.Add(btn);
+
+                dealerContainer.Add(row);
+            }
         }
     }
 

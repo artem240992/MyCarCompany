@@ -58,6 +58,7 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.PartsMarketManager.FillSaveData(data);
         MarketingManager.Instance?.FillSaveData(data);
         CarCompanyManager.Instance.CompetitorManager.FillSaveData(data);
+        CarCompanyManager.Instance.CustomerManager.FillSaveData(data);
 
         LoanManager.Instance?.FillSaveData(data);
         InvestmentManager.Instance?.FillSaveData(data);
@@ -125,6 +126,7 @@ public class SaveLoadManager : MonoBehaviour
         if (ContractManager.Instance != null)
             ContractManager.Instance.LoadFromSave(data);
         CarCompanyManager.Instance.PartsMarketManager.LoadFromSave(data);
+        CarCompanyManager.Instance.CustomerManager.LoadFromSave(data);
         MarketingManager.Instance?.LoadFromSave(data);
 
         // ---- ЗАГРУЗКА НОВЫХ ДАННЫХ ----

@@ -96,6 +96,9 @@ public class SaveData
     public bool evSubsidyActive;
     public int evSubsidyMonthsLeft;
     public List<InternationalManager.ChargingStation> chargingStations = new List<InternationalManager.ChargingStation>();
+
+    public List<CustomerRecord> customers = new List<CustomerRecord>();
+    public List<TradeInOffer> tradeInOffers = new List<TradeInOffer>();
 }
 
 [Serializable]

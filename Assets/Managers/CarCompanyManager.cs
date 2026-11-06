@@ -24,6 +24,8 @@ public class CarCompanyManager : MonoBehaviour
     [Header("Дополнительные технологии (ассеты)")]
     [SerializeField] private TechnologyAsset[] additionalTechnologies;
 
+    public CustomerManager CustomerManager { get; private set; }
+
     // ---- Существующие менеджеры ----
     public UIManager UIManager { get; private set; }
     public EconomyManager EconomyManager { get; private set; }
@@ -35,6 +37,8 @@ public class CarCompanyManager : MonoBehaviour
     public DifficultyManager DifficultyManager { get; private set; }
     public ActionLogManager ActionLogManager { get; private set; }
     public AchievementManager AchievementManager { get; private set; }
+
+    public ChargingManager ChargingManager { get; private set; }
 
     // ---- Менеджеры запчастей и маркетинга ----
     public WarehouseManager WarehouseManager { get; private set; }
@@ -78,6 +82,9 @@ public class CarCompanyManager : MonoBehaviour
         ProductionManager = GetComponent<ProductionManager>() ?? gameObject.AddComponent<ProductionManager>();
         TechManager = GetComponent<TechManager>() ?? gameObject.AddComponent<TechManager>();
         CompetitorManager = GetComponent<CompetitorManager>() ?? gameObject.AddComponent<CompetitorManager>();
+        CustomerManager = GetComponent<CustomerManager>() ?? gameObject.AddComponent<CustomerManager>();
+        // В Awake() у CarCompanyManager:
+        ChargingManager = GetComponent<ChargingManager>() ?? gameObject.AddComponent<ChargingManager>();
         DemandManager = GetComponent<DemandManager>() ?? gameObject.AddComponent<DemandManager>();
         SaveLoadManager = GetComponent<SaveLoadManager>() ?? gameObject.AddComponent<SaveLoadManager>();
         DifficultyManager = GetComponent<DifficultyManager>() ?? gameObject.AddComponent<DifficultyManager>();

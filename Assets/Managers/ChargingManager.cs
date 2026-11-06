@@ -34,7 +34,11 @@ public class ChargingManager : MonoBehaviour
 
     public void BuildOrUpgrade(string regionId)
     {
-        if (InternationalManager.Instance == null) return;
+        if (InternationalManager.Instance == null)
+        {
+            Debug.LogError("[Charging] InternationalManager.Instance == null!");
+            return;
+        }
 
         var stations = InternationalManager.Instance.chargingStations;
         var existing = stations.FirstOrDefault(s => s.regionId == regionId);
@@ -43,7 +47,17 @@ public class ChargingManager : MonoBehaviour
         if (existing == null)
         {
             int cost = 2000;
-            if (!economy.SpendMoney(cost)) return;
+            if (economy.Money < cost)
+            {
+                UIManager.Instance?.ShowNotification($"❌ Не хватает денег! Нужно ${cost} для постройки.");
+                return;
+            }
+            
+            if (!economy.SpendMoney(cost)) 
+            {
+                UIManager.Instance?.ShowNotification("❌ Ошибка списания денег.");
+                return;
+            }
 
             stations.Add(new InternationalManager.ChargingStation
             {
@@ -51,18 +65,29 @@ public class ChargingManager : MonoBehaviour
                 level = 1,
                 coverage = 0.2f
             });
-            UIManager.Instance?.ShowNotification($"Зарядная станция в регионе {regionId} построена!");
+            UIManager.Instance?.ShowNotification($"✅ Зарядная станция в регионе {regionId} построена!");
         }
         else
         {
             int cost = 1000 * existing.level;
-            if (!economy.SpendMoney(cost)) return;
+            if (economy.Money < cost)
+            {
+                UIManager.Instance?.ShowNotification($"❌ Не хватает денег! Нужно ${cost} для улучшения.");
+                return;
+            }
+            
+            if (!economy.SpendMoney(cost)) 
+            {
+                UIManager.Instance?.ShowNotification("❌ Ошибка списания денег.");
+                return;
+            }
 
             existing.level++;
             existing.coverage = Mathf.Min(1f, existing.level * 0.2f);
-            UIManager.Instance?.ShowNotification($"Станция улучшена до ур. {existing.level}");
+            UIManager.Instance?.ShowNotification($"✅ Станция улучшена до ур. {existing.level}");
         }
 
+        // Обновляем спрос и UI
         CarCompanyManager.Instance.DemandManager.UpdateDemand();
     }
 

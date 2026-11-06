@@ -126,6 +126,8 @@
                         <ui:Label text="🌍 Международная экспансия" style="color: #996515; font-size: 12px; -unity-font-style: bold; margin-bottom: 2px;"/>
                         <ui:Button text="Рынки" name="OpenOfficesButton" class="menu-button-compact" tooltip="Управление зарубежными представительствами"/>
                         <ui:Button text="Патенты" name="OpenPatentsButton" class="menu-button-compact" tooltip="Патентование и лицензирование технологий"/>
+                        <!-- ДОБАВИТЬ ЭТУ СТРОКУ: -->
+                        <ui:Button text="Зарядки" name="OpenChargingButton" class="menu-button-compact" tooltip="Зарядная инфраструктура для электромобилей"/>
 
                         <ui:Label text="🏆 Прогресс" style="color: #996515; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
                         <ui:Button text="Технологии" name="OpenTechButton" class="menu-button-compact" tooltip="Открыть дерево технологий"/>
@@ -587,6 +589,36 @@
         </ui:VisualElement>
     </ui:VisualElement>
 
+
+
+    <!-- Charging Infrastructure -->
+    <ui:VisualElement name="ChargingOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 85%; max-width: 900px; height: 80%; max-height: 700px; background-color: rgb(240, 240, 240); padding: 20px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+                <ui:Label text="🔌 Зарядная инфраструктура" style="font-size: 20px; color: #996515; -unity-font-style: bold;" />
+                <ui:Button text="✕" name="CloseChargingButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" />
+            </ui:VisualElement>
+            <ui:Label text="Стройте станции, чтобы повысить спрос на электромобили." style="color: #444; font-size: 12px; margin-bottom: 10px;" />
+            <ui:ScrollView name="ChargingContainer" style="flex-grow: 1;" />
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px;">
+                <ui:Button name="RefreshChargingButton" text="Обновить" style="background-color: #ccc; color: black; padding: 4px 14px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+
+    <ui:VisualElement name="CarConfiguratorOverlay" class="overlay" style="display: none;">
+    <ui:VisualElement style="width: 80%; max-width: 700px; height: 90%; max-height: 800px; background-color: rgb(240,240,240); padding: 20px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+        <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px;">
+            <ui:Label name="ConfiguratorTitle" text="Настройка автомобиля" style="font-size: 20px; color: #996515; -unity-font-style: bold;" />
+            <ui:Button text="✕" name="CloseConfiguratorButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" />
+        </ui:VisualElement>
+        <ui:ScrollView name="ConfiguratorContainer" style="flex-grow: 1;" />
+        <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px;">
+            <ui:Button name="SaveConfiguratorButton" text="Применить" style="background-color: #81c784; color: black; padding: 6px 20px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:VisualElement>
 
     <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>

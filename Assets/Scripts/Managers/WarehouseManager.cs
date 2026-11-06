@@ -294,7 +294,10 @@ public class WarehouseManager : MonoBehaviour
         string trimDisplay = string.IsNullOrEmpty(found.trimName) ? "Стандарт" : found.trimName;
         UIManager.Instance?.ShowNotification(
             $"Продано {toSell} {found.blueprint.GetDisplayName()} [{trimDisplay}] за ${total:F0}");
+        if (CustomerManager.Instance != null)
+            CustomerManager.Instance.RegisterSale(found.blueprint, found.trimName, toSell);
         return toSell;
+        
     }
 
     // ==================== ПРОИЗВОДСТВО ДЕТАЛЕЙ ====================
