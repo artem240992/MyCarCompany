@@ -106,8 +106,11 @@
                     <ui:VisualElement style="flex-direction: column; gap: 4px; flex-grow: 1; min-width: 120px;">
                         <ui:Label text="🚗 Производство" style="color: #996515; font-size: 12px; -unity-font-style: bold; margin-bottom: 2px;"/>
                         <ui:Button text="Машины" name="OpenCarsButton" class="menu-button-compact" tooltip="Открыть окно производства машин"/>
+                        <ui:Button text="Дилер" name="OpenDealerButton" class="menu-button-compact" tooltip="Продажа машин со склада"/>
                         <ui:Button text="Улучшения" name="OpenUpgradeButton" class="menu-button-compact" tooltip="Открыть окно улучшений завода"/>
+                        <ui:Button text="Персонал" name="OpenStaffButton" class="menu-button-compact" tooltip="Найм и управление сотрудниками"/>
                         <ui:Button text="Платформы" name="OpenPlatformsButton" class="menu-button-compact" tooltip="Разрабатывайте платформы для удешевления производства"/>
+                        <ui:Button text="Контракты" name="OpenContractsButton" class="menu-button-compact" tooltip="Государственные и корпоративные контракты"/>  <!-- ← новая строка -->
                         <ui:Button text="Произвести авто" name="ProduceButton" class="menu-button-compact" tooltip="Произвести одну базовую машину"/>
 
                         <ui:Label text="📈 Маркетинг и продажи" style="color: #996515; font-size: 12px; -unity-font-style: bold; margin-top: 4px; margin-bottom: 2px;"/>
@@ -160,7 +163,7 @@
 
     <!-- Cars -->
     <ui:VisualElement name="CarsOverlay" class="overlay">
-        <ui:VisualElement name="CarsWindow" style="width: 90%; max-width: 900px; height: 90%; max-height: 800px; background-color: rgb(240, 240, 240); padding: 15px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+        <ui:VisualElement name="CarsWindow" style="width: 92%; max-width: 1050px; height: 90%; max-height: 800px; background-color: rgb(240, 240, 240); padding: 15px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
                 <ui:Label text="Производство машин" style="font-size: 20px; color: black; -unity-font-style: bold;" tooltip="Окно производства автомобилей"/>
                 <ui:Button text="✕" name="CloseCarsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" tooltip="Закрыть окно"/>
@@ -196,7 +199,7 @@
     <ui:VisualElement name="UpgradeOverlay" class="overlay">
         <ui:VisualElement name="UpgradeWindow" style="width: 90%; max-width: 600px; height: 85%; max-height: 700px; background-color: rgb(240, 240, 240); padding: 16px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
             <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-                <ui:Label text="Улучшения завода" style="font-size: 20px; color: black; -unity-font-style: bold;" tooltip="Улучшайте завод, нанимайте инженеров, управляйте деталями"/>
+                <ui:Label text="Улучшения завода" style="font-size: 20px; color: black; -unity-font-style: bold;" tooltip="Улучшайте завод и управляйте деталями"/>
                 <ui:Button text="✕" name="CloseUpgradeButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" tooltip="Закрыть окно"/>
             </ui:VisualElement>
             <ui:VisualElement style="flex-direction: row; margin-bottom: 8px; flex-shrink: 0;">
@@ -207,8 +210,6 @@
                 <ui:VisualElement name="UpgradeFactoryContent" style="flex-direction: column;">
                     <ui:Label text="" name="ConveyorLevelLabel" class="upgrade-label" style="font-size: 16px; color: black; -unity-font-style: bold;" tooltip="Текущий уровень конвейера (влияет на пассивный доход)"/>
                     <ui:Button text="" name="BuyConveyorButton" class="upgrade-button" style="margin-bottom: 8px; color: black; -unity-font-style: bold;" tooltip="Улучшить конвейер за деньги"/>
-                    <ui:Label text="" name="EngineerCountLabel" class="upgrade-label" style="font-size: 16px; color: black; -unity-font-style: bold;" tooltip="Количество инженеров (ускоряет производство и исследования)"/>
-                    <ui:Button text="" name="HireEngineerButton" class="upgrade-button" style="margin-bottom: 8px; color: black; -unity-font-style: bold;" tooltip="Нанять инженера за деньги"/>
                     <ui:Button text="Купить детали (100$)" name="BuyPartsButton" class="upgrade-button" style="margin-bottom: 8px; color: black; -unity-font-style: bold;" tooltip="Купить по 1 детали каждого типа на рынке"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="UpgradePartsContent" style="flex-direction: column; display: none;">
@@ -539,6 +540,53 @@
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
+
+
+    <!-- Contracts -->
+    <ui:VisualElement name="ContractsOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 90%; max-width: 1000px; height: 85%; max-height: 750px; background-color: rgb(240, 240, 240); padding: 20px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="📋 Контракты" style="font-size: 20px; color: #996515; -unity-font-style: bold;" tooltip="Государственные и корпоративные заказы на поставку автомобилей"/>
+                <ui:Button text="✕" name="CloseContractsButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+            <ui:Label text="Принимайте контракты, производите подходящие машины и получайте награду. Если не успеть к дедлайну — штраф." style="color: #444; font-size: 12px; white-space: normal; margin-bottom: 10px; flex-shrink: 0;"/>
+            <ui:ScrollView name="ContractsContainer" style="flex-grow: 1; min-height: 200px;" />
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px; flex-shrink: 0;">
+                <ui:Button name="RefreshContractsButton" text="Обновить" style="background-color: #ccc; color: black; -unity-font-style: bold; padding: 4px 14px;" tooltip="Обновить список контрактов"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Dealer -->
+    <ui:VisualElement name="DealerOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 92%; max-width: 1150px; height: 85%; max-height: 750px; background-color: rgb(240, 240, 240); padding: 20px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="🚗 Дилер" style="font-size: 20px; color: #996515; -unity-font-style: bold;" tooltip="Продажа машин со склада"/>
+                <ui:Button text="✕" name="CloseDealerButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+            <ui:Label text="Машины на складе, готовые к продаже:" style="color: #444; font-size: 12px; margin-bottom: 10px; flex-shrink: 0;"/>
+            <ui:ScrollView name="DealerContainer" style="flex-grow: 1; min-height: 200px;"/>
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px; flex-shrink: 0;">
+                <ui:Button name="RefreshDealerButton" text="Обновить" style="background-color: #ccc; color: black; -unity-font-style: bold; padding: 4px 14px;" tooltip="Обновить список машин на складе"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+    <!-- Staff -->
+    <ui:VisualElement name="StaffOverlay" class="overlay" style="display: none;">
+        <ui:VisualElement style="width: 85%; max-width: 900px; height: 85%; max-height: 750px; background-color: rgb(240, 240, 240); padding: 20px; border-radius: 10px; flex-direction: column; border-width: 2px; border-color: #aaa;">
+            <ui:VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="👥 Персонал" style="font-size: 20px; color: #996515; -unity-font-style: bold;" tooltip="Найм и управление сотрудниками"/>
+                <ui:Button text="✕" name="CloseStaffButton" style="font-size: 20px; background-color: transparent; border-width: 0; color: black; -unity-font-style: bold;" tooltip="Закрыть окно"/>
+            </ui:VisualElement>
+            <ui:Label text="Сотрудники влияют на производство, рейтинг машин и маркетинг." style="color: #444; font-size: 12px; margin-bottom: 10px; flex-shrink: 0;"/>
+            <ui:ScrollView name="StaffContainer" style="flex-grow: 1; min-height: 200px;"/>
+            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 10px; flex-shrink: 0;">
+                <ui:Button name="RefreshStaffButton" text="Обновить" style="background-color: #ccc; color: black; -unity-font-style: bold; padding: 4px 14px;" tooltip="Обновить список персонала"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+
 
     <!-- Notifications & Misc -->
     <ui:VisualElement name="NotificationContainer" class="notification-container"/>

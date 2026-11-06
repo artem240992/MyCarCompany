@@ -85,6 +85,14 @@ public class UIManager : MonoBehaviour
     private VisualElement loansOverlay;
     private VisualElement investmentsOverlay;
 
+    // ---- Контракты ----
+    private VisualElement contractsOverlay;
+    private ScrollView contractsContainer;
+
+    // ---- Дилер ----
+    private VisualElement dealerOverlay;
+    private ScrollView dealerContainer;
+
     private Button competitorsTabButton;
     private Button actionLogTabButton;
     private VisualElement actionLogContent;
@@ -100,9 +108,17 @@ public class UIManager : MonoBehaviour
     private Button produceButton;
 
     private Label conveyorLevelLabel;
-    private Label engineerCountLabel;
+    private Label designerCountLabel;
+    private Label marketerCountLabel;
+    private Label managerCountLabel;
     private Button buyConveyorButton;
-    private Button hireEngineerButton;
+    private Button hireDesignerButton;
+    private Button hireMarketerButton;
+    private Button hireManagerButton;
+
+    // ---- Персонал ----
+    private VisualElement staffOverlay;
+    private ScrollView staffContainer;
 
     private Label carStockLabel;
 
@@ -154,6 +170,7 @@ public class UIManager : MonoBehaviour
     {
         public CarBlueprint car;
         public Button produceButton;
+        public Label contractMatchLabel; // <-- ДОБАВИТЬ
 
         public DropdownField transmissionDropdown; // новое поле
 
@@ -265,17 +282,17 @@ public class UIManager : MonoBehaviour
 
     // Методы:
     // Вызывается автоматически, когда NewsManager генерирует новость.
-// НЕ закрывает другие окна — новость появляется поверх.
-public void ShowInteractiveNews(InteractiveNews news)
-{
-    if (newsOverlay == null) return;
+    // НЕ закрывает другие окна — новость появляется поверх.
+    public void ShowInteractiveNews(InteractiveNews news)
+    {
+        if (newsOverlay == null) return;
 
-    newsOverlay.style.display = DisplayStyle.Flex;
-    AnimateWindowOpen(newsOverlay);
-    UpdateNewsUI();
-}
+        newsOverlay.style.display = DisplayStyle.Flex;
+        AnimateWindowOpen(newsOverlay);
+        UpdateNewsUI();
+    }
 
-// Вызывается по кнопке «Новости» из меню — здесь уместно закрыть всё остальное.
+    // Вызывается по кнопке «Новости» из меню — здесь уместно закрыть всё остальное.
     private void OpenNewsWindow()
     {
         CloseMenuWindow();
@@ -868,9 +885,13 @@ public void ShowInteractiveNews(InteractiveNews news)
         increaseCountBtn = root.Q<Button>("IncreaseCountButton");
         produceButton = root.Q<Button>("ProduceButton");
         conveyorLevelLabel = root.Q<Label>("ConveyorLevelLabel");
-        engineerCountLabel = root.Q<Label>("EngineerCountLabel");
+        designerCountLabel = root.Q<Label>("DesignerCountLabel");
+        marketerCountLabel = root.Q<Label>("MarketerCountLabel");
+        managerCountLabel  = root.Q<Label>("ManagerCountLabel");
+        hireDesignerButton = root.Q<Button>("HireDesignerButton");
+        hireMarketerButton = root.Q<Button>("HireMarketerButton");
+        hireManagerButton  = root.Q<Button>("HireManagerButton");
         buyConveyorButton = root.Q<Button>("BuyConveyorButton");
-        hireEngineerButton = root.Q<Button>("HireEngineerButton");
         buyPartsButton = root.Q<Button>("BuyPartsButton");
 
         engineLabel = root.Q<Label>("EngineLabel");
@@ -884,6 +905,24 @@ public void ShowInteractiveNews(InteractiveNews news)
         investmentsOverlay = root.Q<VisualElement>("InvestmentsOverlay");
         officesOverlay = root.Q<VisualElement>("OfficesOverlay");
         patentsOverlay = root.Q<VisualElement>("PatentsOverlay");
+
+        // ---- Персонал ----
+        staffOverlay = root.Q<VisualElement>("StaffOverlay");
+        staffContainer = root.Q<ScrollView>("StaffContainer");
+        if (staffOverlay != null)
+            staffOverlay.style.display = DisplayStyle.None;
+        
+        // ---- Дилер ----
+        dealerOverlay = root.Q<VisualElement>("DealerOverlay");
+        dealerContainer = root.Q<ScrollView>("DealerContainer");
+        if (dealerOverlay != null)
+            dealerOverlay.style.display = DisplayStyle.None;
+        
+        // ---- Контракты ----
+        contractsOverlay = root.Q<VisualElement>("ContractsOverlay");
+        contractsContainer = root.Q<ScrollView>("ContractsContainer");
+        if (contractsOverlay != null)
+            contractsOverlay.style.display = DisplayStyle.None;
         demoTimerLabel = root.Q<Label>("DemoTimerLabel");
         demoProgressLabel = root.Q<Label>("DemoProgressLabel");
         
@@ -936,6 +975,20 @@ public void ShowInteractiveNews(InteractiveNews news)
         SubscribeButton("ClosePatentsButton", ClosePatentsWindow);
         SubscribeButton("RefreshOfficesButton", UpdateOfficesUI);
         SubscribeButton("RefreshPatentsButton", UpdatePatentsUI);
+
+
+        SubscribeButton("OpenDealerButton", OpenDealerWindow);
+        SubscribeButton("CloseDealerButton", CloseDealerWindow);
+        SubscribeButton("RefreshDealerButton", RefreshDealerUI);
+
+        SubscribeButton("OpenStaffButton", OpenStaffWindow);
+        SubscribeButton("CloseStaffButton", CloseStaffWindow);
+        SubscribeButton("RefreshStaffButton", RefreshStaffUI);
+
+        // ---- Контракты ----
+        SubscribeButton("OpenContractsButton", OpenContractsWindow);
+        SubscribeButton("CloseContractsButton", CloseContractsWindow);
+        SubscribeButton("RefreshContractsButton", RefreshContractsUI);
 
         SubscribeButton("CloseMarketingButton2", CloseMarketingWindow);
         SubscribeButton("RefreshCompetitorsButton", () =>
@@ -990,8 +1043,9 @@ public void ShowInteractiveNews(InteractiveNews news)
 
         if (buyConveyorButton != null)
             buyConveyorButton.clicked += TryBuyConveyorUpgrade;
-        if (hireEngineerButton != null)
-            hireEngineerButton.clicked += TryHireEngineer;
+        if (hireDesignerButton != null) hireDesignerButton.clicked += TryHireDesigner;
+        if (hireMarketerButton != null) hireMarketerButton.clicked += TryHireMarketer;
+        if (hireManagerButton  != null) hireManagerButton.clicked  += TryHireManager;
 
         if (decreaseCountBtn != null) 
             decreaseCountBtn.clicked += () => { if (countInputField.value > 1) countInputField.value--; };
@@ -1096,6 +1150,8 @@ public void ShowInteractiveNews(InteractiveNews news)
         #endif
         if (NewsManager.Instance != null)
             NewsManager.Instance.OnNewsChanged += UpdateNewsUI;
+        if (ContractManager.Instance != null)
+            ContractManager.Instance.OnContractsChanged += RefreshContractsUI;
     }
 
 
@@ -1242,16 +1298,18 @@ public void ShowInteractiveNews(InteractiveNews news)
 
 
 
-/// <summary>
-/// Производит указанное количество машин указанной модели.
-/// </summary>
-/// <param name="car">Модель для производства. Если null, используется первая доступная.</param>
-/// <param name="count">Количество машин для производства.</param>
+    /// <summary>
+    /// Производит указанное количество машин указанной модели.
+    /// </summary>
+    /// <param name="car">Модель для производства. Если null, используется первая доступная.</param>
+    /// <param name="count">Количество машин для производства.</param>
     private void ProduceCars(CarBlueprint car, int count)
+        => ProduceCars(car, count, "", "АКПП");
+
+    private void ProduceCars(CarBlueprint car, int count, string trimName, string transmissionType)
     {
         if (count <= 0) return;
 
-        // Если модель не указана, берём первую доступную
         if (car == null)
         {
             var availableCars = tech.AvailableCars;
@@ -1269,17 +1327,14 @@ public void ShowInteractiveNews(InteractiveNews news)
 
         for (int i = 0; i < count; i++)
         {
-            // 1. Проверяем наличие деталей
             if (!HasRequiredParts(car))
             {
                 ShowNotification($"❌ Недостаточно деталей для {car.GetDisplayName()}!");
                 break;
             }
 
-            // 2. Проверяем наличие денег
-                        // 2. Проверяем наличие денег (с учетом опций)
-            int assemblyCost = car.finalAssemblyCostWithOptions > 0 
-                ? car.finalAssemblyCostWithOptions 
+            int assemblyCost = car.finalAssemblyCostWithOptions > 0
+                ? car.finalAssemblyCostWithOptions
                 : car.GetModifiedAssemblyCost();
             if (economy.Money < assemblyCost)
             {
@@ -1287,17 +1342,9 @@ public void ShowInteractiveNews(InteractiveNews news)
                 break;
             }
 
-            // 3. Производим машину
-            bool success = production.ProduceSpecificCar(car);
-            if (success)
-            {
-                produced++;
-            }
-            else
-            {
-                // Если производство не удалось по другой причине, прерываем
-                break;
-            }
+            bool success = production.ProduceSpecificCar(car, trimName, transmissionType);
+            if (success) produced++;
+            else break;
         }
 
         if (produced > 0)
@@ -1306,14 +1353,14 @@ public void ShowInteractiveNews(InteractiveNews news)
             UpdateProductionButtonsState();
             UpdateMoneyLabels();
             ShowNotification($"✅ {produced} {car.GetDisplayName()} произведено!");
-
-            // ---- Обновление достижений ----
             CarCompanyManager.Instance.EconomyManager.RegisterCarSold(produced);
+
+            if (dealerOverlay != null && dealerOverlay.style.display == DisplayStyle.Flex)
+                RefreshDealerUI();
         }
-        else
+        else if (count > 0)
         {
-            // Если не произвели ни одной машины, показываем общее уведомление
-            if (count > 0) ShowNotification($"❌ Не удалось произвести ни одной машины.");
+            ShowNotification("❌ Не удалось произвести ни одной машины.");
         }
     }
 
@@ -1354,29 +1401,21 @@ public void ShowInteractiveNews(InteractiveNews news)
     private void TryProduceSpecificCar(CarCardData cardData)
     {
         if (cardData == null || cardData.car == null) return;
-
-        // Передаем в блюпринт текущую комплектацию, чтобы завод её учел
-        cardData.car.finalAssemblyCostWithOptions = -1; 
-        UpdateCarCards(); 
+        cardData.car.finalAssemblyCostWithOptions = -1;
+        UpdateCarCards();
 
         int count = 1;
         if (countInputField != null)
         {
             count = Mathf.Max(1, countInputField.value);
-            
-            // Проверяем, изучена ли технология
             bool hasMassProduction = tech.IsTechResearched("Массовое производство");
             int maxAllowed = hasMassProduction ? 100 : 1;
-
-            if (count > maxAllowed)
-            {
-                count = maxAllowed;
-                countInputField.value = maxAllowed; 
-                ShowNotification($"❌ Максимум {maxAllowed} авто за раз! Изучите технологию массового производства.");
-            }
+            if (count > maxAllowed) { count = maxAllowed; countInputField.value = maxAllowed; }
         }
 
-        ProduceCars(cardData.car, count);
+        string trimName = cardData.selectedTrim != null ? cardData.selectedTrim.trimName : "";
+        string gearbox = cardData.transmissionDropdown != null ? cardData.transmissionDropdown.value : "АКПП";
+        ProduceCars(cardData.car, count, trimName, gearbox);
     }
 
 
@@ -1537,13 +1576,6 @@ public void ShowInteractiveNews(InteractiveNews news)
     }
 
 
-    private void TryHireEngineer()
-    {
-        economy.HireEngineer();
-        UpdateWarehouseLabels();
-        UpdateProductionButtonsState();
-        UpdateUpgradeUI();
-    }
 
     // ---- Производство деталей ----
     private void TryProducePart(PartType type)
@@ -1874,18 +1906,11 @@ public void ShowInteractiveNews(InteractiveNews news)
     public void UpdateUpgradeUI()
     {
         if (conveyorLevelLabel != null) conveyorLevelLabel.text = $"Уровень конвейера: {economy.ConveyorLevel}";
-        if (engineerCountLabel != null) engineerCountLabel.text = $"Инженеров: {economy.EngineerCount}";
 
         if (buyConveyorButton != null)
         {
             int cost = Mathf.RoundToInt((10 + economy.ConveyorLevel * 5) * economy.CostMultiplier);
             buyConveyorButton.text = $"Улучшить конвейер (${cost})";
-        }
-
-        if (hireEngineerButton != null)
-        {
-            int cost = Mathf.RoundToInt((50 + economy.EngineerCount * 20) * economy.CostMultiplier);
-            hireEngineerButton.text = $"Нанять инженера (${cost})";
         }
 
         if (buyPartsButton != null)
@@ -2056,7 +2081,7 @@ public void ShowInteractiveNews(InteractiveNews news)
     }
 
 
-        public void CreateCarCards(CarBlueprint[] availableCars)
+    public void CreateCarCards(CarBlueprint[] availableCars)
     {
         if (carsContainer == null) return;
         carsContainer.Clear();
@@ -2076,9 +2101,9 @@ public void ShowInteractiveNews(InteractiveNews news)
                     && car.currentLevel < car.levels.Length)
                 && upgradeUnlocked;
 
+            // ========== КОРНЕВАЯ КАРТОЧКА ==========
             VisualElement card = new VisualElement();
             card.AddToClassList("car-card");
-            
             card.style.backgroundColor = new StyleColor(isDarkTheme ? new Color(0.18f, 0.18f, 0.18f) : new Color(0.95f, 0.95f, 0.95f));
             card.style.borderTopWidth = 1; card.style.borderBottomWidth = 1;
             card.style.borderLeftWidth = 1; card.style.borderRightWidth = 1;
@@ -2086,160 +2111,340 @@ public void ShowInteractiveNews(InteractiveNews news)
             card.style.borderBottomColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
             card.style.borderLeftColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
             card.style.borderRightColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
-            card.style.borderTopLeftRadius = 6; card.style.borderTopRightRadius = 6;
-            card.style.borderBottomLeftRadius = 6; card.style.borderBottomRightRadius = 6;
-            card.style.paddingTop = 8; card.style.paddingBottom = 8;
+            card.style.borderTopLeftRadius = 8; card.style.borderTopRightRadius = 8;
+            card.style.borderBottomLeftRadius = 8; card.style.borderBottomRightRadius = 8;
+            card.style.paddingTop = 10; card.style.paddingBottom = 10;
             card.style.paddingLeft = 12; card.style.paddingRight = 12;
-            card.style.marginBottom = 6;
+            card.style.marginBottom = 8;
             card.style.flexDirection = FlexDirection.Column;
-            card.style.alignItems = Align.Stretch;
 
-            VisualElement topRow = new VisualElement();
-            topRow.style.flexDirection = FlexDirection.Row;
-            topRow.style.alignItems = Align.Center;
+            // ========== ШАПКА ==========
+            VisualElement header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.marginBottom = 6;
 
+            // Иконка
             Sprite iconSprite = car.carIcon != null ? car.carIcon : LoadCarIcon(car.carName);
             if (iconSprite != null)
             {
                 Image iconImage = new Image();
                 iconImage.sprite = iconSprite;
-                iconImage.style.width = 50; iconImage.style.height = 50;
-                iconImage.style.marginRight = 12;
-                topRow.Add(iconImage);
+                iconImage.style.width = 48; iconImage.style.height = 48;
+                iconImage.style.marginRight = 10;
+                header.Add(iconImage);
             }
             else
             {
                 VisualElement placeholder = new VisualElement();
-                placeholder.style.width = 50; placeholder.style.height = 50;
-                placeholder.style.marginRight = 12;
-                placeholder.style.backgroundColor = new StyleColor(isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.8f, 0.8f, 0.8f));
-                topRow.Add(placeholder);
+                placeholder.style.width = 48; placeholder.style.height = 48;
+                placeholder.style.marginRight = 10;
+                placeholder.style.backgroundColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.8f, 0.8f, 0.8f);
+                placeholder.style.borderTopLeftRadius = 4; placeholder.style.borderTopRightRadius = 4;
+                placeholder.style.borderBottomLeftRadius = 4; placeholder.style.borderBottomRightRadius = 4;
+                header.Add(placeholder);
             }
 
-            VisualElement textContainer = new VisualElement();
-            textContainer.style.flexDirection = FlexDirection.Column;
-            textContainer.style.flexGrow = 1;
+            // Информационный столбец
+            VisualElement info = new VisualElement();
+            info.style.flexDirection = FlexDirection.Column;
+            info.style.flexGrow = 1;
 
-            CarRecipe currentRecipe = car.recipe;
-            var req = GetRequirements(currentRecipe);
+            // Строка: название + бейдж уровня
+            VisualElement nameRow = new VisualElement();
+            nameRow.style.flexDirection = FlexDirection.Row;
+            nameRow.style.alignItems = Align.Center;
 
-            Label partsLabel = new Label($"Требуется: 🔧{req.engine} 🔩{req.body} ⚙️{req.wheels} 💻{req.electronics}");
-            partsLabel.style.fontSize = 10;
-            partsLabel.style.color = isDarkTheme ? new Color(0.8f, 0.8f, 0.8f) : new Color(0.2f, 0.2f, 0.2f);
-            textContainer.Add(partsLabel);
-            
-            Label platformLabel = new Label();
-            platformLabel.style.fontSize = 11;
-            platformLabel.style.color = isDarkTheme ? new Color(0.6f, 0.8f, 1f) : new Color(0.1f, 0.3f, 0.6f);
-            platformLabel.style.marginTop = 2;
-            textContainer.Add(platformLabel);
-            cardData.platformLabel = platformLabel;
+            Label nameLabel = new Label(car.GetDisplayName());
+            nameLabel.style.fontSize = 16;
+            nameLabel.style.color = isDarkTheme ? Color.white : Color.black;
+            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            nameRow.Add(nameLabel);
+
+            Label levelBadge = new Label($"ур. {car.currentLevel + 1}");
+            levelBadge.style.fontSize = 10;
+            levelBadge.style.color = isDarkTheme ? new Color(0.7f, 0.9f, 1f) : new Color(0.1f, 0.3f, 0.6f);
+            levelBadge.style.backgroundColor = isDarkTheme ? new Color(0.2f, 0.3f, 0.4f) : new Color(0.85f, 0.92f, 1f);
+            levelBadge.style.paddingTop = 1; levelBadge.style.paddingBottom = 1;
+            levelBadge.style.paddingLeft = 6; levelBadge.style.paddingRight = 6;
+            levelBadge.style.marginLeft = 8;
+            levelBadge.style.borderTopLeftRadius = 8; levelBadge.style.borderTopRightRadius = 8;
+            levelBadge.style.borderBottomLeftRadius = 8; levelBadge.style.borderBottomRightRadius = 8;
+            nameRow.Add(levelBadge);
+            info.Add(nameRow);
+
+            // Строка: тип · рейтинг · на складе
+            VisualElement metaRow = new VisualElement();
+            metaRow.style.flexDirection = FlexDirection.Row;
+            metaRow.style.alignItems = Align.Center;
+            metaRow.style.marginTop = 3;
 
             Label typeLabel = new Label(car.carType != null ? car.carType.typeName : "Без типа");
             typeLabel.style.fontSize = 11;
-            typeLabel.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.3f, 0.3f, 0.3f);
-            textContainer.Add(typeLabel);
+            typeLabel.style.color = isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.35f, 0.35f, 0.35f);
+            metaRow.Add(typeLabel);
 
-            int assemblyCost = car.GetModifiedAssemblyCost();
-            Label costLabel = new Label($"Сборка: ${assemblyCost}");
-            costLabel.style.fontSize = 10;
-            costLabel.style.color = isDarkTheme ? new Color(1f, 0.8f, 0.3f) : new Color(0.6f, 0.4f, 0.0f);
-            textContainer.Add(costLabel);
+            Label dot1 = new Label(" · ");
+            dot1.style.fontSize = 11;
+            dot1.style.color = isDarkTheme ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
+            metaRow.Add(dot1);
 
-            // Блок коробки передач
-            VisualElement transmissionRow = new VisualElement();
-            transmissionRow.style.flexDirection = FlexDirection.Row;
-            transmissionRow.style.alignItems = Align.Center;
-            transmissionRow.style.marginTop = 2;
+            Label ratingLabelElement = new Label("★ --");
+            ratingLabelElement.style.fontSize = 11;
+            ratingLabelElement.style.color = isDarkTheme ? new Color(1f, 0.8f, 0.2f) : new Color(0.6f, 0.4f, 0.0f);
+            ratingLabelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
+            metaRow.Add(ratingLabelElement);
+            cardData.ratingLabel = ratingLabelElement;
 
-            Label transmissionLabel = new Label("Коробка:");
-            transmissionLabel.style.color = isDarkTheme ? Color.white : Color.black;
-            transmissionLabel.style.fontSize = 11;
-            transmissionLabel.style.marginRight = 8;
+            Label dot2 = new Label(" · ");
+            dot2.style.fontSize = 11;
+            dot2.style.color = isDarkTheme ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
+            metaRow.Add(dot2);
 
-            // 1. СНАЧАЛА ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ
-            DropdownField transmissionDropdown = new DropdownField();
-            transmissionDropdown.style.width = 100;
-            transmissionDropdown.style.fontSize = 11;
-            
-            // 2. ПОТОМ ПРИМЕНЯЕМ К НЕЙ СТИЛИ (это вызывает ошибку, если стоит выше)
-            ApplyFieldStyle(transmissionDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.9f, 0.9f, 0.9f), isDarkTheme ? Color.white : Color.black);
+            Label stockLabel = new Label("На складе: 0");
+            stockLabel.style.fontSize = 11;
+            stockLabel.style.color = isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.35f, 0.35f, 0.35f);
+            metaRow.Add(stockLabel);
+            cardData.stockLabel = stockLabel;
 
+            info.Add(metaRow);
+
+            // Требования
+            var req = GetRequirements(car.recipe);
+            Label partsLabel = new Label($"🔧{req.engine} 🔩{req.body} ⚙️{req.wheels} 💻{req.electronics}");
+            partsLabel.style.fontSize = 10;
+            partsLabel.style.color = isDarkTheme ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.4f, 0.4f, 0.4f);
+            partsLabel.style.marginTop = 3;
+            info.Add(partsLabel);
+
+            // Платформа
+            Label platformLabel = new Label();
+            platformLabel.style.fontSize = 10;
+            platformLabel.style.marginTop = 2;
+            info.Add(platformLabel);
+            cardData.platformLabel = platformLabel;
+
+            // Подходящие контракты
+            Label contractMatchLabel = new Label();
+            contractMatchLabel.style.fontSize = 11;
+            contractMatchLabel.style.marginTop = 4;
+            contractMatchLabel.style.whiteSpace = WhiteSpace.Normal;
+            contractMatchLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            info.Add(contractMatchLabel);
+            cardData.contractMatchLabel = contractMatchLabel;
+
+            // ========== КНОПКИ ДЕЙСТВИЙ ==========
+            VisualElement actions = new VisualElement();
+            actions.style.flexDirection = FlexDirection.Column;
+            actions.style.width = 120;
+            actions.style.marginLeft = 10;
+
+            Button upgradeButton = new Button();
+            upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
+            upgradeButton.style.height = 26;
+            upgradeButton.style.marginBottom = 5;
+            upgradeButton.style.color = isDarkTheme ? Color.white : Color.black;
+            upgradeButton.SetEnabled(canUpgrade);
+            upgradeButton.clicked += () => tech.UpgradeCar(car);
+            actions.Add(upgradeButton);
+            cardData.upgradeButton = upgradeButton;
+
+            Button produceBtn = new Button();
+            produceBtn.text = "Произвести";
+            produceBtn.style.height = 32;
+            produceBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            produceBtn.style.backgroundColor = isDarkTheme
+                ? new Color(0.25f, 0.55f, 0.25f)
+                : new Color(0.55f, 0.85f, 0.55f);
+            produceBtn.style.color = Color.black;
+            produceBtn.clicked += () => TryProduceSpecificCar(cardData);
+            actions.Add(produceBtn);
+            cardData.produceButton = produceBtn;
+
+            header.Add(info);
+            header.Add(actions);
+            card.Add(header);
+
+            // ========== СТРОКА СТАТИСТИКИ ==========
+            VisualElement statsRow = new VisualElement();
+            statsRow.style.flexDirection = FlexDirection.Row;
+            statsRow.style.flexWrap = Wrap.Wrap;
+            statsRow.style.backgroundColor = isDarkTheme
+                ? new Color(0.13f, 0.13f, 0.15f)
+                : new Color(0.92f, 0.92f, 0.92f);
+            statsRow.style.paddingTop = 6; statsRow.style.paddingBottom = 6;
+            statsRow.style.paddingLeft = 10; statsRow.style.paddingRight = 10;
+            statsRow.style.borderTopLeftRadius = 6; statsRow.style.borderTopRightRadius = 6;
+            statsRow.style.borderBottomLeftRadius = 6; statsRow.style.borderBottomRightRadius = 6;
+            statsRow.style.marginBottom = 6;
+
+            // Цена + кнопки
+            VisualElement priceBlock = new VisualElement();
+            priceBlock.style.flexDirection = FlexDirection.Column;
+            priceBlock.style.width = 140;
+            priceBlock.style.flexShrink = 0; // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+            priceBlock.style.marginRight = 10;
+
+            Label priceCap = new Label("Цена");
+            priceCap.style.fontSize = 9;
+            priceCap.style.color = isDarkTheme ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.5f, 0.5f, 0.5f);
+            priceBlock.Add(priceCap);
+
+            VisualElement priceRow = new VisualElement();
+            priceRow.style.flexDirection = FlexDirection.Row;
+            priceRow.style.alignItems = Align.Center;
+
+            Label priceLabel = new Label($"${car.currentPrice}");
+            priceLabel.style.fontSize = 14;
+            priceLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            priceLabel.style.color = isDarkTheme ? new Color(1f, 0.85f, 0.3f) : new Color(0.6f, 0.4f, 0.0f);
+            priceLabel.style.marginRight = 4;
+            priceRow.Add(priceLabel);
+            cardData.priceLabel = priceLabel;
+
+            Button decreasePriceBtn = new Button(() => 
+            {
+                int step = Mathf.Max(10, car.currentPrice / 20);
+                ChangeCarPrice(car, -step);
+            });
+            decreasePriceBtn.text = "−";
+            decreasePriceBtn.style.width = 22; 
+            decreasePriceBtn.style.height = 20;
+            decreasePriceBtn.style.fontSize = 13;
+            decreasePriceBtn.style.paddingLeft = 0; 
+            decreasePriceBtn.style.paddingRight = 0;
+            decreasePriceBtn.style.marginRight = 2;
+            decreasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
+            priceRow.Add(decreasePriceBtn);
+            cardData.decreasePriceBtn = decreasePriceBtn;
+
+            Button increasePriceBtn = new Button(() => 
+            {
+                int step = Mathf.Max(10, car.currentPrice / 20);
+                ChangeCarPrice(car, step);
+            });
+            increasePriceBtn.text = "+";
+            increasePriceBtn.style.width = 22; 
+            increasePriceBtn.style.height = 20;
+            increasePriceBtn.style.fontSize = 13;
+            increasePriceBtn.style.paddingLeft = 0; 
+            increasePriceBtn.style.paddingRight = 0;
+            increasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
+            priceRow.Add(increasePriceBtn);
+            cardData.increasePriceBtn = increasePriceBtn;
+
+            priceBlock.Add(priceRow);
+            statsRow.Add(priceBlock);
+
+            // Себестоимость
+            cardData.detailsLabel = AddStatBlock(statsRow, "Себестоимость", "$--",
+                isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.4f, 0.4f, 0.4f), 110);
+
+            // Прибыль
+            var profitLabelRef = AddStatBlock(statsRow, "Прибыль", "$--",
+                new Color(0.56f, 0.93f, 0.56f), 110);
+            profitLabelRef.style.unityFontStyleAndWeight = FontStyle.Bold;
+            cardData.profitLabel = profitLabelRef;
+
+            // Спрос
+            cardData.demandLabel = AddStatBlock(statsRow, "Спрос", "1.0x",
+                isDarkTheme ? Color.white : Color.black, 80);
+
+            // Налог
+            cardData.taxRateLabel = AddStatBlock(statsRow, "Налог", "--",
+                new Color(1f, 0.7f, 0.4f), 80);
+
+            card.Add(statsRow);
+
+            // ========== FOLDOUT: КОРОБКА И КОМПЛЕКТАЦИЯ ==========
+            VisualElement configContent = new VisualElement();
+            configContent.style.paddingTop = 4;
+
+            // Коробка
             List<string> transmissionOptions = new List<string>();
             string[] allTransmissions = { "АКПП", "МКПП", "Робот", "Вариатор" };
             string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
             for (int i = 0; i < allTransmissions.Length; i++)
-            {
                 if (tech.IsTechResearched(techNames[i]))
                     transmissionOptions.Add(allTransmissions[i]);
-            }
             if (transmissionOptions.Count == 0) transmissionOptions.Add("АКПП");
 
+            VisualElement transRow = new VisualElement();
+            transRow.style.flexDirection = FlexDirection.Row;
+            transRow.style.alignItems = Align.Center;
+            transRow.style.marginBottom = 4;
+
+            Label transLabel = new Label("Коробка:");
+            transLabel.style.width = 110;
+            transLabel.style.fontSize = 11;
+            transLabel.style.color = isDarkTheme ? Color.white : Color.black;
+            transRow.Add(transLabel);
+
+            DropdownField transmissionDropdown = new DropdownField();
+            transmissionDropdown.style.flexGrow = 1;
+            transmissionDropdown.style.fontSize = 11;
             transmissionDropdown.choices = transmissionOptions;
-            if (!string.IsNullOrEmpty(car.transmissionType) && transmissionOptions.Contains(car.transmissionType))
-                transmissionDropdown.value = car.transmissionType;
-            else
-                transmissionDropdown.value = transmissionOptions[0];
-
+            transmissionDropdown.value = (!string.IsNullOrEmpty(car.transmissionType) && transmissionOptions.Contains(car.transmissionType))
+                ? car.transmissionType : transmissionOptions[0];
             transmissionDropdown.RegisterValueChangedCallback(evt => { car.transmissionType = evt.newValue; });
-            transmissionRow.Add(transmissionLabel);
-            transmissionRow.Add(transmissionDropdown);
-            textContainer.Add(transmissionRow);
+            ApplyFieldStyle(transmissionDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
+            transRow.Add(transmissionDropdown);
+            cardData.transmissionDropdown = transmissionDropdown;
+            configContent.Add(transRow);
 
-            // Блок комплектаций
-            if (car.recipe != null && car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0)
+            // Комплектация
+            bool hasTrims = car.recipe != null && car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0;
+            bool hasTrimChoice = hasTrims && car.recipe.availableTrims.Count > 1;
+
+            if (hasTrims)
             {
-                VisualElement configPanel = new VisualElement();
-                configPanel.style.marginTop = 5; configPanel.style.paddingTop = 5; configPanel.style.paddingBottom = 5;
-                configPanel.style.paddingLeft = 5; configPanel.style.paddingRight = 5;
-                configPanel.style.backgroundColor = isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.88f, 0.88f, 0.88f);
-                configPanel.style.borderTopLeftRadius = 4; configPanel.style.borderTopRightRadius = 4;
-                configPanel.style.borderBottomLeftRadius = 4; configPanel.style.borderBottomRightRadius = 4;
+                VisualElement trimRow = new VisualElement();
+                trimRow.style.flexDirection = FlexDirection.Row;
+                trimRow.style.alignItems = Align.Center;
+                trimRow.style.marginBottom = 4;
 
-                Label configTitle = new Label("Комплектация:");
-                configTitle.style.color = isDarkTheme ? Color.white : Color.black;
-                configTitle.style.fontSize = 11;
-                configPanel.Add(configTitle);
+                Label trimLabel = new Label("Комплектация:");
+                trimLabel.style.width = 110;
+                trimLabel.style.fontSize = 11;
+                trimLabel.style.color = isDarkTheme ? Color.white : Color.black;
+                trimRow.Add(trimLabel);
 
                 List<string> trimNames = car.recipe.availableTrims.Select(t => t.trimName).ToList();
                 DropdownField trimDropdown = new DropdownField(trimNames, 0);
+                trimDropdown.style.flexGrow = 1;
                 trimDropdown.style.fontSize = 11;
-                trimDropdown.style.marginBottom = 4;
-                
-                // Сначала создали trimDropdown, потом применяем стили
-                ApplyFieldStyle(trimDropdown, isDarkTheme ? new Color(0.15f, 0.15f, 0.15f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
-                configPanel.Add(trimDropdown);
+                ApplyFieldStyle(trimDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
+                trimRow.Add(trimDropdown);
+                cardData.trimDropdown = trimDropdown;
+                configContent.Add(trimRow);
 
                 VisualElement optionsContainer = new VisualElement();
-                configPanel.Add(optionsContainer);
-
-                cardData.trimDropdown = trimDropdown;
+                optionsContainer.style.marginTop = 2;
+                configContent.Add(optionsContainer);
                 cardData.optionsContainer = optionsContainer;
 
                 Action updateOptionsUI = () =>
                 {
                     optionsContainer.Clear();
                     if (car.recipe.availableTrims.Count == 0) return;
-                    
                     cardData.selectedTrim = car.recipe.availableTrims[trimDropdown.index];
                     cardData.selectedOptions.Clear();
-
+                    if (cardData.selectedTrim.availableOptions == null) return;
                     foreach (var option in cardData.selectedTrim.availableOptions)
                     {
                         Toggle toggle = new Toggle(option.optionName);
                         toggle.style.fontSize = 11;
                         toggle.style.color = isDarkTheme ? Color.white : Color.black;
-                        
-                        bool isDefault = cardData.selectedTrim.defaultOptions.Contains(option);
+                        toggle.style.marginLeft = 110;
+                        bool isDefault = cardData.selectedTrim.defaultOptions != null
+                            && cardData.selectedTrim.defaultOptions.Contains(option);
                         toggle.value = isDefault;
-
                         if (isDefault) cardData.selectedOptions.Add(option);
-
                         toggle.RegisterValueChangedCallback(evt =>
                         {
                             if (evt.newValue) cardData.selectedOptions.Add(option);
                             else cardData.selectedOptions.Remove(option);
-                            UpdateCarCards(); 
+                            UpdateCarCards();
                         });
                         optionsContainer.Add(toggle);
                     }
@@ -2247,175 +2452,21 @@ public void ShowInteractiveNews(InteractiveNews news)
                 };
                 trimDropdown.RegisterValueChangedCallback(evt => updateOptionsUI());
                 updateOptionsUI();
-                textContainer.Add(configPanel);
             }
 
-            Label nameLabel = new Label(car.GetDisplayName());
-            nameLabel.style.fontSize = 15;
-            nameLabel.style.color = isDarkTheme ? Color.white : Color.black;
-            nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            Foldout configFold = new Foldout();
+            configFold.text = "Коробка и комплектация";
+            configFold.value = (transmissionOptions.Count > 1) || hasTrimChoice;
+            configFold.style.marginBottom = 2;
+            configFold.style.color = isDarkTheme ? Color.white : Color.black;
+            configFold.Add(configContent);
+            card.Add(configFold);
 
-            int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
-            int modCost = Mathf.RoundToInt(car.GetProductionCostWithLevel() * economy.CostMultiplier);
-            Label detailsLabel = new Label($"Цена: ${modPrice}  |  Себ: ${modCost}");
-            detailsLabel.style.fontSize = 12;
-            detailsLabel.style.color = isDarkTheme ? new Color(0.8f, 0.8f, 0.8f) : new Color(0.2f, 0.2f, 0.2f);
-            textContainer.Add(detailsLabel);
-
-            // Блок регулировки цены
-            VisualElement priceControlRow = new VisualElement();
-            priceControlRow.style.flexDirection = FlexDirection.Row;
-            priceControlRow.style.alignItems = Align.Center;
-            priceControlRow.style.marginTop = 4;
-
-            Label priceLabel = new Label($"${car.currentPrice}");
-            priceLabel.style.fontSize = 14;
-            priceLabel.style.color = isDarkTheme ? new Color(1f, 0.9f, 0.4f) : new Color(0.6f, 0.4f, 0.0f);
-            priceLabel.style.marginRight = 8;
-            priceLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-            Button decreasePriceBtn = new Button();
-            decreasePriceBtn.text = "−";
-            decreasePriceBtn.style.width = 24; decreasePriceBtn.style.height = 24;
-            decreasePriceBtn.style.fontSize = 14;
-            decreasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
-
-            Button increasePriceBtn = new Button();
-            increasePriceBtn.text = "+";
-            increasePriceBtn.style.width = 24; increasePriceBtn.style.height = 24;
-            increasePriceBtn.style.fontSize = 14;
-            increasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
-
-            CarBlueprint localCar = car;
-            decreasePriceBtn.clicked += () => ChangeCarPrice(localCar, -10);
-            increasePriceBtn.clicked += () => ChangeCarPrice(localCar, 10);
-
-            priceControlRow.Add(priceLabel);
-            priceControlRow.Add(decreasePriceBtn);
-            priceControlRow.Add(increasePriceBtn);
-            textContainer.Add(priceControlRow);
-
-            double profit = modPrice - modCost;
-            Label profitLabel = new Label($"Прибыль: {profit:F0}");
-            profitLabel.style.fontSize = 13;
-            profitLabel.style.color = profit > 0 
-                ? (isDarkTheme ? new Color(0.5f, 1f, 0.5f) : new Color(0.1f, 0.5f, 0.1f))
-                : (isDarkTheme ? new Color(1f, 0.5f, 0.5f) : new Color(0.7f, 0.1f, 0.1f));
-            profitLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-
-            Label profitDetailsLabel = new Label();
-            profitDetailsLabel.style.fontSize = 10;
-            profitDetailsLabel.style.color = isDarkTheme ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.4f, 0.4f, 0.4f);
-            profitDetailsLabel.style.marginTop = 2;
-            textContainer.Add(profitDetailsLabel);
-
-            Label demandLabel = new Label($"Спрос: {car.CurrentDemandMultiplier:F1}x");
-            demandLabel.style.fontSize = 11;
-            demandLabel.style.color = isDarkTheme ? new Color(0.8f, 0.8f, 0.8f) : new Color(0.2f, 0.2f, 0.2f);
-            textContainer.Add(demandLabel);
-
-            Label levelLabel = new Label($"Уровень: {car.currentLevel + 1}");
-            levelLabel.style.fontSize = 11;
-            levelLabel.style.color = isDarkTheme ? new Color(0.6f, 0.8f, 1f) : new Color(0.1f, 0.3f, 0.6f);
-            textContainer.Add(levelLabel);
-
-            Label trendLabel = new Label("тренд: ...");
-            trendLabel.style.fontSize = 10;
-            trendLabel.style.color = isDarkTheme ? Color.gray : new Color(0.5f, 0.5f, 0.5f);
-            textContainer.Add(trendLabel);
-
-            Label taxRateLabel = new Label($"Налог: {economy.GetTaxRate(car):P0}");
-            taxRateLabel.style.fontSize = 10;
-            taxRateLabel.style.color = isDarkTheme ? new Color(1f, 0.6f, 0.3f) : new Color(0.6f, 0.3f, 0.0f);
-            textContainer.Add(taxRateLabel);
-
-            Label modifierLabel = new Label();
-            modifierLabel.style.fontSize = 10;
-            modifierLabel.style.color = isDarkTheme ? new Color(1f, 0.8f, 0.2f) : new Color(0.6f, 0.4f, 0.0f);
-            modifierLabel.style.marginTop = 2;
-            modifierLabel.style.display = DisplayStyle.None;
-            textContainer.Add(modifierLabel);
-
-            Label ratingLabelElement = new Label($"Рейтинг: {car.CalculateRating(economy.TotalPriceModifier):F1}");
-            ratingLabelElement.style.fontSize = 11;
-            ratingLabelElement.style.color = isDarkTheme ? new Color(1f, 0.8f, 0.2f) : new Color(0.6f, 0.4f, 0.0f);
-            textContainer.Add(ratingLabelElement);
-
-            textContainer.Add(nameLabel);
-            topRow.Add(textContainer);
-
-            // Кнопки
-            Button upgradeButton = new Button();
-            upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
-            upgradeButton.style.width = 70; upgradeButton.style.height = 26;
-            upgradeButton.style.marginLeft = 8;
-            upgradeButton.style.alignSelf = Align.Center;
-            upgradeButton.style.color = isDarkTheme ? Color.white : Color.black;
-            upgradeButton.SetEnabled(canUpgrade);
-            upgradeButton.clicked += () => tech.UpgradeCar(localCar);
-            topRow.Add(upgradeButton);
-
-            Button produceBtn = new Button();
-            produceBtn.text = "Произвести";
-            produceBtn.style.width = 70; produceBtn.style.height = 26;
-            produceBtn.style.marginLeft = 4;
-            produceBtn.style.alignSelf = Align.Center;
-            produceBtn.style.color = isDarkTheme ? Color.white : Color.black;
-            produceBtn.clicked += () => TryProduceSpecificCar(cardData); 
-            topRow.Add(produceBtn);
-
-            Button sellButton = new Button();
-            sellButton.text = "Продать 1";
-            sellButton.style.width = 70; sellButton.style.height = 26;
-            sellButton.style.marginLeft = 4;
-            sellButton.style.alignSelf = Align.Center;
-            sellButton.style.color = isDarkTheme ? Color.white : Color.black;
-            sellButton.clicked += () =>
-            {
-                int sold = WarehouseManager.Instance.SellCars(localCar, 1);
-                if (sold > 0) { UpdateWarehouseLabels(); UpdateMoneyLabels(); UpdateCarCards(); }
-                else ShowNotification("Нет машин этой модели на складе!");
-            };
-            topRow.Add(sellButton);
-
-            Label stockLabel = new Label($"На складе: {WarehouseManager.Instance.GetCarCount(localCar)}");
-            stockLabel.style.fontSize = 10;
-            stockLabel.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.3f, 0.3f, 0.3f);
-            stockLabel.style.marginTop = 2;
-            textContainer.Add(stockLabel);
-
-            card.Add(topRow);
-
-            // Панель тюнинга
+            // ========== FOLDOUT: ТЮНИНГ ==========
             VisualElement tuningPanel = new VisualElement();
             tuningPanel.style.flexDirection = FlexDirection.Column;
-            tuningPanel.style.marginTop = 3; tuningPanel.style.marginBottom = 3;
-            tuningPanel.style.backgroundColor = new StyleColor(isDarkTheme ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.88f, 0.88f, 0.88f));
-            tuningPanel.style.paddingTop = 3; tuningPanel.style.paddingBottom = 3;
-            tuningPanel.style.paddingLeft = 3; tuningPanel.style.paddingRight = 3;
-            tuningPanel.style.borderTopLeftRadius = 4; tuningPanel.style.borderTopRightRadius = 4;
-            tuningPanel.style.borderBottomLeftRadius = 4; tuningPanel.style.borderBottomRightRadius = 4;
+            tuningPanel.style.paddingTop = 4;
 
-            cardData.card = card;
-            cardData.profitLabel = profitLabel;
-            cardData.profitDetailsLabel = profitDetailsLabel;
-            cardData.demandLabel = demandLabel;
-            cardData.trendLabel = trendLabel;
-            cardData.levelLabel = levelLabel;
-            cardData.upgradeButton = upgradeButton;
-            cardData.taxRateLabel = taxRateLabel;
-            cardData.modifierLabel = modifierLabel;
-            cardData.ratingLabel = ratingLabelElement;
-            cardData.detailsLabel = detailsLabel;
-            cardData.priceLabel = priceLabel;
-            cardData.decreasePriceBtn = decreasePriceBtn;
-            cardData.increasePriceBtn = increasePriceBtn;
-            cardData.produceButton = produceBtn;
-            cardData.sellButton = sellButton;
-            cardData.stockLabel = stockLabel;
-            cardData.transmissionDropdown = transmissionDropdown;
-
-            // Слайдеры тюнинга
             for (int i = 0; i < tuningParamNames.Length; i++)
             {
                 string param = tuningParamNames[i];
@@ -2424,12 +2475,12 @@ public void ShowInteractiveNews(InteractiveNews news)
                 VisualElement row = new VisualElement();
                 row.style.flexDirection = FlexDirection.Row;
                 row.style.alignItems = Align.Center;
-                row.style.marginBottom = 1;
+                row.style.marginBottom = 3;
 
                 Label nameLabelParam = new Label(display);
-                nameLabelParam.style.width = 40;
+                nameLabelParam.style.width = 100;
                 nameLabelParam.style.color = isDarkTheme ? Color.white : Color.black;
-                nameLabelParam.style.fontSize = 9;
+                nameLabelParam.style.fontSize = 11;
                 row.Add(nameLabelParam);
 
                 SliderInt slider = new SliderInt();
@@ -2437,26 +2488,26 @@ public void ShowInteractiveNews(InteractiveNews news)
                 slider.highValue = GetMaxTuning(car, param);
                 slider.value = GetCurrentTuning(car, param);
                 slider.style.flexGrow = 1;
-                slider.style.marginLeft = 2; slider.style.marginRight = 2;
+                slider.style.marginLeft = 4; slider.style.marginRight = 4;
                 row.Add(slider);
 
                 Label valueLabel = new Label(GetCurrentTuning(car, param).ToString());
-                valueLabel.style.width = 16;
+                valueLabel.style.width = 20;
                 valueLabel.style.color = isDarkTheme ? Color.white : Color.black;
-                valueLabel.style.fontSize = 10;
+                valueLabel.style.fontSize = 11;
                 valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
                 row.Add(valueLabel);
 
                 Label maxLabel = new Label($"/{GetMaxTuning(car, param)}");
-                maxLabel.style.width = 20;
+                maxLabel.style.width = 30;
                 maxLabel.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f);
-                maxLabel.style.fontSize = 9;
+                maxLabel.style.fontSize = 10;
                 row.Add(maxLabel);
 
                 Button upgradeBtn = new Button();
                 upgradeBtn.text = "↑";
-                upgradeBtn.style.width = 20; upgradeBtn.style.height = 20;
-                upgradeBtn.style.marginLeft = 1;
+                upgradeBtn.style.width = 24; upgradeBtn.style.height = 22;
+                upgradeBtn.style.marginLeft = 4;
                 upgradeBtn.style.fontSize = 12;
                 upgradeBtn.style.color = isDarkTheme ? Color.white : Color.black;
                 upgradeBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -2486,13 +2537,20 @@ public void ShowInteractiveNews(InteractiveNews news)
                 upgradeBtn.clicked += () => tech.UpgradeTuning(localCarTuning, localParam);
             }
 
-            card.Add(tuningPanel);
+            Foldout tuningFold = new Foldout();
+            tuningFold.text = "Тюнинг";
+            tuningFold.value = false;
+            tuningFold.style.marginBottom = 2;
+            tuningFold.style.color = isDarkTheme ? Color.white : Color.black;
+            tuningFold.Add(tuningPanel);
+            card.Add(tuningFold);
 
-            // Цвета и тонировка
+            // ========== FOLDOUT: ЦВЕТ ==========
             VisualElement colorPanel = new VisualElement();
             colorPanel.style.flexDirection = FlexDirection.Row;
             colorPanel.style.alignItems = Align.Center;
-            colorPanel.style.marginTop = 5; colorPanel.style.marginBottom = 5;
+            colorPanel.style.flexWrap = Wrap.Wrap;
+            colorPanel.style.paddingTop = 4;
 
             Label colorLabel = new Label("Цвет:");
             colorLabel.style.color = isDarkTheme ? Color.white : Color.black;
@@ -2504,8 +2562,8 @@ public void ShowInteractiveNews(InteractiveNews news)
             for (int i = 0; i < carColors.Length; i++)
             {
                 Button colorBtn = new Button();
-                colorBtn.style.width = 24; colorBtn.style.height = 24;
-                colorBtn.style.marginRight = 4;
+                colorBtn.style.width = 26; colorBtn.style.height = 26;
+                colorBtn.style.marginRight = 5;
                 colorBtn.style.backgroundColor = carColors[i];
                 colorBtn.style.borderTopLeftRadius = 4; colorBtn.style.borderTopRightRadius = 4;
                 colorBtn.style.borderBottomLeftRadius = 4; colorBtn.style.borderBottomRightRadius = 4;
@@ -2524,7 +2582,7 @@ public void ShowInteractiveNews(InteractiveNews news)
 
             Toggle tintToggle = new Toggle("Тонировка");
             tintToggle.style.color = isDarkTheme ? Color.white : Color.black;
-            tintToggle.style.marginLeft = 10;
+            tintToggle.style.marginLeft = 12;
             tintToggle.value = car.hasTint;
             tintToggle.RegisterValueChangedCallback(evt =>
             {
@@ -2534,15 +2592,12 @@ public void ShowInteractiveNews(InteractiveNews news)
             colorPanel.Add(tintToggle);
             cardData.tintToggle = tintToggle;
 
-            card.Add(colorPanel);
-
-            // График спроса
-            VisualElement graphContainer = new VisualElement();
-            graphContainer.style.width = new Length(100, LengthUnit.Percent);
-            graphContainer.style.height = new Length(40, LengthUnit.Pixel);
-            graphContainer.style.marginTop = 3;
-            card.Add(graphContainer);
-            cardData.graphContainer = graphContainer;
+            Foldout colorFold = new Foldout();
+            colorFold.text = "Цвет и внешний вид";
+            colorFold.value = false;
+            colorFold.style.color = isDarkTheme ? Color.white : Color.black;
+            colorFold.Add(colorPanel);
+            card.Add(colorFold);
 
             carCards.Add(cardData);
             carsContainer.Add(card);
@@ -2554,6 +2609,30 @@ public void ShowInteractiveNews(InteractiveNews news)
             int selectedIndex = Array.IndexOf(carColors, cardData.car.bodyColor);
             UpdateColorButtons(cardData, selectedIndex);
         }
+    }
+
+    // ---- Вспомогательный метод: колонка статистики ----
+    private Label AddStatBlock(VisualElement container, string caption, string initialValue, Color valueColor, float minWidth)
+    {
+        VisualElement block = new VisualElement();
+        block.style.flexDirection = FlexDirection.Column;
+        block.style.flexGrow = 1;         // Блок будет растягиваться
+        block.style.minWidth = minWidth;  // Минимальная ширина
+        block.style.marginRight = 10;
+
+        Label capLabel = new Label(caption);
+        capLabel.style.fontSize = 9;
+        capLabel.style.color = isDarkTheme ? new Color(0.6f, 0.6f, 0.6f) : new Color(0.5f, 0.5f, 0.5f);
+        block.Add(capLabel);
+
+        Label valueLabel = new Label(initialValue);
+        valueLabel.style.fontSize = 13;
+        valueLabel.style.color = valueColor;
+        valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        block.Add(valueLabel);
+
+        container.Add(block);
+        return valueLabel;
     }
 
 
@@ -2721,6 +2800,41 @@ public void ShowInteractiveNews(InteractiveNews news)
                 }
             }
 
+            // ---- Обновление информации о контрактах ----
+            if (cardData.contractMatchLabel != null)
+            {
+                if (ContractManager.Instance != null)
+                {
+                    var matches = ContractManager.Instance.GetMatchingContracts(car);
+                    if (matches.Count > 0)
+                    {
+                        List<string> titles = new List<string>();
+                        bool hasActive = false;
+
+                        foreach (var m in matches)
+                        {
+                            if (m.isAccepted) hasActive = true;
+                            string status = m.isAccepted ? " (выполняется)" : "";
+                            titles.Add($"{m.title}{status}");
+                        }
+
+                        cardData.contractMatchLabel.text = $"📋 Контракты: {string.Join(", ", titles)}";
+                        
+                        // Зелёный, если есть среди активных, иначе жёлтый
+                        cardData.contractMatchLabel.style.color = hasActive 
+                            ? new Color(0.56f, 0.93f, 0.56f) 
+                            : new Color(1f, 0.8f, 0.2f); 
+                    }
+                    else
+                    {
+                        cardData.contractMatchLabel.text = "📋 Нет подходящих контрактов";
+                        cardData.contractMatchLabel.style.color = isDarkTheme 
+                            ? new Color(0.5f, 0.5f, 0.5f) 
+                            : new Color(0.6f, 0.6f, 0.6f);
+                    }
+                }
+            }
+
             if (cardData.platformLabel != null && car.platform != null)
             {
                 var dm = CarCompanyManager.Instance.DifficultyManager;
@@ -2737,7 +2851,11 @@ public void ShowInteractiveNews(InteractiveNews news)
             }
 
             // ---- Расчёт прибыли ----
-            int modPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
+            float selectedTrimMult = cardData.selectedTrim != null
+                ? cardData.selectedTrim.priceMultiplier
+                : 1f;
+            int modPrice = Mathf.RoundToInt(
+                car.GetModifiedPrice(economy.TotalPriceModifier) * selectedTrimMult);
             double profitBeforeTax = modPrice - productionCost;
             float taxRate = economy.GetTaxRate(car);
             double finalProfit = profitBeforeTax * (1f - taxRate);
@@ -2746,7 +2864,7 @@ public void ShowInteractiveNews(InteractiveNews news)
             if (cardData.ratingLabel != null)
             {
                 float rating = car.CalculateRating(economy.TotalPriceModifier);
-                cardData.ratingLabel.text = $"Рейтинг: {rating:F1}";
+                cardData.ratingLabel.text = $"★ {rating:F1}"; // Было "Рейтинг: ..."
                 if (rating >= 8f)
                     cardData.ratingLabel.style.color = new Color(0.2f, 0.9f, 0.2f);
                 else if (rating >= 5f)
@@ -2759,14 +2877,10 @@ public void ShowInteractiveNews(InteractiveNews news)
             if (cardData.stockLabel != null)
                 cardData.stockLabel.text = $"На складе: {WarehouseManager.Instance.GetCarCount(car)}";
 
-            // Кнопка продажи активна только если есть машины
-            if (cardData.sellButton != null)
-                cardData.sellButton.SetEnabled(WarehouseManager.Instance.GetCarCount(car) > 0);
-
             // Обновляем прибыль
             if (cardData.profitLabel != null)
             {
-                cardData.profitLabel.text = $"Прибыль: {finalProfit:F0}";
+                cardData.profitLabel.text = $"{finalProfit:F0}"; // Было "Прибыль: ..."
                 cardData.profitLabel.style.color = finalProfit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
             }
 
@@ -2791,7 +2905,7 @@ public void ShowInteractiveNews(InteractiveNews news)
             float demandValue = car.CurrentDemandMultiplier;
             if (cardData.demandLabel != null)
             {
-                cardData.demandLabel.text = $"Спрос: {demandValue:F1}x";
+                cardData.demandLabel.text = $"{demandValue:F1}x"; // Было "Спрос: ..."
                                 cardData.demandLabel.style.color = demandValue > 1.2f ? new Color(0.1f, 0.6f, 0.1f) : (demandValue < 0.8f ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.6f, 0.4f, 0.0f));
             }
 
@@ -2822,7 +2936,7 @@ public void ShowInteractiveNews(InteractiveNews news)
 
             // Налог
             if (cardData.taxRateLabel != null)
-                cardData.taxRateLabel.text = $"Налог: {taxRate:P0}";
+                cardData.taxRateLabel.text = $"{taxRate:P0}"; // Было "Налог: ..."
 
             // График
             if (cardData.graphContainer != null && MarketSystem.Instance != null)
@@ -2873,12 +2987,12 @@ public void ShowInteractiveNews(InteractiveNews news)
             // ========== ОБНОВЛЕНИЕ ЦЕНЫ ==========
             if (cardData.detailsLabel != null)
             {
-                int currentModPrice = car.GetModifiedPrice(economy.TotalPriceModifier);
                 int currentModCost = Mathf.RoundToInt(productionCost);
                 string costSuffix = platformDiscount > 0f ? $" (🛠️-{platformDiscount * 100:F0}%)" : "";
                 string trimSuffix = cardData.selectedTrim != null ? $" [{cardData.selectedTrim.trimName}]" : "";
                 
-                cardData.detailsLabel.text = $"Цена: ${currentModPrice}  |  Себ: ${currentModCost}{costSuffix}{trimSuffix}";
+                // Пишем ТОЛЬКО себестоимость, так как заголовок "Себестоимость" уже есть в UI
+                cardData.detailsLabel.text = $"${currentModCost}{costSuffix}{trimSuffix}";
             }
 
             if (cardData.priceLabel != null)
@@ -3404,6 +3518,8 @@ public void ShowInteractiveNews(InteractiveNews news)
         CloseMarketVisWindow();
         CloseLoansWindow();
         CloseInvestmentsWindow();
+        CloseDealerWindow();
+        CloseStaffWindow();
     }
 
     // ========== МЕТОДЫ ДЛЯ ОКОН (открытие/закрытие) ==========
@@ -3921,6 +4037,9 @@ public void ShowInteractiveNews(InteractiveNews news)
         if (loansOverlay != null) loansOverlay.style.display = DisplayStyle.None;
         if (investmentsOverlay != null) investmentsOverlay.style.display = DisplayStyle.None;
         if (platformsOverlay != null) platformsOverlay.style.display = DisplayStyle.None;
+        if (contractsOverlay != null) contractsOverlay.style.display = DisplayStyle.None;
+        if (dealerOverlay != null) dealerOverlay.style.display = DisplayStyle.None;
+        if (staffOverlay != null) staffOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -4716,12 +4835,675 @@ public void ShowInteractiveNews(InteractiveNews news)
     }
 
 
+    // ========== КОНТРАКТЫ ==========
+
+    private void OpenContractsWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (contractsOverlay == null)
+        {
+            Debug.LogWarning("ContractsOverlay не найден в UXML");
+            ShowNotification("Окно контрактов не найдено.");
+            return;
+        }
+
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(contractsOverlay);
+        RefreshContractsUI();
+    }
+
+    private void CloseContractsWindow()
+    {
+        if (contractsOverlay != null)
+            AnimateWindowClose(contractsOverlay, () =>
+            {
+                contractsOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    public void RefreshContractsUI()
+    {
+        if (contractsContainer == null) return;
+        contractsContainer.Clear();
+
+        if (ContractManager.Instance == null)
+        {
+            var err = new Label("ContractManager не найден в сцене.");
+            err.style.color = new Color(1f, 0.4f, 0.4f);
+            contractsContainer.Add(err);
+            return;
+        }
+
+        // ---- Доступные ----
+        var availHeader = new Label("📋 Доступные контракты");
+        availHeader.style.color = Color.black;
+        availHeader.style.fontSize = 16;
+        availHeader.style.unityFontStyleAndWeight = FontStyle.Bold;
+        availHeader.style.marginBottom = 6;
+        contractsContainer.Add(availHeader);
+
+        if (ContractManager.Instance.availableContracts == null
+            || ContractManager.Instance.availableContracts.Count == 0)
+        {
+            var empty = new Label("Нет доступных контрактов. Новые появятся со временем.");
+            empty.style.color = new Color(0.4f, 0.4f, 0.4f);
+            empty.style.marginBottom = 10;
+            contractsContainer.Add(empty);
+        }
+        else
+        {
+            foreach (var c in ContractManager.Instance.availableContracts)
+                contractsContainer.Add(CreateContractRow(c, isActive: false));
+        }
+
+        // ---- Активные ----
+        var actHeader = new Label("✅ Активные контракты");
+        actHeader.style.color = Color.black;
+        actHeader.style.fontSize = 16;
+        actHeader.style.unityFontStyleAndWeight = FontStyle.Bold;
+        actHeader.style.marginTop = 12;
+        actHeader.style.marginBottom = 6;
+        contractsContainer.Add(actHeader);
+
+        if (ContractManager.Instance.activeContracts == null
+            || ContractManager.Instance.activeContracts.Count == 0)
+        {
+            var empty = new Label("Нет активных контрактов.");
+            empty.style.color = new Color(0.4f, 0.4f, 0.4f);
+            contractsContainer.Add(empty);
+        }
+        else
+        {
+            foreach (var c in ContractManager.Instance.activeContracts)
+                contractsContainer.Add(CreateContractRow(c, isActive: true));
+        }
+    }
+
+    private VisualElement CreateContractRow(ContractData c, bool isActive)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.paddingTop = 8;
+        row.style.paddingBottom = 8;
+        row.style.paddingLeft = 10;
+        row.style.paddingRight = 10;
+        row.style.marginBottom = 4;
+        row.style.borderBottomWidth = 1;
+        row.style.borderBottomColor = new Color(0.75f, 0.75f, 0.75f);
+        row.style.backgroundColor = isDarkTheme
+            ? new Color(0.18f, 0.18f, 0.18f)
+            : new Color(0.96f, 0.96f, 0.96f);
+
+        // Колонка с названием и требованиями
+        var infoCol = new VisualElement();
+        infoCol.style.width = 280; // Увеличили ширину с 200, чтобы влез текст требований
+        infoCol.style.flexDirection = FlexDirection.Column;
+        infoCol.style.justifyContent = Justify.Center;
+
+        var title = new Label(c.title);
+        title.style.color = isDarkTheme ? Color.white : Color.black;
+        title.style.unityFontStyleAndWeight = FontStyle.Bold;
+        title.style.fontSize = 14;
+        infoCol.Add(title);
+
+        // Получаем текст требований из менеджера
+        string reqText = ContractManager.Instance != null 
+            ? ContractManager.Instance.GetContractRequirementsText(c) 
+            : "Нет данных о требованиях";
+
+        var reqLabel = new Label(reqText);
+        reqLabel.style.fontSize = 11;
+        reqLabel.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f);
+        reqLabel.style.marginTop = 2;
+        infoCol.Add(reqLabel);
+
+        row.Add(infoCol);
+
+        var qty = new Label(isActive
+            ? $"{c.deliveredQuantity} / {c.requiredQuantity}"
+            : $"{c.requiredQuantity} шт.");
+        qty.style.width = 80;
+        qty.style.color = isActive
+            ? new Color(0.6f, 0.4f, 0.0f)
+            : (isDarkTheme ? Color.white : Color.black);
+        row.Add(qty);
+
+        var deadline = new Label($"{c.monthsRemaining} мес.");
+        deadline.style.width = 80;
+        deadline.style.color = c.monthsRemaining <= 1
+            ? new Color(0.9f, 0.2f, 0.2f)
+            : (isDarkTheme ? Color.white : Color.black);
+        row.Add(deadline);
+
+        var reward = new Label($"💰 {c.rewardMoney:F0}");
+        reward.style.width = 110;
+        reward.style.color = new Color(0.1f, 0.55f, 0.1f);
+        row.Add(reward);
+
+        var penalty = new Label($"⚠️ {c.penaltyMoney:F0}");
+        penalty.style.width = 110;
+        penalty.style.color = new Color(0.8f, 0.2f, 0.2f);
+        row.Add(penalty);
+
+        if (!isActive)
+        {
+            var acceptBtn = new Button(() =>
+            {
+                ContractManager.Instance.AcceptContract(c.contractId);
+            });
+            acceptBtn.text = "Принять";
+            acceptBtn.style.width = 90;
+            acceptBtn.style.height = 26;
+            acceptBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            acceptBtn.style.backgroundColor = new Color(0.5f, 0.85f, 0.5f);
+            acceptBtn.style.color = Color.black;
+            row.Add(acceptBtn);
+        }
+        else
+        {
+            var bar = new VisualElement();
+            bar.style.width = 90;
+            bar.style.height = 12;
+            bar.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+            bar.style.borderTopLeftRadius = 3;
+            bar.style.borderTopRightRadius = 3;
+            bar.style.borderBottomLeftRadius = 3;
+            bar.style.borderBottomRightRadius = 3;
+
+            var fill = new VisualElement();
+            float pct = c.requiredQuantity > 0
+                ? Mathf.Clamp01((float)c.deliveredQuantity / c.requiredQuantity)
+                : 0f;
+            fill.style.width = new Length(pct * 100, LengthUnit.Percent);
+            fill.style.height = 12;
+            fill.style.backgroundColor = new Color(0.3f, 0.75f, 0.3f);
+            fill.style.borderTopLeftRadius = 3;
+            fill.style.borderTopRightRadius = 3;
+            fill.style.borderBottomLeftRadius = 3;
+            fill.style.borderBottomRightRadius = 3;
+
+            bar.Add(fill);
+            row.Add(bar);
+        }
+
+        return row;
+    }
+
+
+    // ========== ДИЛЕР ==========
+
+    private void OpenDealerWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (dealerOverlay == null)
+        {
+            ShowNotification("Окно дилера не найдено в UXML.");
+            return;
+        }
+
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(dealerOverlay);
+        RefreshDealerUI();
+    }
+
+    private void CloseDealerWindow()
+    {
+        if (dealerOverlay != null)
+            AnimateWindowClose(dealerOverlay, () =>
+            {
+                dealerOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    
+    public void RefreshDealerUI()
+    {
+        if (dealerContainer == null) return;
+        dealerContainer.Clear();
+
+        if (WarehouseManager.Instance == null)
+        {
+            dealerContainer.Add(new Label("WarehouseManager не найден."));
+            return;
+        }
+
+        var entries = WarehouseManager.Instance.GetAllEntries();
+
+        if (entries == null || entries.Count == 0)
+        {
+            var empty = new Label("На складе нет машин.\nПроизведите автомобили, чтобы продать их здесь.");
+            empty.style.color = new Color(0.4f, 0.4f, 0.4f);
+            empty.style.fontSize = 14;
+            empty.style.whiteSpace = WhiteSpace.Normal;
+            empty.style.marginTop = 30;
+            empty.style.unityTextAlign = TextAnchor.MiddleCenter;
+            dealerContainer.Add(empty);
+            return;
+        }
+
+        // ---- Заголовок ----
+        var header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.paddingTop = 6;
+        header.style.paddingBottom = 6;
+        header.style.paddingLeft = 10;
+        header.style.paddingRight = 10;
+        header.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        header.style.marginBottom = 4;
+
+        float[] widths = { 190, 90, 130, 80, 100, 120, 240 };
+        string[] headers = { "Модель", "Коробка", "Комплектация", "На складе", "Цена за шт.", "Общая стоимость", "Действия" };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var lbl = new Label(headers[i]);
+            lbl.style.width = widths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(lbl);
+        }
+        dealerContainer.Add(header);
+
+        // ---- Строки по каждой партии ----
+        foreach (var entry in entries)
+        {
+            if (entry == null || entry.blueprint == null || entry.count <= 0) continue;
+
+            CarBlueprint car = entry.blueprint;
+            int qty = entry.count;
+            int unitPrice = WarehouseManager.Instance.GetUnitPriceForEntry(entry);
+            double totalValue = (double)unitPrice * qty;
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 6;
+            row.style.paddingBottom = 6;
+            row.style.paddingLeft = 10;
+            row.style.paddingRight = 10;
+            row.style.marginBottom = 4;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f);
+            row.style.backgroundColor = isDarkTheme
+                ? new Color(0.18f, 0.18f, 0.18f)
+                : new Color(0.96f, 0.96f, 0.96f);
+
+            var name = new Label(car.GetDisplayName());
+            name.style.width = widths[0];
+            name.style.color = isDarkTheme ? Color.white : Color.black;
+            name.style.unityFontStyleAndWeight = FontStyle.Bold;
+            row.Add(name);
+
+            string gearbox = string.IsNullOrEmpty(entry.transmissionType) ? "АКПП" : entry.transmissionType;
+            var gearboxLabel = new Label(gearbox);
+            gearboxLabel.style.width = widths[1];
+            gearboxLabel.style.color = isDarkTheme ? new Color(0.8f, 0.9f, 1f) : new Color(0.1f, 0.3f, 0.6f);
+            row.Add(gearboxLabel);
+
+            string trimName = string.IsNullOrEmpty(entry.trimName) ? "Стандарт" : entry.trimName;
+            float trimMult = WarehouseManager.GetTrimPriceMultiplier(car, entry.trimName);
+            var trimLabel = new Label(trimMult != 1f ? $"{trimName} (×{trimMult:F2})" : trimName);
+            trimLabel.style.width = widths[2];
+            trimLabel.style.color = isDarkTheme ? new Color(0.9f, 0.8f, 0.6f) : new Color(0.5f, 0.3f, 0.0f);
+            trimLabel.tooltip = trimMult != 1f
+                ? $"Множитель цены комплектации: ×{trimMult:F2}"
+                : "Базовая комплектация (×1.00)";
+            row.Add(trimLabel);
+
+            var qtyLabel = new Label(qty.ToString());
+            qtyLabel.style.width = widths[3];
+            qtyLabel.style.color = isDarkTheme ? Color.white : Color.black;
+            row.Add(qtyLabel);
+
+            var priceLabel = new Label($"${unitPrice}");
+            priceLabel.style.width = widths[4];
+            priceLabel.style.color = new Color(0.6f, 0.4f, 0.0f);
+            row.Add(priceLabel);
+
+            var totalLabel = new Label($"${totalValue:F0}");
+            totalLabel.style.width = widths[5];
+            totalLabel.style.color = new Color(0.1f, 0.55f, 0.1f);
+            totalLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            row.Add(totalLabel);
+
+            var actions = new VisualElement();
+            actions.style.flexDirection = FlexDirection.Row;
+            actions.style.width = widths[6];
+            actions.style.alignItems = Align.Center;
+
+            var entryCopy = entry;
+
+            var sellOneBtn = new Button(() =>
+            {
+                int sold = WarehouseManager.Instance.SellEntry(entryCopy, 1);
+                if (sold > 0) { UpdateMoneyLabels(); UpdateWarehouseLabels(); RefreshDealerUI(); }
+            });
+            sellOneBtn.text = "Продать 1";
+            sellOneBtn.style.width = 90;
+            sellOneBtn.style.height = 26;
+            sellOneBtn.style.marginRight = 8;
+            sellOneBtn.style.backgroundColor = new Color(0.5f, 0.85f, 0.5f);
+            sellOneBtn.style.color = Color.black;
+            sellOneBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            actions.Add(sellOneBtn);
+
+            var sellAllBtn = new Button(() =>
+            {
+                int sold = WarehouseManager.Instance.SellEntry(entryCopy, entryCopy.count);
+                if (sold > 0) { UpdateMoneyLabels(); UpdateWarehouseLabels(); RefreshDealerUI(); }
+            });
+            sellAllBtn.text = $"Продать все ({qty})";
+            sellAllBtn.style.width = 130;
+            sellAllBtn.style.height = 26;
+            sellAllBtn.style.backgroundColor = new Color(0.85f, 0.5f, 0.5f);
+            sellAllBtn.style.color = Color.black;
+            sellAllBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            actions.Add(sellAllBtn);
+
+            row.Add(actions);
+            dealerContainer.Add(row);
+        }
+    }
+
+
+
+
+    // ========== ПЕРСОНАЛ ==========
+
+    private void OpenStaffWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (staffOverlay == null)
+        {
+            ShowNotification("Окно персонала не найдено в UXML.");
+            return;
+        }
+
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(staffOverlay);
+        RefreshStaffUI();
+    }
+
+    private void CloseStaffWindow()
+    {
+        if (staffOverlay != null)
+            AnimateWindowClose(staffOverlay, () =>
+            {
+                staffOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    public void RefreshStaffUI()
+    {
+        if (staffContainer == null) return;
+        staffContainer.Clear();
+
+        if (economy == null)
+        {
+            staffContainer.Add(new Label("EconomyManager не найден."));
+            return;
+        }
+
+        // ---- Инженер ----
+        int engCost = Mathf.RoundToInt((50 + economy.EngineerCount * 20) * economy.CostMultiplier);
+        staffContainer.Add(CreateStaffRow(
+            "🔧",
+            "Инженер",
+            "Ускоряет производство деталей и повышает пассивный доход.",
+            $"Пассивный доход: +{economy.EngineerCount * 0.3f:F1}/сек",
+            economy.EngineerCount,
+            engCost,
+            HireEngineerStaff,
+            FireEngineerStaff
+        ));
+
+        // ---- Дизайнер ----
+        int desCost = Mathf.RoundToInt((200 + economy.DesignerCount * 100) * economy.CostMultiplier);
+        staffContainer.Add(CreateStaffRow(
+            "🎨",
+            "Дизайнер",
+            "Повышает рейтинг дизайна выпускаемых машин.",
+            $"Бонус к дизайну: +{economy.DesignerCount * 5}%",
+            economy.DesignerCount,
+            desCost,
+            HireDesignerStaff,
+            FireDesignerStaff
+        ));
+
+        // ---- Маркетолог ----
+        int mktCost = Mathf.RoundToInt((150 + economy.MarketerCount * 80) * economy.CostMultiplier);
+        staffContainer.Add(CreateStaffRow(
+            "📢",
+            "Маркетолог",
+            "Усиливает эффективность рекламных кампаний.",
+            $"Бонус к маркетингу: +{economy.MarketerCount * 10}%",
+            economy.MarketerCount,
+            mktCost,
+            HireMarketerStaff,
+            FireMarketerStaff
+        ));
+
+        // ---- Менеджер ----
+        int mgrCost = Mathf.RoundToInt((500 + economy.ManagerCount * 300) * economy.CostMultiplier);
+        staffContainer.Add(CreateStaffRow(
+            "💼",
+            "Менеджер",
+            "Автоматизирует закупку деталей (раз в 5 сек).",
+            economy.ManagerCount > 0
+                ? $"Автозакупка включена ({economy.ManagerCount} шт.)"
+                : "Автозакупка выключена",
+            economy.ManagerCount,
+            mgrCost,
+            HireManagerStaff,
+            FireManagerStaff
+        ));
+    }
+
+    private VisualElement CreateStaffRow(
+        string icon, string name, string role, string bonus,
+        int count, int hireCost,
+        System.Action onHire, System.Action onFire)
+    {
+        var card = new VisualElement();
+        card.style.flexDirection = FlexDirection.Row;
+        card.style.alignItems = Align.Center;
+        card.style.paddingTop = 10;
+        card.style.paddingBottom = 10;
+        card.style.paddingLeft = 12;
+        card.style.paddingRight = 12;
+        card.style.marginBottom = 6;
+        card.style.borderTopLeftRadius = 6;
+        card.style.borderTopRightRadius = 6;
+        card.style.borderBottomLeftRadius = 6;
+        card.style.borderBottomRightRadius = 6;
+        card.style.borderTopWidth = 1;
+        card.style.borderBottomWidth = 1;
+        card.style.borderLeftWidth = 1;
+        card.style.borderRightWidth = 1;
+        card.style.borderTopColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
+        card.style.borderBottomColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
+        card.style.borderLeftColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
+        card.style.borderRightColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.7f, 0.7f, 0.7f);
+        card.style.backgroundColor = isDarkTheme
+            ? new Color(0.22f, 0.22f, 0.22f)
+            : new Color(0.95f, 0.95f, 0.95f);
+
+        var iconLbl = new Label(icon);
+        iconLbl.style.fontSize = 28;
+        iconLbl.style.width = 44;
+        iconLbl.style.unityTextAlign = TextAnchor.MiddleCenter;
+        card.Add(iconLbl);
+
+        var infoCol = new VisualElement();
+        infoCol.style.flexDirection = FlexDirection.Column;
+        infoCol.style.flexGrow = 1;
+
+        var nameLbl = new Label(name);
+        nameLbl.style.fontSize = 15;
+        nameLbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        nameLbl.style.color = isDarkTheme ? Color.white : Color.black;
+        infoCol.Add(nameLbl);
+
+        var roleLbl = new Label(role);
+        roleLbl.style.fontSize = 11;
+        roleLbl.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f);
+        roleLbl.style.whiteSpace = WhiteSpace.Normal;
+        infoCol.Add(roleLbl);
+
+        var bonusLbl = new Label(bonus);
+        bonusLbl.style.fontSize = 11;
+        bonusLbl.style.color = isDarkTheme ? new Color(0.6f, 0.8f, 1f) : new Color(0.1f, 0.3f, 0.6f);
+        bonusLbl.style.marginTop = 2;
+        infoCol.Add(bonusLbl);
+
+        card.Add(infoCol);
+
+        var countLbl = new Label(count.ToString());
+        countLbl.style.fontSize = 24;
+        countLbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        countLbl.style.color = isDarkTheme ? new Color(1f, 0.9f, 0.4f) : new Color(0.6f, 0.4f, 0.0f);
+        countLbl.style.width = 50;
+        countLbl.style.unityTextAlign = TextAnchor.MiddleCenter;
+        countLbl.style.marginLeft = 8;
+        countLbl.style.marginRight = 8;
+        card.Add(countLbl);
+
+        var hireBtn = new Button(onHire);
+        hireBtn.text = $"Нанять\n${hireCost}";
+        hireBtn.style.width = 100;
+        hireBtn.style.height = 50;
+        hireBtn.style.fontSize = 12;
+        hireBtn.style.backgroundColor = new Color(0.5f, 0.85f, 0.5f);
+        hireBtn.style.color = Color.black;
+        hireBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+        hireBtn.style.marginLeft = 4;
+        if (economy.Money < hireCost) hireBtn.SetEnabled(false);
+        card.Add(hireBtn);
+
+        var fireBtn = new Button(onFire);
+        fireBtn.text = "Уволить";
+        fireBtn.style.width = 80;
+        fireBtn.style.height = 50;
+        fireBtn.style.fontSize = 12;
+        fireBtn.style.backgroundColor = new Color(0.9f, 0.5f, 0.5f);
+        fireBtn.style.color = Color.black;
+        fireBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+        fireBtn.style.marginLeft = 6;
+        if (count <= 0) fireBtn.SetEnabled(false);
+        card.Add(fireBtn);
+
+        return card;
+    }
+
+    private void HireEngineerStaff()
+    {
+        int before = economy.EngineerCount;
+        economy.HireEngineer();
+        if (economy.EngineerCount > before)
+        {
+            UpdateWarehouseLabels();
+            UpdateProductionButtonsState();
+            UpdateUpgradeUI();
+            UpdateMoneyLabels();
+            ShowNotification($"✅ Нанят инженер (всего: {economy.EngineerCount})");
+        }
+        else ShowNotification("❌ Недостаточно денег для найма инженера");
+        RefreshStaffUI();
+    }
+
+    private void FireEngineerStaff()
+    {
+        if (economy.EngineerCount <= 0) return;
+        economy.FireEngineer();
+        UpdateWarehouseLabels();
+        UpdateProductionButtonsState();
+        UpdateUpgradeUI();
+        UpdateMoneyLabels();
+        ShowNotification($"Инженер уволен (осталось: {economy.EngineerCount})");
+        RefreshStaffUI();
+    }
+
+    private void HireDesignerStaff()
+    {
+        int before = economy.DesignerCount;
+        economy.HireDesigner();
+        if (economy.DesignerCount > before)
+        {
+            UpdateMoneyLabels();
+            ShowNotification($"✅ Нанят дизайнер (всего: {economy.DesignerCount})");
+        }
+        else ShowNotification("❌ Недостаточно денег для найма дизайнера");
+        RefreshStaffUI();
+    }
+
+    private void FireDesignerStaff()
+    {
+        if (economy.DesignerCount <= 0) return;
+        economy.FireDesigner();
+        ShowNotification($"Дизайнер уволен (осталось: {economy.DesignerCount})");
+        RefreshStaffUI();
+    }
+
+    private void HireMarketerStaff()
+    {
+        int before = economy.MarketerCount;
+        economy.HireMarketer();
+        if (economy.MarketerCount > before)
+        {
+            UpdateMoneyLabels();
+            ShowNotification($"✅ Нанят маркетолог (всего: {economy.MarketerCount})");
+        }
+        else ShowNotification("❌ Недостаточно денег для найма маркетолога");
+        RefreshStaffUI();
+    }
+
+    private void FireMarketerStaff()
+    {
+        if (economy.MarketerCount <= 0) return;
+        economy.FireMarketer();
+        ShowNotification($"Маркетолог уволен (осталось: {economy.MarketerCount})");
+        RefreshStaffUI();
+    }
+
+    private void HireManagerStaff()
+    {
+        int before = economy.ManagerCount;
+        economy.HireManager();
+        if (economy.ManagerCount > before)
+        {
+            UpdateMoneyLabels();
+            ShowNotification($"✅ Нанят менеджер (автозакупка деталей включена)");
+        }
+        else ShowNotification("❌ Недостаточно денег для найма менеджера");
+        RefreshStaffUI();
+    }
+
+    private void FireManagerStaff()
+    {
+        if (economy.ManagerCount <= 0) return;
+        economy.FireManager();
+        ShowNotification($"Менеджер уволен (осталось: {economy.ManagerCount})");
+        RefreshStaffUI();
+    }
+
+
     private void OnDestroy()
     {
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.OnMonthChanged -= UpdateDateTimeDisplay;
         if (NewsManager.Instance != null)
             NewsManager.Instance.OnNewsChanged -= UpdateNewsUI;
+        if (ContractManager.Instance != null)
+            ContractManager.Instance.OnContractsChanged -= RefreshContractsUI;
     }
 
     public void UpdateReputationLabel()
@@ -4828,7 +5610,11 @@ public void ShowInteractiveNews(InteractiveNews news)
         if (car == null) return;
 
         int newPrice = car.currentPrice + delta;
-        newPrice = Mathf.Clamp(newPrice, 10, car.basePrice * 3);
+        
+        // Убираем жесткий потолок basePrice * 3. 
+        // Ограничиваем только снизу (10$) и сверху защитным лимитом (1 000 000$), 
+        // чтобы игрок не ушел в бесконечность.
+        newPrice = Mathf.Clamp(newPrice, 10, 1000000);
 
         car.currentPrice = newPrice;
 
@@ -4902,5 +5688,41 @@ public void ShowInteractiveNews(InteractiveNews news)
         public bool isDeveloping;
         public float progress;
         public bool canDevelop;
+    }
+
+    private void TryHireDesigner()
+    {
+        int before = economy.DesignerCount;
+        economy.HireDesigner();
+        if (economy.DesignerCount > before)
+            ShowNotification($"✅ Нанят дизайнер (всего: {economy.DesignerCount})");
+        else
+            ShowNotification("❌ Недостаточно денег для найма дизайнера");
+        UpdateMoneyLabels();
+        UpdateUpgradeUI();
+    }
+
+    private void TryHireMarketer()
+    {
+        int before = economy.MarketerCount;
+        economy.HireMarketer();
+        if (economy.MarketerCount > before)
+            ShowNotification($"✅ Нанят маркетолог (всего: {economy.MarketerCount})");
+        else
+            ShowNotification("❌ Недостаточно денег для найма маркетолога");
+        UpdateMoneyLabels();
+        UpdateUpgradeUI();
+    }
+
+    private void TryHireManager()
+    {
+        int before = economy.ManagerCount;
+        economy.HireManager();
+        if (economy.ManagerCount > before)
+            ShowNotification($"✅ Нанят менеджер (автозакупка деталей включена)");
+        else
+            ShowNotification("❌ Недостаточно денег для найма менеджера");
+        UpdateMoneyLabels();
+        UpdateUpgradeUI();
     }
 }

@@ -102,34 +102,67 @@ public class ContractManager : MonoBehaviour
             if (c.isCompleted) continue;
             if (!CarMatchesContract(car, c)) continue;
 
+            // Списываем машину со склада без начисления денег
+            if (WarehouseManager.Instance == null)
+            {
+                Debug.LogWarning("[Contract] WarehouseManager.Instance == null");
+                return;
+            }
+            if (!WarehouseManager.Instance.RemoveCar(car, 1))
+            {
+                Debug.LogWarning($"[Contract] Не удалось списать {car.GetDisplayName()} со склада");
+                return;
+            }
+
             c.deliveredQuantity++;
+            Debug.Log($"[Contract] Доставлено {c.deliveredQuantity}/{c.requiredQuantity}: {c.title}");
+
             if (c.deliveredQuantity >= c.requiredQuantity)
                 CompleteContract(c);
 
             OnContractsChanged?.Invoke();
-            return; // одна машина закрывает один контракт
+            return;
         }
     }
 
     // Пока принимает любую машину — расширим позже, когда будет выбор рецепта
-    private bool CarMatchesContract(CarBlueprint car, ContractData c)
+    public bool CarMatchesContract(CarBlueprint car, ContractData c)
     {
-        if (car == null || car.recipe == null) return false;
+        if (car == null || car.carType == null) return false;
+
+        string typeName = car.carType.typeName;   // ← вот этой строки не хватало
 
         switch (c.type)
         {
-            case ContractType.Police:
-                return car.carType != null && car.carType.typeName == "Седан" && car.recipe.reliability >= 60f;
-            case ContractType.Ambulance:
-                return car.carType != null && car.carType.typeName == "Внедорожник" && car.recipe.safety >= 70f;
-            case ContractType.Mail:
-                return car.carType != null && car.carType.typeName == "Фургон" && car.recipe.reliability >= 55f;
-            case ContractType.Taxi:
-                return car.carType != null && car.carType.typeName == "Седан" && car.recipe.economy >= 50f;
+            case ContractType.Police:    return typeName == "Седан"       && car.currentSafety  >= 3;
+            case ContractType.Ambulance: return typeName == "Внедорожник" && car.currentSafety  >= 4;
+            case ContractType.Mail:      return typeName == "Фургон"      && car.currentEconomy >= 2;
+            case ContractType.Taxi:      return typeName == "Седан"       && car.currentEconomy >= 3;
             default:
                 return false;
         }
     }
+
+
+
+
+    public string GetContractRequirementsText(ContractData c)
+    {
+        if (c == null) return "";
+        switch (c.type)
+        {
+            case ContractType.Police:    return "Требуется: Седан | Безопасность ≥ 3";
+            case ContractType.Ambulance: return "Требуется: Внедорожник | Безопасность ≥ 4";
+            case ContractType.Mail:      return "Требуется: Фургон | Экономичность ≥ 2";
+            case ContractType.Taxi:      return "Требуется: Седан | Экономичность ≥ 3";
+            default: return "Требования неизвестны";
+        }
+    }
+
+
+
+
+
 
     private void CompleteContract(ContractData c)
     {
@@ -137,6 +170,27 @@ public class ContractManager : MonoBehaviour
         activeContracts.Remove(c);
         OnContractCompleted?.Invoke(c);
         OnContractsChanged?.Invoke();
+    }
+
+    public List<ContractData> GetMatchingContracts(CarBlueprint car)
+    {
+        List<ContractData> matches = new List<ContractData>();
+        if (car == null) return matches;
+
+        // Сначала проверяем активные (они приоритетнее)
+        foreach (var c in activeContracts)
+        {
+            if (CarMatchesContract(car, c)) 
+                matches.Add(c);
+        }
+        
+        // Затем доступные
+        foreach (var c in availableContracts)
+        {
+            if (CarMatchesContract(car, c)) 
+                matches.Add(c);
+        }
+        return matches;
     }
 
     // ---------- Время ----------
@@ -155,11 +209,72 @@ public class ContractManager : MonoBehaviour
         {
             var c = activeContracts[i];
             c.monthsRemaining--;
+
             if (c.monthsRemaining < 0 && !c.isCompleted)
             {
+                Debug.Log($"[Contract] Провал: {c.title}, monthsRemaining={c.monthsRemaining}");
                 activeContracts.RemoveAt(i);
                 OnContractFailed?.Invoke(c);
+                OnContractsChanged?.Invoke();
             }
         }
     }
+
+
+    public void FillSaveData(SaveData data)
+    {
+        data.availableContracts = new List<ContractSaveData>();
+        foreach (var c in availableContracts)
+            data.availableContracts.Add(ToSave(c));
+
+        data.activeContracts = new List<ContractSaveData>();
+        foreach (var c in activeContracts)
+            data.activeContracts.Add(ToSave(c));
+    }
+
+    public void LoadFromSave(SaveData data)
+    {
+        availableContracts.Clear();
+        activeContracts.Clear();
+
+        if (data.availableContracts != null)
+            foreach (var s in data.availableContracts)
+                availableContracts.Add(FromSave(s));
+
+        if (data.activeContracts != null)
+            foreach (var s in data.activeContracts)
+                activeContracts.Add(FromSave(s));
+
+        OnContractsChanged?.Invoke();
+    }
+
+    private ContractSaveData ToSave(ContractData c) => new ContractSaveData
+    {
+        contractId       = c.contractId,
+        title            = c.title,
+        type             = (int)c.type,
+        requiredQuantity = c.requiredQuantity,
+        monthsRemaining  = c.monthsRemaining,
+        rewardMoney      = c.rewardMoney,
+        rewardReputation = c.rewardReputation,
+        penaltyMoney     = c.penaltyMoney,
+        deliveredQuantity = c.deliveredQuantity,
+        isAccepted       = c.isAccepted,
+        isCompleted      = c.isCompleted
+    };
+
+    private ContractData FromSave(ContractSaveData s) => new ContractData
+    {
+        contractId       = s.contractId,
+        title            = s.title,
+        type             = (ContractType)s.type,
+        requiredQuantity = s.requiredQuantity,
+        monthsRemaining  = s.monthsRemaining,
+        rewardMoney      = s.rewardMoney,
+        rewardReputation = s.rewardReputation,
+        penaltyMoney     = s.penaltyMoney,
+        deliveredQuantity = s.deliveredQuantity,
+        isAccepted       = s.isAccepted,
+        isCompleted      = s.isCompleted
+    };
 }

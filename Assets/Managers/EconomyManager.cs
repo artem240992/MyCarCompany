@@ -72,6 +72,7 @@ public class EconomyManager : MonoBehaviour
         {
             Money -= cost;
             DesignerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
         }
     }
 
@@ -82,6 +83,7 @@ public class EconomyManager : MonoBehaviour
         {
             Money -= cost;
             MarketerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
         }
     }
 
@@ -92,20 +94,80 @@ public class EconomyManager : MonoBehaviour
         {
             Money -= cost;
             ManagerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
         }
     }
 
+
+
+
+    // ---- Увольнение (бесплатно, без выходного пособия) ----
+    public void FireDesigner()
+    {
+        if (DesignerCount > 0)
+        {
+            DesignerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireMarketer()
+    {
+        if (MarketerCount > 0)
+        {
+            MarketerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireManager()
+    {
+        if (ManagerCount > 0)
+        {
+            ManagerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireEngineer()
+    {
+        if (EngineerCount > 0)
+        {
+            EngineerCount--;
+            UpdatePassiveIncome();
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+
+
     public void RewardContract(ContractData contract)
     {
+        if (contract == null) return;
         AddMoney(contract.rewardMoney);
         AddReputation(Mathf.RoundToInt(contract.rewardReputation));
-        // Можно добавить уведомление через UIManager
     }
 
     public void PenalizeContract(ContractData contract)
     {
-        SpendMoney(contract.penaltyMoney);
-        // Штраф к репутации, если нужно
+        Debug.Log($"[Economy] PenalizeContract: {contract?.title}, штраф {contract?.penaltyMoney}, баланс до {Money}");
+        if (contract == null) return;
+
+        double amount = contract.penaltyMoney;
+        double actualDeduction = Math.Min(Money, amount);
+
+        Money -= actualDeduction;
+        if (Money < 0) Money = 0;
+
+        yearlyExpenses += actualDeduction;
+        OnMoneyChanged?.Invoke();
+
+        // Если штраф «не влез» в баланс — сообщаем игроку честно
+        if (actualDeduction < amount)
+        {
+            CarCompanyManager.Instance?.UIManager?.ShowNotification(
+                $"⚠️ Штраф ${amount:F0} превысил баланс. Списано ${actualDeduction:F0}, остаток $0.");
+        }
     }
 
     public void Initialize(float startMoney, float profitMultiplier)
@@ -322,6 +384,9 @@ public class EconomyManager : MonoBehaviour
         data.discountDuration = DiscountDuration;
         data.monthlyIncomeHistory = monthlyIncomeHistory;
         data.totalCarsSold = totalCarsSold;
+        data.designerCount = DesignerCount;
+        data.marketerCount = MarketerCount;
+        data.managerCount  = ManagerCount;
     }
 
     public void LoadFromSave(SaveData data)
@@ -338,6 +403,10 @@ public class EconomyManager : MonoBehaviour
         monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
         totalCarsSold = data.totalCarsSold;
         monthlyIncome = 0;
+        OnMoneyChanged?.Invoke();
+        DesignerCount = data.designerCount;
+        MarketerCount = data.marketerCount;
+        ManagerCount  = data.managerCount;
         OnMoneyChanged?.Invoke();
     }
 

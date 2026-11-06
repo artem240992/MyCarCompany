@@ -105,7 +105,12 @@ public class ProductionManager : MonoBehaviour
     }
 
     // ---- Производство конкретной машины с проверками и добавлением на склад ----
+    // ---- Обратная совместимость: без комплектации и коробки ----
     public bool ProduceSpecificCar(CarBlueprint car)
+        => ProduceSpecificCar(car, "", "АКПП");
+
+    // ---- Основная логика: с комплектацией и коробкой ----
+    public bool ProduceSpecificCar(CarBlueprint car, string trimName, string transmissionType)
     {
         if (car == null) return false;
 
@@ -125,7 +130,6 @@ public class ProductionManager : MonoBehaviour
         if (car.platform != null && car.platform.isDeveloped)
         {
             discount = PlatformManager.Instance.GetPlatformDiscount(car);
-            // Регистрируем использование платформы
             PlatformManager.Instance.RegisterModelOnPlatform(car.platform);
         }
         int finalCost = Mathf.RoundToInt(baseCost * (1f - discount));
@@ -139,12 +143,25 @@ public class ProductionManager : MonoBehaviour
         // Списываем детали
         WarehouseManager.Instance.ConsumePartsForCar(recipe);
 
-        // Добавляем машину на склад
-        if (!WarehouseManager.Instance.AddCar(car))
+        // ---- Добавляем машину на склад с учётом комплектации и коробки ----
+        if (trimName == null) trimName = "";
+        if (string.IsNullOrEmpty(transmissionType)) transmissionType = "АКПП";
+
+        if (!WarehouseManager.Instance.AddCar(car, trimName, transmissionType, 1))
         {
+            // Откат — вернуть деньги и детали (базово, без учёта скидки)
+            CarCompanyManager.Instance.EconomyManager.AddMoney(finalCost);
+            // (детали можно не возвращать — считается браком, но если хотите — раскомментируйте)
+            // WarehouseManager.Instance.AddParts(PartType.Engine, recipe.engineRequired);
+            // ... и т.д.
+
             UIManager.Instance?.ShowNotification("Не удалось добавить машину на склад!");
             return false;
         }
+
+        // ---- Сообщаем ContractManager'у ----
+        if (ContractManager.Instance != null)
+            ContractManager.Instance.RegisterDeliveredCar(car);
 
         // Визуализация
         SpawnCar(car);

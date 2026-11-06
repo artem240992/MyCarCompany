@@ -2,21 +2,36 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
+[System.Serializable]
+public class CarStockEntry
+{
+    public CarBlueprint blueprint;
+    public string trimName = "";
+    public string transmissionType = "АКПП";
+    public int count;
+
+    public string GetGroupKey()
+    {
+        if (blueprint == null) return "";
+        return $"{blueprint.carName}|{blueprint.currentLevel}|{trimName}|{transmissionType}";
+    }
+}
+
 public class WarehouseManager : MonoBehaviour
 {
     public static WarehouseManager Instance { get; private set; }
 
     [Header("Warehouse Settings")]
     public int warehouseLevel = 0;
-    public int maxCapacity = 100; // для деталей
+    public int maxCapacity = 100;
 
-    public CarTrim trim; 
+    public CarTrim trim;
     public List<CarOption> installedOptions;
 
     [Header("Car Stock")]
     public int maxCarCapacity = 100;
-    private Dictionary<CarBlueprint, int> carStockByModel = new Dictionary<CarBlueprint, int>();
 
+    private List<CarStockEntry> carStock = new List<CarStockEntry>();
     private Dictionary<PartType, int> partsInventory = new Dictionary<PartType, int>();
 
     private void Awake()
@@ -32,7 +47,7 @@ public class WarehouseManager : MonoBehaviour
         UpdateCapacity();
     }
 
-    // ---- Детали (без изменений) ----
+    // ==================== ДЕТАЛИ ====================
     public int GetPartCount(PartType type) => partsInventory.TryGetValue(type, out int count) ? count : 0;
     public bool HasParts(PartType type, int amount) => GetPartCount(type) >= amount;
 
@@ -88,101 +103,198 @@ public class WarehouseManager : MonoBehaviour
         maxCarCapacity = 100 * (int)Mathf.Pow(2, warehouseLevel);
     }
 
-    // ---- Склад машин (новое) ----
+    // ==================== СКЛАД МАШИН ====================
+
     public bool AddCar(CarBlueprint car, int count = 1)
+        => AddCar(car, "", "АКПП", count);
+
+    public bool AddCar(CarBlueprint car, string trimName, string transmissionType, int count = 1)
     {
         if (car == null || count <= 0) return false;
-        int current = GetCarCount(car);
-        int total = carStockByModel.Values.Sum();
-        
+
+        int total = GetTotalCarCount();
         if (total + count > maxCarCapacity)
         {
             UIManager.Instance?.ShowNotification("Склад машин переполнен!");
             return false;
         }
-        carStockByModel[car] = current + count;
+
+        if (string.IsNullOrEmpty(transmissionType)) transmissionType = "АКПП";
+        if (trimName == null) trimName = "";
+
+        string key = $"{car.carName}|{car.currentLevel}|{trimName}|{transmissionType}";
+        var entry = carStock.FirstOrDefault(e => e.GetGroupKey() == key);
+        if (entry != null)
+        {
+            entry.count += count;
+        }
+        else
+        {
+            carStock.Add(new CarStockEntry
+            {
+                blueprint = car,
+                trimName = trimName,
+                transmissionType = transmissionType,
+                count = count
+            });
+        }
         return true;
     }
 
+    /// <summary>Списывает суммарно по всем партиям модели (для контрактов).</summary>
     public bool RemoveCar(CarBlueprint car, int count = 1)
     {
         if (car == null || count <= 0) return false;
-        if (!carStockByModel.ContainsKey(car) || carStockByModel[car] < count) return false;
-        carStockByModel[car] -= count;
-        if (carStockByModel[car] == 0)
-            carStockByModel.Remove(car);
+        int available = GetCarCount(car);
+        if (available < count) return false;
+
+        int remaining = count;
+        for (int i = carStock.Count - 1; i >= 0 && remaining > 0; i--)
+        {
+            var e = carStock[i];
+            if (e.blueprint != car) continue;
+            int take = Mathf.Min(e.count, remaining);
+            e.count -= take;
+            remaining -= take;
+            if (e.count <= 0) carStock.RemoveAt(i);
+        }
+        return remaining == 0;
+    }
+
+    /// <summary>Списывает конкретную партию (модель + комплектация + коробка).</summary>
+    public bool RemoveEntry(CarStockEntry entry, int count = 1)
+    {
+        if (entry == null || count <= 0) return false;
+        var found = carStock.FirstOrDefault(e => e.GetGroupKey() == entry.GetGroupKey());
+        if (found == null || found.count < count) return false;
+        found.count -= count;
+        if (found.count <= 0) carStock.Remove(found);
         return true;
     }
 
     public int GetCarCount(CarBlueprint car)
     {
-        return carStockByModel.TryGetValue(car, out int count) ? count : 0;
+        if (car == null) return 0;
+        return carStock.Where(e => e.blueprint == car).Sum(e => e.count);
     }
 
-    public int GetTotalCarCount()
+    public int GetTotalCarCount() => carStock.Sum(e => e.count);
+
+    public List<CarStockEntry> GetAllEntries() => new List<CarStockEntry>(carStock);
+
+    /// <summary>Множитель цены комплектации по её имени (1f, если не найдена).</summary>
+    public static float GetTrimPriceMultiplier(CarBlueprint car, string trimName)
     {
-        return carStockByModel.Values.Sum();
+        if (car == null || car.recipe == null || car.recipe.availableTrims == null)
+            return 1f;
+        if (string.IsNullOrEmpty(trimName)) return 1f;
+
+        var trim = car.recipe.availableTrims
+            .FirstOrDefault(t => t != null && t.trimName == trimName);
+        return trim != null ? trim.priceMultiplier : 1f;
     }
 
-    /// <summary>
-    /// Продаёт все машины указанной модели.
-    /// </summary>
+    /// <summary>Цена одной машины для конкретной партии (с учётом комплектации).</summary>
+    public int GetUnitPriceForEntry(CarStockEntry entry)
+    {
+        if (entry?.blueprint == null) return 0;
+
+        int basePrice = entry.blueprint.GetModifiedPrice(
+            CarCompanyManager.Instance.EconomyManager.TotalPriceModifier);
+
+        float trimMult = GetTrimPriceMultiplier(entry.blueprint, entry.trimName);
+        return Mathf.RoundToInt(basePrice * trimMult);
+    }
+
+    /// <summary>Агрегация по моделям (для старого UI/совместимости).</summary>
+    public IReadOnlyDictionary<CarBlueprint, int> GetAllCarsWithCounts()
+    {
+        var dict = new Dictionary<CarBlueprint, int>();
+        foreach (var e in carStock)
+        {
+            if (e.blueprint == null) continue;
+            if (dict.ContainsKey(e.blueprint)) dict[e.blueprint] += e.count;
+            else dict[e.blueprint] = e.count;
+        }
+        return dict;
+    }
+
+    // ==================== ПРОДАЖА ====================
+
     public int SellAllCarsOfModel(CarBlueprint car)
     {
-        if (car == null || !carStockByModel.ContainsKey(car)) return 0;
-        int count = carStockByModel[car];
+        if (car == null) return 0;
+        int total = GetCarCount(car);
+        if (total == 0) return 0;
+
         int price = car.GetModifiedPrice(CarCompanyManager.Instance.EconomyManager.TotalPriceModifier);
-        double total = count * price;
-        CarCompanyManager.Instance.EconomyManager.AddMoney(total);
-        carStockByModel.Remove(car);
-        UIManager.Instance?.ShowNotification($"Продано {count} {car.GetDisplayName()} за ${total:F0}");
-        return count;
+        double totalMoney = (double)total * price;
+        CarCompanyManager.Instance.EconomyManager.AddMoney(totalMoney);
+
+        carStock.RemoveAll(e => e.blueprint == car);
+        UIManager.Instance?.ShowNotification($"Продано {total} {car.GetDisplayName()} за ${totalMoney:F0}");
+        return total;
     }
 
-    /// <summary>
-    /// Продаёт указанное количество машин указанной модели.
-    /// </summary>
     public int SellCars(CarBlueprint car, int count)
     {
-        if (car == null || count <= 0 || !carStockByModel.ContainsKey(car)) return 0;
-        int available = carStockByModel[car];
-        int toSell = Mathf.Min(available, count);
+        if (car == null || count <= 0) return 0;
+        int toSell = Mathf.Min(GetCarCount(car), count);
+        if (toSell == 0) return 0;
+
         int price = car.GetModifiedPrice(CarCompanyManager.Instance.EconomyManager.TotalPriceModifier);
-        double total = toSell * price;
+        double total = (double)toSell * price;
         CarCompanyManager.Instance.EconomyManager.AddMoney(total);
-        carStockByModel[car] -= toSell;
-        if (carStockByModel[car] == 0)
-            carStockByModel.Remove(car);
+
+        int remaining = toSell;
+        for (int i = carStock.Count - 1; i >= 0 && remaining > 0; i--)
+        {
+            var e = carStock[i];
+            if (e.blueprint != car) continue;
+            int take = Mathf.Min(e.count, remaining);
+            e.count -= take;
+            remaining -= take;
+            if (e.count <= 0) carStock.RemoveAt(i);
+        }
+
         UIManager.Instance?.ShowNotification($"Продано {toSell} {car.GetDisplayName()} за ${total:F0}");
         return toSell;
     }
 
-    // ---- Производство деталей (без изменений) ----
+    public int SellEntry(CarStockEntry entry, int count)
+    {
+        if (entry == null || count <= 0) return 0;
+        var found = carStock.FirstOrDefault(e => e.GetGroupKey() == entry.GetGroupKey());
+        if (found == null) return 0;
+        int toSell = Mathf.Min(found.count, count);
+        if (toSell == 0) return 0;
+
+        int unitPrice = GetUnitPriceForEntry(found);           // ← цена с учётом комплектации
+        double total = (double)toSell * unitPrice;
+        CarCompanyManager.Instance.EconomyManager.AddMoney(total);
+
+        found.count -= toSell;
+        if (found.count <= 0) carStock.Remove(found);
+
+        string trimDisplay = string.IsNullOrEmpty(found.trimName) ? "Стандарт" : found.trimName;
+        UIManager.Instance?.ShowNotification(
+            $"Продано {toSell} {found.blueprint.GetDisplayName()} [{trimDisplay}] за ${total:F0}");
+        return toSell;
+    }
+
+    // ==================== ПРОИЗВОДСТВО ДЕТАЛЕЙ ====================
     public bool ProduceParts(PartType type, int count)
     {
-        if (!IsPartProductionUnlocked(type)) 
+        if (!IsPartProductionUnlocked(type))
         {
             UIManager.Instance?.ShowNotification($"Технология производства {type} не изучена!");
             return false;
         }
-
         int cost = 10 * count;
         var economy = CarCompanyManager.Instance.EconomyManager;
-        if (economy.Money < cost)
-        {
-            UIManager.Instance?.ShowNotification($"Не хватает денег! Нужно ${cost}");
-            return false;
-        }
-        if (economy.EngineerCount < 1)
-        {
-            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 инженер для производства деталей!");
-            return false;
-        }
-        if (economy.ConveyorLevel < 1)
-        {
-            UIManager.Instance?.ShowNotification("Нужен хотя бы 1 уровень конвейера для производства деталей!");
-            return false;
-        }
+        if (economy.Money < cost) { UIManager.Instance?.ShowNotification($"Не хватает денег! Нужно ${cost}"); return false; }
+        if (economy.EngineerCount < 1) { UIManager.Instance?.ShowNotification("Нужен хотя бы 1 инженер для производства деталей!"); return false; }
+        if (economy.ConveyorLevel < 1) { UIManager.Instance?.ShowNotification("Нужен хотя бы 1 уровень конвейера!"); return false; }
 
         economy.Money -= cost;
         AddParts(type, count);
@@ -205,7 +317,6 @@ public class WarehouseManager : MonoBehaviour
         return CarCompanyManager.Instance.TechManager.IsTechResearched(techName);
     }
 
-    // ---- Продажа деталей (без изменений) ----
     public bool SellParts(PartType type, int count, float pricePerUnit)
     {
         if (!HasParts(type, count)) return false;
@@ -229,26 +340,40 @@ public class WarehouseManager : MonoBehaviour
             PartType.Electronics => 35f,
             _ => 20f
         };
-        var economy = CarCompanyManager.Instance.EconomyManager;
-        return basePrice * economy.TotalPriceModifier;
+        return basePrice * CarCompanyManager.Instance.EconomyManager.TotalPriceModifier;
     }
 
-    // ---- Сохранение/загрузка ----
+    // ==================== СОХРАНЕНИЕ ====================
+
     public void FillSaveData(SaveData data)
     {
         data.warehouseLevel = warehouseLevel;
         data.partsInventory = new List<PartSaveData>();
         foreach (var kvp in partsInventory)
-        {
             data.partsInventory.Add(new PartSaveData { partType = kvp.Key, amount = kvp.Value });
-        }
 
-        // Сохраняем склад машин (сохраняем только количество по имени модели, т.к. ссылки могут не восстановиться)
-        data.carStockByModel = new List<CarStockSaveData>();
-        foreach (var kvp in carStockByModel)
+        data.carStock = new List<CarSaveData>();
+        foreach (var e in carStock)
         {
-            if (kvp.Key != null)
-                data.carStockByModel.Add(new CarStockSaveData { carName = kvp.Key.carName, amount = kvp.Value });
+            if (e.blueprint == null || e.count <= 0) continue;
+            var car = e.blueprint;
+            data.carStock.Add(new CarSaveData
+            {
+                carName          = car.carName,
+                currentLevel     = car.currentLevel,
+                amount           = e.count,
+                currentPrice     = car.currentPrice,
+                currentPower     = car.currentPower,
+                currentEconomy   = car.currentEconomy,
+                currentDesign    = car.currentDesign,
+                currentSafety    = car.currentSafety,
+                transmissionType = e.transmissionType,
+                trimName         = e.trimName,
+                colorR = car.bodyColor.r,
+                colorG = car.bodyColor.g,
+                colorB = car.bodyColor.b,
+                hasTint          = car.hasTint
+            });
         }
     }
 
@@ -256,27 +381,57 @@ public class WarehouseManager : MonoBehaviour
     {
         warehouseLevel = data.warehouseLevel;
         UpdateCapacity();
+
         partsInventory.Clear();
         foreach (PartType type in System.Enum.GetValues(typeof(PartType)))
             partsInventory[type] = 0;
         if (data.partsInventory != null)
-        {
             foreach (var saved in data.partsInventory)
-            {
                 partsInventory[saved.partType] = saved.amount;
-            }
-        }
 
-        // Восстанавливаем склад машин
-        carStockByModel.Clear();
-        if (data.carStockByModel != null)
+        carStock.Clear();
+        if (data.carStock == null) return;
+
+        var allCars = CarCompanyManager.Instance.TechManager.AvailableCars;
+        if (allCars == null) return;
+
+        foreach (var saved in data.carStock)
         {
-            var allCars = CarCompanyManager.Instance.TechManager.AvailableCars;
-            foreach (var saved in data.carStockByModel)
+            CarBlueprint car = allCars.FirstOrDefault(c =>
+                c.carName == saved.carName && c.currentLevel == saved.currentLevel);
+            if (car == null)
+                car = allCars.FirstOrDefault(c => c.carName == saved.carName);
+            if (car == null) continue;
+
+            car.currentLevel     = saved.currentLevel;
+            car.currentPrice     = saved.currentPrice;
+            car.currentPower     = saved.currentPower;
+            car.currentEconomy   = saved.currentEconomy;
+            car.currentDesign    = saved.currentDesign;
+            car.currentSafety    = saved.currentSafety;
+            car.transmissionType = saved.transmissionType;
+            car.bodyColor        = new Color(saved.colorR, saved.colorG, saved.colorB);
+            car.hasTint          = saved.hasTint;
+
+            if (saved.amount <= 0) continue;
+
+            string trim = string.IsNullOrEmpty(saved.trimName) ? "" : saved.trimName;
+            string gearbox = string.IsNullOrEmpty(saved.transmissionType) ? "АКПП" : saved.transmissionType;
+            string key = $"{car.carName}|{car.currentLevel}|{trim}|{gearbox}";
+            var existing = carStock.FirstOrDefault(e => e.GetGroupKey() == key);
+            if (existing != null)
             {
-                CarBlueprint car = allCars?.FirstOrDefault(c => c.carName == saved.carName);
-                if (car != null && saved.amount > 0)
-                    carStockByModel[car] = saved.amount;
+                existing.count += saved.amount;
+            }
+            else
+            {
+                carStock.Add(new CarStockEntry
+                {
+                    blueprint = car,
+                    trimName = trim,
+                    transmissionType = gearbox,
+                    count = saved.amount
+                });
             }
         }
     }

@@ -26,7 +26,6 @@ public class SaveLoadManager : MonoBehaviour
 
     public void SaveGame(int slot = -1)
     {
-  
         if (DemoManager.IsDemoBuild)
         {
             UIManager.Instance?.ShowNotification("Сохранение недоступно в демо-версии.");
@@ -43,8 +42,9 @@ public class SaveLoadManager : MonoBehaviour
 
         SaveData data = new SaveData();
 
-        InternationalManager.Instance?.FillSaveData(data);
-        IPManager.Instance?.FillSaveData(data);
+        // ---- Менеджеры (FillSaveData = записать в data) ----
+        InternationalManager.Instance?.FillSaveData(data);   // ✅ было LoadFromSave
+        IPManager.Instance?.FillSaveData(data);              // ✅ было LoadFromSave
 
         CarCompanyManager.Instance.EconomyManager.FillSaveData(data);
         CarCompanyManager.Instance.TechManager.FillSaveData(data);
@@ -53,10 +53,12 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.FillSaveData(data);
         CarCompanyManager.Instance.AchievementManager.FillSaveData(data);
         CarCompanyManager.Instance.WarehouseManager.FillSaveData(data);
+        if (ContractManager.Instance != null)
+            ContractManager.Instance.FillSaveData(data);
         CarCompanyManager.Instance.PartsMarketManager.FillSaveData(data);
         MarketingManager.Instance?.FillSaveData(data);
+        CarCompanyManager.Instance.CompetitorManager.FillSaveData(data);
 
-        // ---- СОХРАНЕНИЕ НОВЫХ ДАННЫХ ----
         LoanManager.Instance?.FillSaveData(data);
         InvestmentManager.Instance?.FillSaveData(data);
 
@@ -66,11 +68,22 @@ public class SaveLoadManager : MonoBehaviour
 
         data.tutorialProgress = TutorialManager.Instance?.CurrentStep ?? -1;
 
+        // ---- Бренд (ДО записи в файл!) ----
+        if (BrandManager.Instance != null)
+        {
+            data.companyName = BrandManager.Instance.companyName;
+            // если логотип хранится как путь:
+            // data.companyLogoPath = BrandManager.Instance.LogoPath;
+        }
+
+        // ---- Запись ----
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(GetSavePath(slot), json);
         currentSaveData = data;
         Debug.Log($"Игра сохранена в слот {slot} ({GetSavePath(slot)})");
-    }
+    }   // ← вот этой закрывающей скобки не хватало
+
+
 
     public void LoadGame(int slot = -1)
     {
@@ -99,9 +112,9 @@ public class SaveLoadManager : MonoBehaviour
 
         currentSaveData = data;
 
-        InternationalManager.Instance?.FillSaveData(data);
-        IPManager.Instance?.FillSaveData(data);
-        CarCompanyManager.Instance.CompetitorManager.Initialize();
+        InternationalManager.Instance?.LoadFromSave(data);
+        IPManager.Instance?.LoadFromSave(data);
+        CarCompanyManager.Instance.CompetitorManager.LoadFromSave(data);
         CarCompanyManager.Instance.EconomyManager.LoadFromSave(data);
         CarCompanyManager.Instance.TechManager.LoadFromSave(data);
         if (GameTimeManager.Instance != null)
@@ -109,6 +122,8 @@ public class SaveLoadManager : MonoBehaviour
         CarCompanyManager.Instance.ActionLogManager.LoadFromSave(data);
         CarCompanyManager.Instance.AchievementManager.LoadFromSave(data);
         CarCompanyManager.Instance.WarehouseManager.LoadFromSave(data);
+        if (ContractManager.Instance != null)
+            ContractManager.Instance.LoadFromSave(data);
         CarCompanyManager.Instance.PartsMarketManager.LoadFromSave(data);
         MarketingManager.Instance?.LoadFromSave(data);
 
@@ -127,7 +142,17 @@ public class SaveLoadManager : MonoBehaviour
         ui.UpdateUpgradeUI();
         ui.UpdateWarehouseLabels();
 
+        if (BrandManager.Instance != null)
+        {
+            if (!string.IsNullOrEmpty(data.companyName))
+                BrandManager.Instance.SetCompanyName(data.companyName);
+            // if (!string.IsNullOrEmpty(data.companyLogoPath))
+            //     BrandManager.Instance.LoadLogoFromFile(data.companyLogoPath);
+        }
+
         Debug.Log($"Игра загружена из слота {slot}");
+
+
     }
 
     public void NewGame()
