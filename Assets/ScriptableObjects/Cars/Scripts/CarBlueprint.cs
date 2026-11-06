@@ -19,6 +19,12 @@ public class CarBlueprint : ScriptableObject
     public int currentRange;      // запас хода (км)
     public int maxRange;
 
+
+    [Header("Текущая конфигурация игрока")]
+    public string selectedTrimName = "";
+    public string selectedTransmission = "АКПП";
+    public List<string> selectedOptionNames = new List<string>();
+
     [Header("История спроса")]
     public List<float> demandHistory = new List<float>(); // последние 12 месяцев
 
@@ -152,6 +158,11 @@ public class CarBlueprint : ScriptableObject
                 }
             }
         }
+
+        // ДОБАВИТЬ ЭТИ СТРОКИ:
+        newCar.selectedTrimName = this.selectedTrimName;
+        newCar.selectedTransmission = this.selectedTransmission;
+        newCar.selectedOptionNames = new List<string>(this.selectedOptionNames);
 
         return newCar;
     }
