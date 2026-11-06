@@ -49,6 +49,127 @@ public class EconomyManager : MonoBehaviour
 
     public event Action OnMoneyChanged;
 
+
+    // Геттеры для бонусов
+    public float DesignSpeedMultiplier => 1f + (DesignerCount * 0.1f); // +10% к скорости тюнинга
+    public float MarketingEfficiency => 1f + (MarketerCount * 0.15f); // +15% к эффекту рекламы
+
+
+        // === НОВЫЕ СОТРУДНИКИ ===
+    public int DesignerCount { get; private set; } = 0;
+    public int MarketerCount { get; private set; } = 0;
+    public int ManagerCount { get; private set; } = 0;
+
+    // Бонусы от сотрудников
+    public float DesignBonus => DesignerCount * 0.05f; // +5% к рейтингу за каждого дизайнера
+    public float MarketingBonus => MarketerCount * 0.1f; // +10% к эффекту рекламы
+    public bool HasManager => ManagerCount > 0; // Менеджер нужен для автопроизводства
+
+    public void HireDesigner()
+    {
+        int cost = Mathf.RoundToInt((200 + DesignerCount * 100) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            DesignerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
+        }
+    }
+
+    public void HireMarketer()
+    {
+        int cost = Mathf.RoundToInt((150 + MarketerCount * 80) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            MarketerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
+        }
+    }
+
+    public void HireManager()
+    {
+        int cost = Mathf.RoundToInt((500 + ManagerCount * 300) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            ManagerCount++;
+            OnMoneyChanged?.Invoke();   // ← добавить
+        }
+    }
+
+
+
+
+    // ---- Увольнение (бесплатно, без выходного пособия) ----
+    public void FireDesigner()
+    {
+        if (DesignerCount > 0)
+        {
+            DesignerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireMarketer()
+    {
+        if (MarketerCount > 0)
+        {
+            MarketerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireManager()
+    {
+        if (ManagerCount > 0)
+        {
+            ManagerCount--;
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+    public void FireEngineer()
+    {
+        if (EngineerCount > 0)
+        {
+            EngineerCount--;
+            UpdatePassiveIncome();
+            OnMoneyChanged?.Invoke();
+        }
+    }
+
+
+
+    public void RewardContract(ContractData contract)
+    {
+        if (contract == null) return;
+        AddMoney(contract.rewardMoney);
+        AddReputation(Mathf.RoundToInt(contract.rewardReputation));
+    }
+
+    public void PenalizeContract(ContractData contract)
+    {
+        Debug.Log($"[Economy] PenalizeContract: {contract?.title}, штраф {contract?.penaltyMoney}, баланс до {Money}");
+        if (contract == null) return;
+
+        double amount = contract.penaltyMoney;
+        double actualDeduction = Math.Min(Money, amount);
+
+        Money -= actualDeduction;
+        if (Money < 0) Money = 0;
+
+        yearlyExpenses += actualDeduction;
+        OnMoneyChanged?.Invoke();
+
+        // Если штраф «не влез» в баланс — сообщаем игроку честно
+        if (actualDeduction < amount)
+        {
+            CarCompanyManager.Instance?.UIManager?.ShowNotification(
+                $"⚠️ Штраф ${amount:F0} превысил баланс. Списано ${actualDeduction:F0}, остаток $0.");
+        }
+    }
+
     public void Initialize(float startMoney, float profitMultiplier)
     {
         Money = startMoney;
@@ -263,6 +384,9 @@ public class EconomyManager : MonoBehaviour
         data.discountDuration = DiscountDuration;
         data.monthlyIncomeHistory = monthlyIncomeHistory;
         data.totalCarsSold = totalCarsSold;
+        data.designerCount = DesignerCount;
+        data.marketerCount = MarketerCount;
+        data.managerCount  = ManagerCount;
     }
 
     public void LoadFromSave(SaveData data)
@@ -279,6 +403,10 @@ public class EconomyManager : MonoBehaviour
         monthlyIncomeHistory = data.monthlyIncomeHistory ?? new List<float>();
         totalCarsSold = data.totalCarsSold;
         monthlyIncome = 0;
+        OnMoneyChanged?.Invoke();
+        DesignerCount = data.designerCount;
+        MarketerCount = data.marketerCount;
+        ManagerCount  = data.managerCount;
         OnMoneyChanged?.Invoke();
     }
 

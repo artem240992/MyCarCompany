@@ -108,6 +108,16 @@ public class UIMarketingController : MonoBehaviour
 
     private void PopulateCarDropdown()
     {
+        if (CarCompanyManager.Instance == null || CarCompanyManager.Instance.TechManager == null) return;
+        
+        var availableCars = CarCompanyManager.Instance.TechManager.AvailableCars;
+        
+        if (availableCars == null || availableCars.Length == 0)
+        {
+            // Убрали логирование, чтобы не спамило в консоль при старте
+            return; 
+        }
+
         var techManager = CarCompanyManager.Instance?.TechManager;
         carNameToBlueprint.Clear();
 
@@ -131,7 +141,6 @@ public class UIMarketingController : MonoBehaviour
         else
         {
             availableCarNames = new List<string>();
-            Debug.LogWarning("TechManager.AvailableCars ещё не инициализирован, список машин пуст");
         }
 
         if (carDropdown != null)
@@ -139,7 +148,6 @@ public class UIMarketingController : MonoBehaviour
             carDropdown.choices = availableCarNames;
             if (availableCarNames.Count > 0)
             {
-                // Устанавливаем значение, но не вызываем дополнительный метод
                 carDropdown.value = availableCarNames[0];
             }
             else
@@ -225,8 +233,6 @@ public class UIMarketingController : MonoBehaviour
         };
     }
 
-
-
     private CarBlueprint GetSelectedCar()
     {
         if (carDropdown == null || string.IsNullOrEmpty(carDropdown.value))
@@ -238,13 +244,9 @@ public class UIMarketingController : MonoBehaviour
         return null;
     }
 
-
-
-
     public void RefreshUI()
     {
         PopulateCarDropdown();
-        // Проверяем готовность TechManager перед заполнением списков
         if (CarCompanyManager.Instance?.TechManager != null && CarCompanyManager.Instance.TechManager.AvailableCars != null)
             PopulateCarDropdown();
 
@@ -307,6 +309,40 @@ public class UIMarketingController : MonoBehaviour
 
         if (errorMessageLabel != null)
             errorMessageLabel.text = "";
+
+        // ПРИМЕНЯЕМ ЦВЕТА ТЕМЫ К ПОЛЯМ ВВОДА
+        bool isDark = PlayerPrefs.GetInt("DarkTheme", 0) == 1;
+        Color fieldBg = isDark ? new Color(0.25f, 0.25f, 0.25f) : new Color(1f, 1f, 1f);
+        Color textMain = isDark ? Color.white : Color.black;
+
+        ApplyFieldStyle(carDropdown, fieldBg, textMain);
+        ApplyFieldStyle(campaignTypeDropdown, fieldBg, textMain);
+        ApplyFieldStyle(durationField, fieldBg, textMain);
+        ApplyFieldStyle(budgetField, fieldBg, textMain);
+        ApplyFieldStyle(filterStatusDropdown, fieldBg, textMain);
+        ApplyFieldStyle(filterTypeDropdown, fieldBg, textMain);
+        ApplyFieldStyle(sortDropdown, fieldBg, textMain);
+    }
+
+    // Вспомогательный метод для рекурсивной покраски полей ввода
+    private void ApplyFieldStyle(VisualElement field, Color bg, Color text)
+    {
+        if (field == null) return;
+        
+        field.style.backgroundColor = bg;
+        field.style.color = text;
+
+        // Красим фон абсолютно всех внутренних элементов
+        field.Query<VisualElement>().ForEach(child =>
+        {
+            child.style.backgroundColor = bg;
+        });
+
+        // Красим весь текст внутри поля
+        field.Query<TextElement>().ForEach(t =>
+        {
+            t.style.color = text;
+        });
     }
 
     private void OnStartCampaignClicked()

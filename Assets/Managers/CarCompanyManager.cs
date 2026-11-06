@@ -49,6 +49,7 @@ public class CarCompanyManager : MonoBehaviour
     // ---- НОВЫЕ МЕНЕДЖЕРЫ ДЛЯ РЕЛИЗА 1.14.0 ----
     public InternationalManager InternationalManager { get; private set; }
     public IPManager IPManager { get; private set; }
+    public ContractManager ContractManager { get; private set; }
 
     public CarBlueprint[] StartCars => startCars;
     public string BulkProductionTechName => bulkProductionTechName;
@@ -95,6 +96,7 @@ public class CarCompanyManager : MonoBehaviour
 
         InternationalManager = GetComponent<InternationalManager>() ?? gameObject.AddComponent<InternationalManager>();
         IPManager = GetComponent<IPManager>() ?? gameObject.AddComponent<IPManager>();
+        ContractManager = GetComponent<ContractManager>() ?? gameObject.AddComponent<ContractManager>();
 
         #if DEMO_BUILD
         if (DemoManager.Instance == null)
@@ -150,6 +152,18 @@ public class CarCompanyManager : MonoBehaviour
         StartCoroutine(EconomyManager.PassiveIncomeLoop());
         CompetitorManager.StartCompetitorAI();
         DifficultyManager.StartEconomicEventsIfHard();
+
+        ContractManager.Instance.OnContractCompleted += (contract) =>
+        {
+            EconomyManager.RewardContract(contract);            // ✅
+            UIManager.Instance?.ShowNotification($"✅ Контракт выполнен: {contract.title}! Награда: ${contract.rewardMoney:F0}");
+        };
+
+        ContractManager.Instance.OnContractFailed += (contract) =>
+        {
+            EconomyManager.PenalizeContract(contract);          // ✅
+            UIManager.Instance?.ShowNotification($"❌ Контракт провален: {contract.title}. Штраф: ${contract.penaltyMoney:F0}");
+        };
     }
 
     private void Update()

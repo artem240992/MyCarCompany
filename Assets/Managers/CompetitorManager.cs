@@ -98,6 +98,96 @@ public class CompetitorManager : MonoBehaviour
         }
     }
 
+
+
+    public void FillSaveData(SaveData data)
+    {
+        data.competitors = new List<CompetitorSaveData>();
+        foreach (var c in competitors)
+        {
+            if (c == null) continue;
+            data.competitors.Add(new CompetitorSaveData
+            {
+                companyName       = c.companyName,
+                money             = c.money,
+                factoryLevel      = c.factoryLevel,
+                researchLevel     = c.researchLevel,
+                reputation        = c.reputation,
+                priceMultiplier   = c.priceMultiplier,
+                marketShare       = c.marketShare,
+                engineers         = c.engineers,
+                espionageLevel    = c.espionageLevel,
+                marketingPower    = c.marketingPower,
+                loyalty           = c.loyalty,
+                isAlly            = c.isAlly,
+                marketingBudget   = c.marketingBudget,
+                brandQuality      = c.brandQuality,
+                strategy          = c.strategy,
+                availableCarNames = c.availableCars
+                    .Where(x => x != null).Select(x => x.carName).ToList(),
+                stolenTechs       = new List<string>(c.stolenTechs ?? new List<string>()),
+                researchedTechs   = new List<string>(c.researchedTechs ?? new List<string>()),
+                activeCampaigns   = new List<MarketingCampaign>(c.activeCampaigns ?? new List<MarketingCampaign>())
+            });
+        }
+    }
+
+    public void LoadFromSave(SaveData data)
+    {
+        competitors.Clear();
+
+        // Если сохранение старое или пустое — генерируем заново
+        if (data.competitors == null || data.competitors.Count == 0)
+        {
+            InitCompetitors();
+            StartCompetitorAI();
+            return;
+        }
+
+        var allCars = tech.AvailableCars;
+
+        foreach (var s in data.competitors)
+        {
+            var comp = new Competitor
+            {
+                companyName     = s.companyName,
+                money           = s.money,
+                factoryLevel    = s.factoryLevel,
+                researchLevel   = s.researchLevel,
+                reputation      = s.reputation,
+                priceMultiplier = s.priceMultiplier,
+                marketShare     = s.marketShare,
+                engineers       = s.engineers,
+                espionageLevel  = s.espionageLevel,
+                marketingPower  = s.marketingPower,
+                loyalty         = s.loyalty,
+                isAlly          = s.isAlly,
+                marketingBudget = s.marketingBudget,
+                brandQuality    = s.brandQuality,
+                strategy        = s.strategy,
+                stolenTechs     = new List<string>(s.stolenTechs ?? new List<string>()),
+                researchedTechs = new List<string>(s.researchedTechs ?? new List<string>()),
+                activeCampaigns = new List<MarketingCampaign>(s.activeCampaigns ?? new List<MarketingCampaign>()),
+                availableCars   = new List<CarBlueprint>()
+            };
+
+            if (s.availableCarNames != null && allCars != null)
+            {
+                foreach (var name in s.availableCarNames)
+                {
+                    var car = allCars.FirstOrDefault(x => x != null && x.carName == name);
+                    if (car != null) comp.availableCars.Add(car);
+                }
+            }
+
+            competitors.Add(comp);
+        }
+
+        ui.RefreshCompetitorsList(competitors, economy.Reputation);
+        StartCompetitorAI();
+    }
+
+
     private void RunCompetitorDecision(Competitor comp)
     {
         if (comp == null) return;
