@@ -1489,6 +1489,8 @@ public void ShowInteractiveNews(InteractiveNews news)
         UpdateUpgradeUI();
     }
 
+    private float autoProduceTimer = 0f;
+    
 
     private void Update()
     {
@@ -1504,6 +1506,34 @@ public void ShowInteractiveNews(InteractiveNews news)
             if (newsTimeLabel != null)
                 newsTimeLabel.text = $"{remaining:F0} сек";
         }
+
+        // === АВТОПРОИЗВОДСТВО ОТ МЕНЕДЖЕРОВ ===
+        if (economy.HasManager)
+        {
+            autoProduceTimer += Time.deltaTime;
+            if (autoProduceTimer >= 5f) // Раз в 5 секунд
+            {
+                autoProduceTimer = 0f;
+                TryAutoProduceParts();
+            }
+        }
+    }
+
+
+    private void TryAutoProduceParts()
+    {
+        // Если двигателей меньше 10, менеджер покупает 1
+        if (warehouse.GetPartCount(PartType.Engine) < 10 && economy.Money > 100)
+            warehouse.ProduceParts(PartType.Engine, 1);
+        
+        if (warehouse.GetPartCount(PartType.Body) < 10 && economy.Money > 100)
+            warehouse.ProduceParts(PartType.Body, 1);
+            
+        if (warehouse.GetPartCount(PartType.Wheels) < 10 && economy.Money > 100)
+            warehouse.ProduceParts(PartType.Wheels, 1);
+            
+        if (warehouse.GetPartCount(PartType.Electronics) < 10 && economy.Money > 100)
+            warehouse.ProduceParts(PartType.Electronics, 1);
     }
 
 

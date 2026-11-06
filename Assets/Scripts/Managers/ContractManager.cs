@@ -115,7 +115,20 @@ public class ContractManager : MonoBehaviour
     private bool CarMatchesContract(CarBlueprint car, ContractData c)
     {
         if (car == null || car.recipe == null) return false;
-        return car.recipe.reliability >= 50f; // или другое условие
+
+        switch (c.type)
+        {
+            case ContractType.Police:
+                return car.carType != null && car.carType.typeName == "Седан" && car.recipe.reliability >= 60f;
+            case ContractType.Ambulance:
+                return car.carType != null && car.carType.typeName == "Внедорожник" && car.recipe.safety >= 70f;
+            case ContractType.Mail:
+                return car.carType != null && car.carType.typeName == "Фургон" && car.recipe.reliability >= 55f;
+            case ContractType.Taxi:
+                return car.carType != null && car.carType.typeName == "Седан" && car.recipe.economy >= 50f;
+            default:
+                return false;
+        }
     }
 
     private void CompleteContract(ContractData c)

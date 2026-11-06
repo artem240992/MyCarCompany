@@ -150,6 +150,18 @@ public class CarCompanyManager : MonoBehaviour
         StartCoroutine(EconomyManager.PassiveIncomeLoop());
         CompetitorManager.StartCompetitorAI();
         DifficultyManager.StartEconomicEventsIfHard();
+
+        ContractManager.Instance.OnContractCompleted += (contract) =>
+        {
+            EconomyManager.Instance.RewardContract(contract);
+            UIManager.Instance?.ShowNotification($"✅ Контракт выполнен: {contract.title}! Награда: ${contract.rewardMoney}");
+        };
+
+        ContractManager.Instance.OnContractFailed += (contract) =>
+        {
+            EconomyManager.Instance.PenalizeContract(contract);
+            UIManager.Instance?.ShowNotification($"❌ Контракт провален: {contract.title}. Штраф: ${contract.penaltyMoney}");
+        };
     }
 
     private void Update()

@@ -49,13 +49,64 @@ public class EconomyManager : MonoBehaviour
 
     public event Action OnMoneyChanged;
 
-    public int DesignerCount { get; private set; } = 0;
-    public int MarketerCount { get; private set; } = 0;
-    public int ManagerCount { get; private set; } = 0;
 
     // Геттеры для бонусов
     public float DesignSpeedMultiplier => 1f + (DesignerCount * 0.1f); // +10% к скорости тюнинга
     public float MarketingEfficiency => 1f + (MarketerCount * 0.15f); // +15% к эффекту рекламы
+
+
+        // === НОВЫЕ СОТРУДНИКИ ===
+    public int DesignerCount { get; private set; } = 0;
+    public int MarketerCount { get; private set; } = 0;
+    public int ManagerCount { get; private set; } = 0;
+
+    // Бонусы от сотрудников
+    public float DesignBonus => DesignerCount * 0.05f; // +5% к рейтингу за каждого дизайнера
+    public float MarketingBonus => MarketerCount * 0.1f; // +10% к эффекту рекламы
+    public bool HasManager => ManagerCount > 0; // Менеджер нужен для автопроизводства
+
+    public void HireDesigner()
+    {
+        int cost = Mathf.RoundToInt((200 + DesignerCount * 100) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            DesignerCount++;
+        }
+    }
+
+    public void HireMarketer()
+    {
+        int cost = Mathf.RoundToInt((150 + MarketerCount * 80) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            MarketerCount++;
+        }
+    }
+
+    public void HireManager()
+    {
+        int cost = Mathf.RoundToInt((500 + ManagerCount * 300) * CostMultiplier);
+        if (Money >= cost)
+        {
+            Money -= cost;
+            ManagerCount++;
+        }
+    }
+
+    public void RewardContract(ContractData contract)
+    {
+        AddMoney(contract.rewardMoney);
+        AddReputation(Mathf.RoundToInt(contract.rewardReputation));
+        // Можно добавить уведомление через UIManager
+    }
+
+    public void PenalizeContract(ContractData contract)
+    {
+        SpendMoney(contract.penaltyMoney);
+        // Штраф к репутации, если нужно
+    }
 
     public void Initialize(float startMoney, float profitMultiplier)
     {
