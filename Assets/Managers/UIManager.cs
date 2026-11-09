@@ -31,6 +31,9 @@ public class UIManager : MonoBehaviour
     private ListView platformsListView;
     private Button developPlatformButton;
 
+    private VisualElement chargingOverlay;
+    private ScrollView chargingContainer;
+
     private VisualElement demandGraphOverlay;
     private DropdownField demandGraphCarDropdown;
     private VisualElement demandGraphContainer;
@@ -45,6 +48,11 @@ public class UIManager : MonoBehaviour
     // ---- Демо-версия ----
     private Label demoTimerLabel;
     private Label demoProgressLabel;
+
+    private VisualElement batteryResourceBlock;
+    private Label batteryLabel;
+    private Button produceBatteryButton;
+    private Button sellBatteryButton;
 
     // ---- Оверлеи для международной экспансии и патентов ----
     private VisualElement officesOverlay;
@@ -116,6 +124,11 @@ public class UIManager : MonoBehaviour
     private Button hireMarketerButton;
     private Button hireManagerButton;
 
+    // Поля
+    private VisualElement carConfiguratorOverlay;
+    private ScrollView carConfiguratorContainer;
+    private CarBlueprint currentConfigCar;
+
     // ---- Персонал ----
     private VisualElement staffOverlay;
     private ScrollView staffContainer;
@@ -170,44 +183,22 @@ public class UIManager : MonoBehaviour
     {
         public CarBlueprint car;
         public Button produceButton;
-        public Label contractMatchLabel; // <-- ДОБАВИТЬ
-
-        public DropdownField transmissionDropdown; // новое поле
-
+        public Button upgradeButton;
+        public Button configButton;
+        
         public Label ratingLabel; 
         public Label platformLabel;
-
-        public Button sellButton;
         public Label stockLabel;
+        public Label contractMatchLabel; 
         
-        public Label profitDetailsLabel;
-        public VisualElement card;
         public Label profitLabel;
         public Label demandLabel;
-        public Label trendLabel;
-        public Label levelLabel;
-        public VisualElement graphContainer;
-        public Button upgradeButton;
-        public SliderInt powerSlider, economySlider, designSlider, safetySlider;
-        public Label powerMaxLabel, economyMaxLabel, designMaxLabel, safetyMaxLabel;
-        public Label powerValueLabel, economyValueLabel, designValueLabel, safetyValueLabel;
-        public Button powerUpgradeBtn, economyUpgradeBtn, designUpgradeBtn, safetyUpgradeBtn;
-        public Button[] colorButtons;
-        public Toggle tintToggle;
         public Label taxRateLabel;
-        public Label modifierLabel;
-
-        // ========== НОВЫЕ ПОЛЯ ==========
-        public Label detailsLabel;          // лейбл "Цена: $X | Себ: $Y"
-        public Label priceLabel;            // лейбл текущей цены для регулировки
+        public Label detailsLabel; // Себестоимость
+        public Label priceLabel;
+        
         public Button decreasePriceBtn;
         public Button increasePriceBtn;
-
-        // ========== НОВЫЕ ПОЛЯ ДЛЯ КОМПЛЕКТАЦИЙ ==========
-        public DropdownField trimDropdown;
-        public VisualElement optionsContainer;
-        public CarTrim selectedTrim;
-        public List<CarOption> selectedOptions = new List<CarOption>();
     }
 
     private string[] tuningParamNames = { "power", "economy", "design", "safety" };
@@ -541,6 +532,7 @@ public class UIManager : MonoBehaviour
             case NewsType.EcoTrend:          return ("🌱", "Эко-тренд",          new Color(0.56f, 0.93f, 0.56f));
             case NewsType.CompetitorScandal: return ("⚔️", "Скандал",            new Color(1f, 0.8f, 0.2f));
             case NewsType.MarketSlowdown:    return ("📉", "Замедление рынка",   new Color(1f, 0.42f, 0.42f));
+            case NewsType.EvSubsidy:         return ("🔋", "Субсидии на EV", new Color(0.56f, 0.93f, 0.56f));
             default:                         return ("📰", "Событие",            new Color(0.7f, 0.7f, 0.7f));
         }
     }
@@ -787,8 +779,16 @@ public class UIManager : MonoBehaviour
         platformsOverlay = root.Q<VisualElement>("PlatformsOverlay");
         platformsListView = root.Q<ListView>("PlatformsList");
         developPlatformButton = root.Q<Button>("DevelopPlatformButton");
+        chargingOverlay = root.Q<VisualElement>("ChargingOverlay");
+        chargingContainer = root.Q<ScrollView>("ChargingContainer");
+        if (chargingOverlay != null) chargingOverlay.style.display = DisplayStyle.None;
+
+        SubscribeButton("OpenChargingButton", OpenChargingWindow);
+        SubscribeButton("CloseChargingButton", CloseChargingWindow);
+        SubscribeButton("RefreshChargingButton", RefreshChargingUI);
         SubscribeButton("OpenPlatformsButton", OpenPlatformsWindow);
         SubscribeButton("ClosePlatformsButton", ClosePlatformsWindow);
+        SubscribeButton("SaveConfiguratorButton", ApplyConfigurator);
         if (developPlatformButton != null)
             developPlatformButton.clicked += OnDevelopPlatformClicked;
 
@@ -899,6 +899,11 @@ public class UIManager : MonoBehaviour
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
 
+        batteryResourceBlock = root.Q<VisualElement>("BatteryResourceBlock");
+        batteryLabel = root.Q<Label>("BatteryLabel");
+        produceBatteryButton = root.Q<Button>("ProduceBatteryButton");
+        sellBatteryButton = root.Q<Button>("SellBatteryButton");
+
         marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
         marketVisOverlay = root.Q<VisualElement>("MarketVisOverlay");
         loansOverlay = root.Q<VisualElement>("LoansOverlay");
@@ -950,6 +955,13 @@ public class UIManager : MonoBehaviour
         if (hamburgerButton != null)
             hamburgerButton.clicked += OpenMenuWindow;
 
+
+        carConfiguratorOverlay = root.Q<VisualElement>("CarConfiguratorOverlay");
+        carConfiguratorContainer = root.Q<ScrollView>("ConfiguratorContainer");
+        if (carConfiguratorOverlay != null) carConfiguratorOverlay.style.display = DisplayStyle.None;
+        SubscribeButton("CloseConfiguratorButton", CloseConfigurator);
+        SubscribeButton("SaveConfiguratorButton", ApplyConfigurator);
+
         // ---- Подписки ----
         SubscribeButton("OpenCarsButton", OpenCarsWindow);
         SubscribeButton("OpenTechButton", OpenTechWindow);
@@ -968,6 +980,9 @@ public class UIManager : MonoBehaviour
         SubscribeButton("OpenNewsButton", OpenNewsWindow);
         SubscribeButton("CloseNewsButton", CloseNewsWindow);
         SubscribeButton("CloseNewsButton2", CloseNewsWindow);
+
+        SubscribeButton("ProduceBatteryButton", () => TryProducePart(PartType.Battery));
+        SubscribeButton("SellBatteryButton", () => TrySellPart(PartType.Battery));
 
         SubscribeButton("OpenOfficesButton", OpenOfficesWindow);
         SubscribeButton("CloseOfficesButton", CloseOfficesWindow);
@@ -1155,7 +1170,22 @@ public class UIManager : MonoBehaviour
     }
 
 
-        private void QuitGame()
+    
+    private void ApplyConfigurator()
+    {
+        if (currentConfigCar == null) return;
+        
+        // Здесь сохраняются изменения (сейчас просто обновляет UI)
+        UpdateCarCards();
+        demand.UpdateDemand();
+        UpdateMoneyLabels();
+        
+        ShowNotification($"Настройки для {currentConfigCar.GetDisplayName()} применены.");
+        CloseConfigurator();
+    }
+    
+    
+    private void QuitGame()
     {
         #if UNITY_EDITOR
             // Если мы в редакторе Unity — останавливаем Play Mode
@@ -1168,8 +1198,478 @@ public class UIManager : MonoBehaviour
 
 
 
+    private (float cost, float price, float profit) CalculateCurrentStats(CarBlueprint car)
+    {
+        float partCost = economy.GetPartCostForCar(car);
+        float baseCost = car.GetProductionCostWithLevel() + partCost;
 
-         private void ApplyTheme(bool isDark)
+        float optionsCost = 0f;
+        float trimMultiplier = 1f;
+
+        if (car.recipe != null && car.recipe.availableTrims != null)
+        {
+            var trim = car.recipe.availableTrims.FirstOrDefault(t => t.trimName == car.selectedTrimName);
+            if (trim != null)
+            {
+                trimMultiplier = trim.priceMultiplier;
+                if (trim.availableOptions != null)
+                {
+                    foreach (var opt in trim.availableOptions)
+                    {
+                        if (car.selectedOptionNames.Contains(opt.optionName))
+                            optionsCost += opt.additionalCost;
+                    }
+                }
+            }
+        }
+
+        float costWithOptions = (baseCost + optionsCost) * trimMultiplier;
+
+        float platformDiscount = 0f;
+        if (car.platform != null && car.platform.isDeveloped && PlatformManager.Instance != null)
+            platformDiscount = PlatformManager.Instance.GetPlatformDiscount(car);
+
+        float productionCost = costWithOptions * (1f - platformDiscount);
+
+        int modPrice = Mathf.RoundToInt(car.GetModifiedPrice(economy.TotalPriceModifier) * trimMultiplier);
+        double profitBeforeTax = modPrice - productionCost;
+        float taxRate = economy.GetTaxRate(car);
+        double finalProfit = profitBeforeTax * (1f - taxRate);
+
+        return (productionCost, modPrice, (float)finalProfit);
+    }
+
+    // Метод открытия (вызывать по кнопке "Настроить" из карточки машины)
+        public void OpenConfigurator(CarBlueprint car)
+    {
+        if (car == null || carConfiguratorOverlay == null) return;
+        currentConfigCar = car;
+        
+        CloseMenuWindow();
+        HideAllOverlays();
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(carConfiguratorOverlay);
+        
+        var title = carConfiguratorOverlay.Q<Label>("ConfiguratorTitle");
+        if (title != null) title.text = $"Настройка: {car.GetDisplayName()}";
+
+        carConfiguratorContainer.Clear();
+
+        // Инициализация значений по умолчанию
+        if (string.IsNullOrEmpty(car.selectedTransmission)) car.selectedTransmission = car.transmissionType;
+        if (car.recipe != null && car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0)
+        {
+            if (string.IsNullOrEmpty(car.selectedTrimName) || !car.recipe.availableTrims.Any(t => t.trimName == car.selectedTrimName))
+            {
+                car.selectedTrimName = car.recipe.availableTrims[0].trimName;
+                car.selectedOptionNames.Clear();
+                if (car.recipe.availableTrims[0].defaultOptions != null)
+                    foreach (var opt in car.recipe.availableTrims[0].defaultOptions) car.selectedOptionNames.Add(opt.optionName);
+            }
+        }
+
+        // --- БЛОК: Цена ---
+        VisualElement priceSection = new VisualElement();
+        priceSection.style.flexDirection = FlexDirection.Row;
+        priceSection.style.alignItems = Align.Center;
+        priceSection.style.marginBottom = 10;
+        priceSection.style.backgroundColor = isDarkTheme ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.9f, 0.9f);
+        priceSection.style.paddingTop = 5; priceSection.style.paddingBottom = 5;
+        priceSection.style.paddingLeft = 10; priceSection.style.paddingRight = 10;
+        priceSection.style.borderTopLeftRadius = 4; priceSection.style.borderTopRightRadius = 4;
+
+        Label priceTitle = new Label("Текущая цена:");
+        priceTitle.style.color = isDarkTheme ? Color.white : Color.black;
+        priceTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+        priceTitle.style.marginRight = 10;
+        priceSection.Add(priceTitle);
+
+        Label currentPriceLbl = new Label($"${car.currentPrice}");
+        currentPriceLbl.style.color = new Color(1f, 0.85f, 0.3f);
+        currentPriceLbl.style.fontSize = 16;
+        currentPriceLbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        currentPriceLbl.style.width = 80;
+        currentPriceLbl.style.unityTextAlign = TextAnchor.MiddleCenter;
+
+        Button decBtn = new Button(() => 
+        {
+            ChangeCarPrice(car, -Mathf.Max(10, car.currentPrice / 20));
+            currentPriceLbl.text = $"${car.currentPrice}"; 
+            OpenConfigurator(car);
+        });
+        decBtn.text = "−"; decBtn.style.width = 30; decBtn.style.height = 25;
+        
+        Button incBtn = new Button(() => 
+        {
+            ChangeCarPrice(car, Mathf.Max(10, car.currentPrice / 20));
+            currentPriceLbl.text = $"${car.currentPrice}"; 
+            OpenConfigurator(car);
+        });
+        incBtn.text = "+"; incBtn.style.width = 30; incBtn.style.height = 25;
+
+        priceSection.Add(decBtn);
+        priceSection.Add(currentPriceLbl);
+        priceSection.Add(incBtn);
+        carConfiguratorContainer.Add(priceSection);
+
+        // --- БЛОК: Коробка и Комплектация ---
+        if (car.recipe != null)
+        {
+            VisualElement configBox = new VisualElement();
+            configBox.style.marginBottom = 10;
+            
+            // Коробка
+            VisualElement transRow = new VisualElement();
+            transRow.style.flexDirection = FlexDirection.Row;
+            transRow.style.alignItems = Align.Center;
+            transRow.style.marginBottom = 6;
+
+            Label transLbl = new Label("Коробка передач:");
+            transLbl.style.width = 150;
+            transLbl.style.color = isDarkTheme ? Color.white : Color.black;
+            transRow.Add(transLbl);
+
+            List<string> transOptions = new List<string>();
+            string[] allTrans = { "АКПП", "МКПП", "Робот", "Вариатор" };
+            string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
+            for (int i = 0; i < allTrans.Length; i++)
+                if (tech.IsTechResearched(techNames[i])) transOptions.Add(allTrans[i]);
+            if (transOptions.Count == 0) transOptions.Add("АКПП");
+
+            DropdownField transDropdown = new DropdownField(transOptions, Mathf.Max(0, transOptions.IndexOf(car.selectedTransmission)));
+            transDropdown.style.flexGrow = 1;
+            transDropdown.RegisterValueChangedCallback(evt => {
+                car.selectedTransmission = evt.newValue;
+            });
+            ApplyFieldStyle(transDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
+            transRow.Add(transDropdown);
+            configBox.Add(transRow);
+
+            // Комплектация
+            if (car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0)
+            {
+                VisualElement trimRow = new VisualElement();
+                trimRow.style.flexDirection = FlexDirection.Row;
+                trimRow.style.alignItems = Align.Center;
+                trimRow.style.marginBottom = 6;
+
+                Label trimLbl = new Label("Комплектация:");
+                trimLbl.style.width = 150;
+                trimLbl.style.color = isDarkTheme ? Color.white : Color.black;
+                trimRow.Add(trimLbl);
+
+                List<string> trimNames = car.recipe.availableTrims.Select(t => t.trimName).ToList();
+                int trimIdx = trimNames.IndexOf(car.selectedTrimName);
+                if (trimIdx < 0) trimIdx = 0;
+                
+                DropdownField trimDropdown = new DropdownField(trimNames, trimIdx);
+                trimDropdown.style.flexGrow = 1;
+                ApplyFieldStyle(trimDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
+                trimRow.Add(trimDropdown);
+                configBox.Add(trimRow);
+
+                VisualElement optionsContainer = new VisualElement();
+                configBox.Add(optionsContainer);
+
+                Action updateOptionsUI = () =>
+                {
+                    optionsContainer.Clear();
+                    var selectedTrim = car.recipe.availableTrims[trimDropdown.index];
+                    
+                    // Если комплектация изменилась, сбрасываем галочки на дефолтные
+                    if (car.selectedTrimName != selectedTrim.trimName)
+                    {
+                        car.selectedTrimName = selectedTrim.trimName;
+                        car.selectedOptionNames.Clear();
+                        if (selectedTrim.defaultOptions != null)
+                            foreach (var opt in selectedTrim.defaultOptions) car.selectedOptionNames.Add(opt.optionName);
+                    }
+
+                    if (selectedTrim.availableOptions == null) return;
+                    
+                    foreach (var option in selectedTrim.availableOptions)
+                    {
+                        Toggle optToggle = new Toggle(option.optionName);
+                        optToggle.style.color = isDarkTheme ? Color.white : Color.black;
+                        optToggle.style.marginLeft = 150;
+                        optToggle.value = car.selectedOptionNames.Contains(option.optionName);
+                        optToggle.RegisterValueChangedCallback(evt => {
+                            if (evt.newValue && !car.selectedOptionNames.Contains(option.optionName))
+                                car.selectedOptionNames.Add(option.optionName);
+                            else if (!evt.newValue)
+                                car.selectedOptionNames.Remove(option.optionName);
+                            
+                            // Обновляем итоговые цифры
+                            var s = CalculateCurrentStats(car);
+                            var c = carConfiguratorOverlay.Q<Label>("ConfigCostLabel");
+                            var p = carConfiguratorOverlay.Q<Label>("ConfigProfitLabel");
+                            if (c != null) c.text = $"Себестоимость: ${s.cost:F0}";
+                            if (p != null) p.text = $"Чистая прибыль: ${s.profit:F0}";
+                        });
+                        optionsContainer.Add(optToggle);
+                    }
+                };
+                
+                trimDropdown.RegisterValueChangedCallback(evt => {
+                    updateOptionsUI();
+                    var s = CalculateCurrentStats(car);
+                    var c = carConfiguratorOverlay.Q<Label>("ConfigCostLabel");
+                    var p = carConfiguratorOverlay.Q<Label>("ConfigProfitLabel");
+                    if (c != null) c.text = $"Себестоимость: ${s.cost:F0}";
+                    if (p != null) p.text = $"Чистая прибыль: ${s.profit:F0}";
+                });
+                updateOptionsUI();
+            }
+            carConfiguratorContainer.Add(configBox);
+        }
+
+        // --- БЛОК: Тюнинг ---
+        VisualElement tuningSection = new VisualElement();
+        tuningSection.style.marginBottom = 10;
+        
+        Label tuningTitle = new Label("Тюнинг:");
+        tuningTitle.style.fontSize = 16;
+        tuningTitle.style.color = isDarkTheme ? Color.white : Color.black;
+        tuningTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+        tuningTitle.style.marginBottom = 6;
+        tuningSection.Add(tuningTitle);
+
+        for (int i = 0; i < tuningParamNames.Length; i++)
+        {
+            string param = tuningParamNames[i];
+            string display = tuningParamDisplay[i];
+
+            VisualElement row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.marginBottom = 5;
+
+            Label pName = new Label(display);
+            pName.style.width = 150;
+            pName.style.color = isDarkTheme ? Color.white : Color.black;
+            row.Add(pName);
+
+            SliderInt slider = new SliderInt();
+            slider.lowValue = 0;
+            slider.highValue = GetMaxTuning(car, param);
+            slider.value = GetCurrentTuning(car, param);
+            slider.style.flexGrow = 1;
+            slider.style.marginRight = 10;
+            row.Add(slider);
+
+            Label valLbl = new Label(GetCurrentTuning(car, param).ToString());
+            valLbl.style.width = 30;
+            valLbl.style.color = isDarkTheme ? Color.white : Color.black;
+            valLbl.style.unityTextAlign = TextAnchor.MiddleCenter;
+            row.Add(valLbl);
+
+            Button upBtn = new Button(() => 
+            {
+                tech.UpgradeTuning(car, param);
+                OpenConfigurator(car);
+            });
+            upBtn.text = "↑"; upBtn.style.width = 30; upBtn.style.height = 25;
+            row.Add(upBtn);
+
+            slider.RegisterValueChangedCallback(evt =>
+            {
+                SetCurrentTuning(car, param, evt.newValue);
+                valLbl.text = evt.newValue.ToString();
+                UpdateCarCards(); 
+                
+                var s = CalculateCurrentStats(car);
+                var c = carConfiguratorOverlay.Q<Label>("ConfigCostLabel");
+                var p = carConfiguratorOverlay.Q<Label>("ConfigProfitLabel");
+                if (c != null) c.text = $"Себестоимость: ${s.cost:F0}";
+                if (p != null) p.text = $"Чистая прибыль: ${s.profit:F0}";
+            });
+
+            tuningSection.Add(row);
+        }
+        carConfiguratorContainer.Add(tuningSection);
+
+        // --- БЛОК: Цвет и тонировка ---
+        VisualElement colorSection = new VisualElement();
+        colorSection.style.flexDirection = FlexDirection.Row;
+        colorSection.style.alignItems = Align.Center;
+        
+        Label cTitle = new Label("Цвет:");
+        cTitle.style.width = 150;
+        cTitle.style.color = isDarkTheme ? Color.white : Color.black;
+        colorSection.Add(cTitle);
+
+        for (int i = 0; i < carColors.Length; i++)
+        {
+            int index = i;
+            Button colorBtn = new Button(() =>
+            {
+                car.bodyColor = carColors[index];
+                UpdateCarCards();
+                OpenConfigurator(car);
+            });
+            colorBtn.style.width = 30; colorBtn.style.height = 30;
+            colorBtn.style.marginRight = 5;
+            colorBtn.style.backgroundColor = carColors[index];
+            if (car.bodyColor == carColors[index])
+            {
+                colorBtn.style.borderTopWidth = 2; colorBtn.style.borderBottomWidth = 2;
+                colorBtn.style.borderLeftWidth = 2; colorBtn.style.borderRightWidth = 2;
+                colorBtn.style.borderTopColor = Color.white; colorBtn.style.borderBottomColor = Color.white;
+                colorBtn.style.borderLeftColor = Color.white; colorBtn.style.borderRightColor = Color.white;
+            }
+            colorSection.Add(colorBtn);
+        }
+
+        Toggle tintToggle = new Toggle("Тонировка");
+        tintToggle.style.marginLeft = 20;
+        tintToggle.style.color = isDarkTheme ? Color.white : Color.black;
+        tintToggle.value = car.hasTint;
+        tintToggle.RegisterValueChangedCallback(evt => { car.hasTint = evt.newValue; UpdateCarCards(); });
+        colorSection.Add(tintToggle);
+
+        carConfiguratorContainer.Add(colorSection);
+
+        // --- ИТОГОВЫЙ БЛОК (Себестоимость и Прибыль) ---
+        var stats = CalculateCurrentStats(car);
+        
+        VisualElement totalBox = new VisualElement();
+        totalBox.style.backgroundColor = isDarkTheme ? new Color(0.12f, 0.2f, 0.12f) : new Color(0.85f, 0.95f, 0.85f);
+        totalBox.style.paddingTop = 10; totalBox.style.paddingBottom = 10;
+        totalBox.style.paddingLeft = 15; totalBox.style.paddingRight = 15;
+        totalBox.style.borderTopLeftRadius = 6; totalBox.style.borderTopRightRadius = 6;
+        totalBox.style.borderBottomLeftRadius = 6; totalBox.style.borderBottomRightRadius = 6;
+        totalBox.style.marginTop = 10;
+        
+        Label costLbl = new Label($"Себестоимость: ${stats.cost:F0}");
+        costLbl.name = "ConfigCostLabel";
+        costLbl.style.color = isDarkTheme ? Color.white : Color.black;
+        costLbl.style.fontSize = 14;
+        totalBox.Add(costLbl);
+
+        Label profitLbl = new Label($"Чистая прибыль: ${stats.profit:F0}");
+        profitLbl.name = "ConfigProfitLabel";
+        profitLbl.style.color = new Color(0.1f, 0.5f, 0.1f);
+        profitLbl.style.fontSize = 16;
+        profitLbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+        profitLbl.style.marginTop = 4;
+        totalBox.Add(profitLbl);
+
+        carConfiguratorContainer.Add(totalBox);
+    }
+
+    private void CloseConfigurator()
+    {
+        if (carConfiguratorOverlay != null)
+            AnimateWindowClose(carConfiguratorOverlay, () => {
+                carConfiguratorOverlay.style.display = DisplayStyle.None;
+                
+                // Возвращаемся в окно Машин, так как мы пришли оттуда
+                if (carsOverlay != null)
+                {
+                    carsOverlay.style.display = DisplayStyle.Flex;
+                    RefreshCarList(); // Обновляем карточки с новыми ценами/параметрами
+                }
+                else
+                {
+                    mainPanel.style.display = DisplayStyle.Flex;
+                }
+            });
+    }
+
+    // Методы
+    private void OpenChargingWindow()
+    {
+        CloseMenuWindow();
+        HideAllOverlays();
+        if (chargingOverlay == null) return;
+        menuContainer.style.display = DisplayStyle.None;
+        mainPanel.style.display = DisplayStyle.None;
+        AnimateWindowOpen(chargingOverlay);
+        RefreshChargingUI();
+    }
+
+    private void CloseChargingWindow()
+    {
+        if (chargingOverlay != null)
+            AnimateWindowClose(chargingOverlay, () => {
+                chargingOverlay.style.display = DisplayStyle.None;
+                mainPanel.style.display = DisplayStyle.Flex;
+            });
+    }
+
+    public void RefreshChargingUI()
+    {
+        if (chargingContainer == null || InternationalManager.Instance == null) return;
+        chargingContainer.Clear();
+
+        var regions = InternationalManager.Instance.regionDefinitions;
+        var stations = InternationalManager.Instance.chargingStations;
+
+        // Заголовок таблицы
+        var header = new VisualElement();
+        header.style.flexDirection = FlexDirection.Row;
+        header.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+        header.style.paddingTop = 4; header.style.paddingBottom = 4; header.style.paddingLeft = 8; header.style.paddingRight = 8;
+        header.style.marginBottom = 4;
+
+        string[] headers = { "Регион", "Уровень", "Покрытие", "Действие" };
+        float[] widths = { 200, 80, 100, 150 };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var lbl = new Label(headers[i]);
+            lbl.style.width = widths[i];
+            lbl.style.color = Color.white;
+            lbl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.Add(lbl);
+        }
+        chargingContainer.Add(header);
+
+        foreach (var region in regions)
+        {
+            var station = stations.FirstOrDefault(s => s.regionId == region.id);
+            int level = station?.level ?? 0;
+            float coverage = station?.coverage ?? 0f;
+
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 4; row.style.paddingBottom = 4; row.style.paddingLeft = 8; row.style.paddingRight = 8;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
+
+            var nameLabel = new Label(region.displayName);
+            nameLabel.style.width = widths[0];
+            nameLabel.style.color = isDarkTheme ? Color.white : Color.black;
+            row.Add(nameLabel);
+
+            var levelLabel = new Label(level > 0 ? $"Ур. {level}" : "—");
+            levelLabel.style.width = widths[1];
+            levelLabel.style.color = level > 0 ? Color.green : Color.gray;
+            row.Add(levelLabel);
+
+            var coverageLabel = new Label($"{coverage * 100:F0}%");
+            coverageLabel.style.width = widths[2];
+            coverageLabel.style.color = Color.yellow;
+            row.Add(coverageLabel);
+
+            var btn = new Button(() =>
+            {
+                ChargingManager.Instance?.BuildOrUpgrade(region.id);
+                RefreshChargingUI();
+            });
+            btn.text = level == 0 ? "Построить" : "Улучшить";
+            btn.style.width = widths[3];
+            btn.style.height = 22;
+            btn.style.backgroundColor = level == 0 ? new Color(0.5f, 0.85f, 0.5f) : new Color(0.8f, 0.6f, 0.2f);
+            btn.style.color = Color.black;
+            row.Add(btn);
+
+            chargingContainer.Add(row);
+        }
+    }
+
+    private void ApplyTheme(bool isDark)
     {
         isDarkTheme = isDark;
         PlayerPrefs.SetInt("DarkTheme", isDark ? 1 : 0);
@@ -1413,8 +1913,9 @@ public class UIManager : MonoBehaviour
             if (count > maxAllowed) { count = maxAllowed; countInputField.value = maxAllowed; }
         }
 
-        string trimName = cardData.selectedTrim != null ? cardData.selectedTrim.trimName : "";
-        string gearbox = cardData.transmissionDropdown != null ? cardData.transmissionDropdown.value : "АКПП";
+        // Берем данные из сохранённых полей машины
+        string trimName = cardData.car.selectedTrimName;
+        string gearbox = cardData.car.selectedTransmission;
         ProduceCars(cardData.car, count, trimName, gearbox);
     }
 
@@ -1488,6 +1989,8 @@ public class UIManager : MonoBehaviour
     // ---- Обновление лейблов склада ----
     public void UpdateWarehouseLabels()
     {
+         if (batteryLabel != null && warehouse != null)
+            batteryLabel.text = warehouse.GetPartCount(PartType.Battery).ToString(); // <--- ДОБАВИТЬ
         if (carStockLabel != null)
             carStockLabel.text = WarehouseManager.Instance?.GetTotalCarCount().ToString() ?? "0";
         if (warehouse == null) return;
@@ -1903,8 +2406,28 @@ public class UIManager : MonoBehaviour
         UpdateDifficultyDisplay();
     }
 
+
+    private void UpdateBatteryUIState()
+    {
+        // Проверяем, изучена ли технология
+        bool isUnlocked = tech != null && tech.IsTechResearched("Производство Battery");
+
+        // Показываем/скрываем в шапке
+        if (batteryResourceBlock != null)
+            batteryResourceBlock.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+
+        // Показываем/скрываем кнопки в окне Улучшений
+        if (produceBatteryButton != null)
+            produceBatteryButton.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+            
+        if (sellBatteryButton != null)
+            sellBatteryButton.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+
     public void UpdateUpgradeUI()
     {
+        UpdateBatteryUIState();
         if (conveyorLevelLabel != null) conveyorLevelLabel.text = $"Уровень конвейера: {economy.ConveyorLevel}";
 
         if (buyConveyorButton != null)
@@ -2124,7 +2647,6 @@ public class UIManager : MonoBehaviour
             header.style.alignItems = Align.Center;
             header.style.marginBottom = 6;
 
-            // Иконка
             Sprite iconSprite = car.carIcon != null ? car.carIcon : LoadCarIcon(car.carName);
             if (iconSprite != null)
             {
@@ -2134,23 +2656,11 @@ public class UIManager : MonoBehaviour
                 iconImage.style.marginRight = 10;
                 header.Add(iconImage);
             }
-            else
-            {
-                VisualElement placeholder = new VisualElement();
-                placeholder.style.width = 48; placeholder.style.height = 48;
-                placeholder.style.marginRight = 10;
-                placeholder.style.backgroundColor = isDarkTheme ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.8f, 0.8f, 0.8f);
-                placeholder.style.borderTopLeftRadius = 4; placeholder.style.borderTopRightRadius = 4;
-                placeholder.style.borderBottomLeftRadius = 4; placeholder.style.borderBottomRightRadius = 4;
-                header.Add(placeholder);
-            }
 
-            // Информационный столбец
             VisualElement info = new VisualElement();
             info.style.flexDirection = FlexDirection.Column;
             info.style.flexGrow = 1;
 
-            // Строка: название + бейдж уровня
             VisualElement nameRow = new VisualElement();
             nameRow.style.flexDirection = FlexDirection.Row;
             nameRow.style.alignItems = Align.Center;
@@ -2173,7 +2683,6 @@ public class UIManager : MonoBehaviour
             nameRow.Add(levelBadge);
             info.Add(nameRow);
 
-            // Строка: тип · рейтинг · на складе
             VisualElement metaRow = new VisualElement();
             metaRow.style.flexDirection = FlexDirection.Row;
             metaRow.style.alignItems = Align.Center;
@@ -2184,32 +2693,23 @@ public class UIManager : MonoBehaviour
             typeLabel.style.color = isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.35f, 0.35f, 0.35f);
             metaRow.Add(typeLabel);
 
-            Label dot1 = new Label(" · ");
-            dot1.style.fontSize = 11;
-            dot1.style.color = isDarkTheme ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
-            metaRow.Add(dot1);
-
             Label ratingLabelElement = new Label("★ --");
             ratingLabelElement.style.fontSize = 11;
             ratingLabelElement.style.color = isDarkTheme ? new Color(1f, 0.8f, 0.2f) : new Color(0.6f, 0.4f, 0.0f);
             ratingLabelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
+            ratingLabelElement.style.marginLeft = 10;
             metaRow.Add(ratingLabelElement);
             cardData.ratingLabel = ratingLabelElement;
-
-            Label dot2 = new Label(" · ");
-            dot2.style.fontSize = 11;
-            dot2.style.color = isDarkTheme ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
-            metaRow.Add(dot2);
 
             Label stockLabel = new Label("На складе: 0");
             stockLabel.style.fontSize = 11;
             stockLabel.style.color = isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.35f, 0.35f, 0.35f);
+            stockLabel.style.marginLeft = 10;
             metaRow.Add(stockLabel);
             cardData.stockLabel = stockLabel;
 
             info.Add(metaRow);
 
-            // Требования
             var req = GetRequirements(car.recipe);
             Label partsLabel = new Label($"🔧{req.engine} 🔩{req.body} ⚙️{req.wheels} 💻{req.electronics}");
             partsLabel.style.fontSize = 10;
@@ -2217,14 +2717,12 @@ public class UIManager : MonoBehaviour
             partsLabel.style.marginTop = 3;
             info.Add(partsLabel);
 
-            // Платформа
             Label platformLabel = new Label();
             platformLabel.style.fontSize = 10;
             platformLabel.style.marginTop = 2;
             info.Add(platformLabel);
             cardData.platformLabel = platformLabel;
 
-            // Подходящие контракты
             Label contractMatchLabel = new Label();
             contractMatchLabel.style.fontSize = 11;
             contractMatchLabel.style.marginTop = 4;
@@ -2238,6 +2736,16 @@ public class UIManager : MonoBehaviour
             actions.style.flexDirection = FlexDirection.Column;
             actions.style.width = 120;
             actions.style.marginLeft = 10;
+
+            Button configBtn = new Button(() => OpenConfigurator(car));
+            configBtn.text = "Настроить";
+            configBtn.style.height = 26;
+            configBtn.style.marginBottom = 5;
+            configBtn.style.backgroundColor = new Color(0.8f, 0.8f, 0.8f);
+            configBtn.style.color = Color.black;
+            configBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            actions.Add(configBtn);
+            cardData.configButton = configBtn;
 
             Button upgradeButton = new Button();
             upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
@@ -2253,10 +2761,10 @@ public class UIManager : MonoBehaviour
             produceBtn.text = "Произвести";
             produceBtn.style.height = 32;
             produceBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
-            produceBtn.style.backgroundColor = isDarkTheme
-                ? new Color(0.25f, 0.55f, 0.25f)
-                : new Color(0.55f, 0.85f, 0.55f);
+            produceBtn.style.backgroundColor = isDarkTheme ? new Color(0.25f, 0.55f, 0.25f) : new Color(0.55f, 0.85f, 0.55f);
             produceBtn.style.color = Color.black;
+            // Передаем пустые строки, так как комплектация будет выбрана в конфигураторе, 
+            // либо можно брать car.transmissionType (он там сохраняется)
             produceBtn.clicked += () => TryProduceSpecificCar(cardData);
             actions.Add(produceBtn);
             cardData.produceButton = produceBtn;
@@ -2269,20 +2777,17 @@ public class UIManager : MonoBehaviour
             VisualElement statsRow = new VisualElement();
             statsRow.style.flexDirection = FlexDirection.Row;
             statsRow.style.flexWrap = Wrap.Wrap;
-            statsRow.style.backgroundColor = isDarkTheme
-                ? new Color(0.13f, 0.13f, 0.15f)
-                : new Color(0.92f, 0.92f, 0.92f);
+            statsRow.style.backgroundColor = isDarkTheme ? new Color(0.13f, 0.13f, 0.15f) : new Color(0.92f, 0.92f, 0.92f);
             statsRow.style.paddingTop = 6; statsRow.style.paddingBottom = 6;
             statsRow.style.paddingLeft = 10; statsRow.style.paddingRight = 10;
             statsRow.style.borderTopLeftRadius = 6; statsRow.style.borderTopRightRadius = 6;
             statsRow.style.borderBottomLeftRadius = 6; statsRow.style.borderBottomRightRadius = 6;
-            statsRow.style.marginBottom = 6;
+            statsRow.style.marginBottom = 0; // Убрали отступ снизу, так как нет Foldout'ов
 
-            // Цена + кнопки
             VisualElement priceBlock = new VisualElement();
             priceBlock.style.flexDirection = FlexDirection.Column;
             priceBlock.style.width = 140;
-            priceBlock.style.flexShrink = 0; // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+            priceBlock.style.flexShrink = 0;
             priceBlock.style.marginRight = 10;
 
             Label priceCap = new Label("Цена");
@@ -2302,313 +2807,23 @@ public class UIManager : MonoBehaviour
             priceRow.Add(priceLabel);
             cardData.priceLabel = priceLabel;
 
-            Button decreasePriceBtn = new Button(() => 
-            {
-                int step = Mathf.Max(10, car.currentPrice / 20);
-                ChangeCarPrice(car, -step);
-            });
-            decreasePriceBtn.text = "−";
-            decreasePriceBtn.style.width = 22; 
-            decreasePriceBtn.style.height = 20;
-            decreasePriceBtn.style.fontSize = 13;
-            decreasePriceBtn.style.paddingLeft = 0; 
-            decreasePriceBtn.style.paddingRight = 0;
-            decreasePriceBtn.style.marginRight = 2;
-            decreasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
-            priceRow.Add(decreasePriceBtn);
-            cardData.decreasePriceBtn = decreasePriceBtn;
-
-            Button increasePriceBtn = new Button(() => 
-            {
-                int step = Mathf.Max(10, car.currentPrice / 20);
-                ChangeCarPrice(car, step);
-            });
-            increasePriceBtn.text = "+";
-            increasePriceBtn.style.width = 22; 
-            increasePriceBtn.style.height = 20;
-            increasePriceBtn.style.fontSize = 13;
-            increasePriceBtn.style.paddingLeft = 0; 
-            increasePriceBtn.style.paddingRight = 0;
-            increasePriceBtn.style.color = isDarkTheme ? Color.white : Color.black;
-            priceRow.Add(increasePriceBtn);
-            cardData.increasePriceBtn = increasePriceBtn;
-
             priceBlock.Add(priceRow);
             statsRow.Add(priceBlock);
 
-            // Себестоимость
-            cardData.detailsLabel = AddStatBlock(statsRow, "Себестоимость", "$--",
-                isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.4f, 0.4f, 0.4f), 110);
-
-            // Прибыль
-            var profitLabelRef = AddStatBlock(statsRow, "Прибыль", "$--",
-                new Color(0.56f, 0.93f, 0.56f), 110);
+            cardData.detailsLabel = AddStatBlock(statsRow, "Себестоимость", "$--", isDarkTheme ? new Color(0.75f, 0.75f, 0.75f) : new Color(0.4f, 0.4f, 0.4f), 110);
+            var profitLabelRef = AddStatBlock(statsRow, "Прибыль", "$--", new Color(0.56f, 0.93f, 0.56f), 110);
             profitLabelRef.style.unityFontStyleAndWeight = FontStyle.Bold;
             cardData.profitLabel = profitLabelRef;
-
-            // Спрос
-            cardData.demandLabel = AddStatBlock(statsRow, "Спрос", "1.0x",
-                isDarkTheme ? Color.white : Color.black, 80);
-
-            // Налог
-            cardData.taxRateLabel = AddStatBlock(statsRow, "Налог", "--",
-                new Color(1f, 0.7f, 0.4f), 80);
+            cardData.demandLabel = AddStatBlock(statsRow, "Спрос", "1.0x", isDarkTheme ? Color.white : Color.black, 80);
+            cardData.taxRateLabel = AddStatBlock(statsRow, "Налог", "--", new Color(1f, 0.7f, 0.4f), 80);
 
             card.Add(statsRow);
-
-            // ========== FOLDOUT: КОРОБКА И КОМПЛЕКТАЦИЯ ==========
-            VisualElement configContent = new VisualElement();
-            configContent.style.paddingTop = 4;
-
-            // Коробка
-            List<string> transmissionOptions = new List<string>();
-            string[] allTransmissions = { "АКПП", "МКПП", "Робот", "Вариатор" };
-            string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
-            for (int i = 0; i < allTransmissions.Length; i++)
-                if (tech.IsTechResearched(techNames[i]))
-                    transmissionOptions.Add(allTransmissions[i]);
-            if (transmissionOptions.Count == 0) transmissionOptions.Add("АКПП");
-
-            VisualElement transRow = new VisualElement();
-            transRow.style.flexDirection = FlexDirection.Row;
-            transRow.style.alignItems = Align.Center;
-            transRow.style.marginBottom = 4;
-
-            Label transLabel = new Label("Коробка:");
-            transLabel.style.width = 110;
-            transLabel.style.fontSize = 11;
-            transLabel.style.color = isDarkTheme ? Color.white : Color.black;
-            transRow.Add(transLabel);
-
-            DropdownField transmissionDropdown = new DropdownField();
-            transmissionDropdown.style.flexGrow = 1;
-            transmissionDropdown.style.fontSize = 11;
-            transmissionDropdown.choices = transmissionOptions;
-            transmissionDropdown.value = (!string.IsNullOrEmpty(car.transmissionType) && transmissionOptions.Contains(car.transmissionType))
-                ? car.transmissionType : transmissionOptions[0];
-            transmissionDropdown.RegisterValueChangedCallback(evt => { car.transmissionType = evt.newValue; });
-            ApplyFieldStyle(transmissionDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
-            transRow.Add(transmissionDropdown);
-            cardData.transmissionDropdown = transmissionDropdown;
-            configContent.Add(transRow);
-
-            // Комплектация
-            bool hasTrims = car.recipe != null && car.recipe.availableTrims != null && car.recipe.availableTrims.Count > 0;
-            bool hasTrimChoice = hasTrims && car.recipe.availableTrims.Count > 1;
-
-            if (hasTrims)
-            {
-                VisualElement trimRow = new VisualElement();
-                trimRow.style.flexDirection = FlexDirection.Row;
-                trimRow.style.alignItems = Align.Center;
-                trimRow.style.marginBottom = 4;
-
-                Label trimLabel = new Label("Комплектация:");
-                trimLabel.style.width = 110;
-                trimLabel.style.fontSize = 11;
-                trimLabel.style.color = isDarkTheme ? Color.white : Color.black;
-                trimRow.Add(trimLabel);
-
-                List<string> trimNames = car.recipe.availableTrims.Select(t => t.trimName).ToList();
-                DropdownField trimDropdown = new DropdownField(trimNames, 0);
-                trimDropdown.style.flexGrow = 1;
-                trimDropdown.style.fontSize = 11;
-                ApplyFieldStyle(trimDropdown, isDarkTheme ? new Color(0.25f, 0.25f, 0.25f) : new Color(0.95f, 0.95f, 0.95f), isDarkTheme ? Color.white : Color.black);
-                trimRow.Add(trimDropdown);
-                cardData.trimDropdown = trimDropdown;
-                configContent.Add(trimRow);
-
-                VisualElement optionsContainer = new VisualElement();
-                optionsContainer.style.marginTop = 2;
-                configContent.Add(optionsContainer);
-                cardData.optionsContainer = optionsContainer;
-
-                Action updateOptionsUI = () =>
-                {
-                    optionsContainer.Clear();
-                    if (car.recipe.availableTrims.Count == 0) return;
-                    cardData.selectedTrim = car.recipe.availableTrims[trimDropdown.index];
-                    cardData.selectedOptions.Clear();
-                    if (cardData.selectedTrim.availableOptions == null) return;
-                    foreach (var option in cardData.selectedTrim.availableOptions)
-                    {
-                        Toggle toggle = new Toggle(option.optionName);
-                        toggle.style.fontSize = 11;
-                        toggle.style.color = isDarkTheme ? Color.white : Color.black;
-                        toggle.style.marginLeft = 110;
-                        bool isDefault = cardData.selectedTrim.defaultOptions != null
-                            && cardData.selectedTrim.defaultOptions.Contains(option);
-                        toggle.value = isDefault;
-                        if (isDefault) cardData.selectedOptions.Add(option);
-                        toggle.RegisterValueChangedCallback(evt =>
-                        {
-                            if (evt.newValue) cardData.selectedOptions.Add(option);
-                            else cardData.selectedOptions.Remove(option);
-                            UpdateCarCards();
-                        });
-                        optionsContainer.Add(toggle);
-                    }
-                    UpdateCarCards();
-                };
-                trimDropdown.RegisterValueChangedCallback(evt => updateOptionsUI());
-                updateOptionsUI();
-            }
-
-            Foldout configFold = new Foldout();
-            configFold.text = "Коробка и комплектация";
-            configFold.value = (transmissionOptions.Count > 1) || hasTrimChoice;
-            configFold.style.marginBottom = 2;
-            configFold.style.color = isDarkTheme ? Color.white : Color.black;
-            configFold.Add(configContent);
-            card.Add(configFold);
-
-            // ========== FOLDOUT: ТЮНИНГ ==========
-            VisualElement tuningPanel = new VisualElement();
-            tuningPanel.style.flexDirection = FlexDirection.Column;
-            tuningPanel.style.paddingTop = 4;
-
-            for (int i = 0; i < tuningParamNames.Length; i++)
-            {
-                string param = tuningParamNames[i];
-                string display = tuningParamDisplay[i];
-
-                VisualElement row = new VisualElement();
-                row.style.flexDirection = FlexDirection.Row;
-                row.style.alignItems = Align.Center;
-                row.style.marginBottom = 3;
-
-                Label nameLabelParam = new Label(display);
-                nameLabelParam.style.width = 100;
-                nameLabelParam.style.color = isDarkTheme ? Color.white : Color.black;
-                nameLabelParam.style.fontSize = 11;
-                row.Add(nameLabelParam);
-
-                SliderInt slider = new SliderInt();
-                slider.lowValue = 0;
-                slider.highValue = GetMaxTuning(car, param);
-                slider.value = GetCurrentTuning(car, param);
-                slider.style.flexGrow = 1;
-                slider.style.marginLeft = 4; slider.style.marginRight = 4;
-                row.Add(slider);
-
-                Label valueLabel = new Label(GetCurrentTuning(car, param).ToString());
-                valueLabel.style.width = 20;
-                valueLabel.style.color = isDarkTheme ? Color.white : Color.black;
-                valueLabel.style.fontSize = 11;
-                valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                row.Add(valueLabel);
-
-                Label maxLabel = new Label($"/{GetMaxTuning(car, param)}");
-                maxLabel.style.width = 30;
-                maxLabel.style.color = isDarkTheme ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f);
-                maxLabel.style.fontSize = 10;
-                row.Add(maxLabel);
-
-                Button upgradeBtn = new Button();
-                upgradeBtn.text = "↑";
-                upgradeBtn.style.width = 24; upgradeBtn.style.height = 22;
-                upgradeBtn.style.marginLeft = 4;
-                upgradeBtn.style.fontSize = 12;
-                upgradeBtn.style.color = isDarkTheme ? Color.white : Color.black;
-                upgradeBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
-                row.Add(upgradeBtn);
-
-                tuningPanel.Add(row);
-
-                switch (i)
-                {
-                    case 0: cardData.powerSlider = slider; cardData.powerValueLabel = valueLabel; cardData.powerMaxLabel = maxLabel; cardData.powerUpgradeBtn = upgradeBtn; break;
-                    case 1: cardData.economySlider = slider; cardData.economyValueLabel = valueLabel; cardData.economyMaxLabel = maxLabel; cardData.economyUpgradeBtn = upgradeBtn; break;
-                    case 2: cardData.designSlider = slider; cardData.designValueLabel = valueLabel; cardData.designMaxLabel = maxLabel; cardData.designUpgradeBtn = upgradeBtn; break;
-                    case 3: cardData.safetySlider = slider; cardData.safetyValueLabel = valueLabel; cardData.safetyMaxLabel = maxLabel; cardData.safetyUpgradeBtn = upgradeBtn; break;
-                }
-
-                CarBlueprint localCarTuning = car;
-                string localParam = param;
-                slider.RegisterValueChangedCallback(evt =>
-                {
-                    int newVal = evt.newValue;
-                    SetCurrentTuning(localCarTuning, localParam, newVal);
-                    valueLabel.text = newVal.ToString();
-                    UpdateCarCards();
-                    UpdateMoneyLabels();
-                });
-
-                upgradeBtn.clicked += () => tech.UpgradeTuning(localCarTuning, localParam);
-            }
-
-            Foldout tuningFold = new Foldout();
-            tuningFold.text = "Тюнинг";
-            tuningFold.value = false;
-            tuningFold.style.marginBottom = 2;
-            tuningFold.style.color = isDarkTheme ? Color.white : Color.black;
-            tuningFold.Add(tuningPanel);
-            card.Add(tuningFold);
-
-            // ========== FOLDOUT: ЦВЕТ ==========
-            VisualElement colorPanel = new VisualElement();
-            colorPanel.style.flexDirection = FlexDirection.Row;
-            colorPanel.style.alignItems = Align.Center;
-            colorPanel.style.flexWrap = Wrap.Wrap;
-            colorPanel.style.paddingTop = 4;
-
-            Label colorLabel = new Label("Цвет:");
-            colorLabel.style.color = isDarkTheme ? Color.white : Color.black;
-            colorLabel.style.marginRight = 8;
-            colorLabel.style.fontSize = 12;
-            colorPanel.Add(colorLabel);
-
-            List<Button> colorBtns = new List<Button>();
-            for (int i = 0; i < carColors.Length; i++)
-            {
-                Button colorBtn = new Button();
-                colorBtn.style.width = 26; colorBtn.style.height = 26;
-                colorBtn.style.marginRight = 5;
-                colorBtn.style.backgroundColor = carColors[i];
-                colorBtn.style.borderTopLeftRadius = 4; colorBtn.style.borderTopRightRadius = 4;
-                colorBtn.style.borderBottomLeftRadius = 4; colorBtn.style.borderBottomRightRadius = 4;
-                colorBtn.tooltip = colorNames[i];
-                int index = i;
-                colorBtn.clicked += () =>
-                {
-                    car.bodyColor = carColors[index];
-                    UpdateColorButtons(cardData, index);
-                    UpdateCarCards();
-                };
-                colorPanel.Add(colorBtn);
-                colorBtns.Add(colorBtn);
-            }
-            cardData.colorButtons = colorBtns.ToArray();
-
-            Toggle tintToggle = new Toggle("Тонировка");
-            tintToggle.style.color = isDarkTheme ? Color.white : Color.black;
-            tintToggle.style.marginLeft = 12;
-            tintToggle.value = car.hasTint;
-            tintToggle.RegisterValueChangedCallback(evt =>
-            {
-                car.hasTint = evt.newValue;
-                UpdateCarCards();
-            });
-            colorPanel.Add(tintToggle);
-            cardData.tintToggle = tintToggle;
-
-            Foldout colorFold = new Foldout();
-            colorFold.text = "Цвет и внешний вид";
-            colorFold.value = false;
-            colorFold.style.color = isDarkTheme ? Color.white : Color.black;
-            colorFold.Add(colorPanel);
-            card.Add(colorFold);
 
             carCards.Add(cardData);
             carsContainer.Add(card);
         }
 
         UpdateCarCards();
-        foreach (var cardData in carCards)
-        {
-            int selectedIndex = Array.IndexOf(carColors, cardData.car.bodyColor);
-            UpdateColorButtons(cardData, selectedIndex);
-        }
     }
 
     // ---- Вспомогательный метод: колонка статистики ----
@@ -2722,7 +2937,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void UpdateCarCards()
+        public void UpdateCarCards()
     {
         bool upgradeUnlocked = tech.IsCarUpgradeUnlocked();
 
@@ -2731,32 +2946,22 @@ public class UIManager : MonoBehaviour
             if (cardData.car == null) continue;
             CarBlueprint car = cardData.car;
 
-            // ---- Расчёт себестоимости с учётом платформы и ОПЦИЙ ----
-            float partCost = economy.GetPartCostForCar(car);
-            float baseCost = car.GetProductionCostWithLevel() + partCost;
+           // ---- Расчёт себестоимости ----
+            var stats = CalculateCurrentStats(car);
+            float productionCost = stats.cost;
+            int modPrice = (int)stats.price;
+            double finalProfit = stats.profit;
+            float taxRate = economy.GetTaxRate(car);
+            double profitBeforeTax = modPrice - productionCost; // Добавлено для тултипа
 
-            // Считаем стоимость выбранных опций
-            float optionsCost = 0f;
-            if (cardData.selectedOptions != null)
-            {
-                foreach (var opt in cardData.selectedOptions) optionsCost += opt.additionalCost;
-            }
-
-            // Применяем множитель комплектации (если выбрана)
-            float trimMultiplier = cardData.selectedTrim != null ? cardData.selectedTrim.priceMultiplier : 1f;
-            float costWithOptions = (baseCost + optionsCost) * trimMultiplier;
-
-            // Скидка от платформы
+            // Скидка от платформы (только для отображения в интерфейсе)
             float platformDiscount = 0f;
             if (car.platform != null && car.platform.isDeveloped && PlatformManager.Instance != null)
             {
                 platformDiscount = PlatformManager.Instance.GetPlatformDiscount(car);
             }
             
-            // Итоговая себестоимость
-            float productionCost = costWithOptions * (1f - platformDiscount);
-            
-            // Записываем итоговую стоимость в сам Blueprint, чтобы завод знал, сколько списывать
+            // Записываем итоговую стоимость в сам Blueprint
             car.finalAssemblyCostWithOptions = Mathf.RoundToInt(productionCost);
 
             // ---- Платформа ----
@@ -2770,32 +2975,16 @@ public class UIManager : MonoBehaviour
                 else
                 {
                     string platformName = car.platform.platformName;
-                    bool techUnlocked = PlatformManager.Instance != null 
-                                        && PlatformManager.Instance.IsPlatformTechUnlocked(car.platform.type);
                     bool isDeveloped = car.platform.isDeveloped;
-                    bool isDeveloping = PlatformManager.Instance != null 
-                                        && PlatformManager.Instance.GetDevelopingPlatforms().Contains(car.platform);
-
                     if (isDeveloped)
                     {
                         cardData.platformLabel.text = $"🛠️ Платформа: {platformName} ✅";
-                        cardData.platformLabel.style.color = new Color(0.56f, 0.93f, 0.56f); // зелёный
-                    }
-                    else if (isDeveloping)
-                    {
-                        float progress = PlatformManager.Instance.GetDevelopmentProgress(car.platform);
-                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} ⏳ ({progress:F1} мес.)";
-                        cardData.platformLabel.style.color = Color.yellow;
-                    }
-                    else if (techUnlocked)
-                    {
-                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} — готова к разработке";
-                        cardData.platformLabel.style.color = new Color(0.8f, 0.8f, 1f);
+                        cardData.platformLabel.style.color = new Color(0.56f, 0.93f, 0.56f);
                     }
                     else
                     {
-                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} 🔒 (нужна технология)";
-                        cardData.platformLabel.style.color = new Color(0.7f, 0.5f, 0.5f);
+                        cardData.platformLabel.text = $"🛠️ Платформа: {platformName} (в разработке)";
+                        cardData.platformLabel.style.color = Color.yellow;
                     }
                 }
             }
@@ -2810,67 +2999,30 @@ public class UIManager : MonoBehaviour
                     {
                         List<string> titles = new List<string>();
                         bool hasActive = false;
-
                         foreach (var m in matches)
                         {
                             if (m.isAccepted) hasActive = true;
-                            string status = m.isAccepted ? " (выполняется)" : "";
-                            titles.Add($"{m.title}{status}");
+                            titles.Add($"{m.title}{(m.isAccepted ? " (выполняется)" : "")}");
                         }
-
                         cardData.contractMatchLabel.text = $"📋 Контракты: {string.Join(", ", titles)}";
-                        
-                        // Зелёный, если есть среди активных, иначе жёлтый
-                        cardData.contractMatchLabel.style.color = hasActive 
-                            ? new Color(0.56f, 0.93f, 0.56f) 
-                            : new Color(1f, 0.8f, 0.2f); 
+                        cardData.contractMatchLabel.style.color = hasActive ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.8f, 0.2f); 
                     }
                     else
                     {
                         cardData.contractMatchLabel.text = "📋 Нет подходящих контрактов";
-                        cardData.contractMatchLabel.style.color = isDarkTheme 
-                            ? new Color(0.5f, 0.5f, 0.5f) 
-                            : new Color(0.6f, 0.6f, 0.6f);
+                        cardData.contractMatchLabel.style.color = isDarkTheme ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
                     }
                 }
             }
-
-            if (cardData.platformLabel != null && car.platform != null)
-            {
-                var dm = CarCompanyManager.Instance.DifficultyManager;
-                float cost = car.platform.developmentCost * dm.CurrentPlatformCostModifier;
-                float time = car.platform.developmentTimeMonths * dm.CurrentPlatformTimeModifier;
-                float discount = car.platform.productionCostReduction * 100f;
-
-                cardData.platformLabel.tooltip =
-                    $"Тип: {car.platform.type}\n" +
-                    $"Скидка на производство: -{discount:F0}%\n" +
-                    $"Стоимость разработки: ${cost:F0}\n" +
-                    $"Время разработки: {time:F1} мес.\n" +
-                    $"Используется моделей: {car.platform.usedModelsCount}";
-            }
-
-            // ---- Расчёт прибыли ----
-            float selectedTrimMult = cardData.selectedTrim != null
-                ? cardData.selectedTrim.priceMultiplier
-                : 1f;
-            int modPrice = Mathf.RoundToInt(
-                car.GetModifiedPrice(economy.TotalPriceModifier) * selectedTrimMult);
-            double profitBeforeTax = modPrice - productionCost;
-            float taxRate = economy.GetTaxRate(car);
-            double finalProfit = profitBeforeTax * (1f - taxRate);
 
             // ---- Обновление рейтинга ----
             if (cardData.ratingLabel != null)
             {
                 float rating = car.CalculateRating(economy.TotalPriceModifier);
-                cardData.ratingLabel.text = $"★ {rating:F1}"; // Было "Рейтинг: ..."
-                if (rating >= 8f)
-                    cardData.ratingLabel.style.color = new Color(0.2f, 0.9f, 0.2f);
-                else if (rating >= 5f)
-                    cardData.ratingLabel.style.color = new Color(1f, 0.8f, 0.2f);
-                else
-                    cardData.ratingLabel.style.color = new Color(1f, 0.3f, 0.3f);
+                cardData.ratingLabel.text = $"★ {rating:F1}";
+                if (rating >= 8f) cardData.ratingLabel.style.color = new Color(0.2f, 0.9f, 0.2f);
+                else if (rating >= 5f) cardData.ratingLabel.style.color = new Color(1f, 0.8f, 0.2f);
+                else cardData.ratingLabel.style.color = new Color(1f, 0.3f, 0.3f);
             }
 
             // Обновляем количество на складе
@@ -2880,142 +3032,43 @@ public class UIManager : MonoBehaviour
             // Обновляем прибыль
             if (cardData.profitLabel != null)
             {
-                cardData.profitLabel.text = $"{finalProfit:F0}"; // Было "Прибыль: ..."
+                cardData.profitLabel.text = $"{finalProfit:F0}";
                 cardData.profitLabel.style.color = finalProfit > 0 ? new Color(0.56f, 0.93f, 0.56f) : new Color(1f, 0.42f, 0.42f);
-            }
-
-            // Детализация прибыли с указанием скидки платформы
-            if (cardData.profitDetailsLabel != null)
-            {
-                string discountText = platformDiscount > 0f
-                    ? $"🛠️ Платформа: -{platformDiscount * 100:F1}%  |  "
-                    : "";
-                cardData.profitDetailsLabel.text = $"{discountText}Цена: {modPrice:F0}  |  Себ: {productionCost:F0}  |  Налог: {(profitBeforeTax * taxRate):F0}  |  Итого: {finalProfit:F0}";
-                cardData.profitDetailsLabel.style.display = DisplayStyle.Flex;
-            }
-            if (cardData.profitLabel != null)
-            {
-                string discountTooltip = platformDiscount > 0f
-                    ? $"\nСкидка платформы: -{platformDiscount * 100:F1}%"
-                    : "";
-                cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}{discountTooltip}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
+                cardData.profitLabel.tooltip = $"Цена: {modPrice:F0}\nСебестоимость: {productionCost:F0}\nНалог: {profitBeforeTax * taxRate:F0}\nПрибыль: {finalProfit:F0}";
             }
 
             // Спрос
             float demandValue = car.CurrentDemandMultiplier;
             if (cardData.demandLabel != null)
             {
-                cardData.demandLabel.text = $"{demandValue:F1}x"; // Было "Спрос: ..."
-                                cardData.demandLabel.style.color = demandValue > 1.2f ? new Color(0.1f, 0.6f, 0.1f) : (demandValue < 0.8f ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.6f, 0.4f, 0.0f));
-            }
-
-            // Уровень
-            if (cardData.levelLabel != null)
-                cardData.levelLabel.text = $"Уровень: {car.currentLevel + 1}";
-
-            // Тренд
-            if (cardData.trendLabel != null && MarketSystem.Instance != null)
-            {
-                string trend = MarketSystem.Instance.GetDemandTrend(car.carName);
-                cardData.trendLabel.text = $"Тренд: {trend}";
-                cardData.trendLabel.style.color = trend.Contains("растёт") ? Color.green : (trend.Contains("падает") ? Color.red : Color.gray);
+                cardData.demandLabel.text = $"{demandValue:F1}x";
+                cardData.demandLabel.style.color = demandValue > 1.2f ? new Color(0.1f, 0.6f, 0.1f) : (demandValue < 0.8f ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.6f, 0.4f, 0.0f));
             }
 
             // Кнопка улучшения
             if (cardData.upgradeButton != null)
             {
                 bool hasHigherLevel = carCards.Any(cd => cd.car != car && cd.car.carName == car.carName && cd.car.currentLevel > car.currentLevel);
-                bool canUpgrade = !hasHigherLevel
-                    && (car.levels != null && car.levels.Length > 0
-                        && car.currentLevel < car.levels.Length)
-                    && upgradeUnlocked;
-
+                bool canUpgrade = !hasHigherLevel && (car.levels != null && car.levels.Length > 0 && car.currentLevel < car.levels.Length) && upgradeUnlocked;
                 cardData.upgradeButton.SetEnabled(canUpgrade);
                 cardData.upgradeButton.text = canUpgrade ? "Улучшить" : "Макс. ур.";
             }
 
             // Налог
             if (cardData.taxRateLabel != null)
-                cardData.taxRateLabel.text = $"{taxRate:P0}"; // Было "Налог: ..."
+                cardData.taxRateLabel.text = $"{taxRate:P0}";
 
-            // График
-            if (cardData.graphContainer != null && MarketSystem.Instance != null)
-                MarketSystem.Instance.DrawDemandGraph(cardData.graphContainer, car.carName);
-
-            // Тюнинг слайдеры
-            UpdateTuningSliders(cardData, car);
-
-            // Цвет и тонировка
-            if (cardData.tintToggle != null)
-                cardData.tintToggle.value = car.hasTint;
-            if (cardData.colorButtons != null)
-            {
-                int selectedIndex = Array.IndexOf(carColors, car.bodyColor);
-                UpdateColorButtons(cardData, selectedIndex);
-            }
-
-            // Модификаторы
-            if (cardData.modifierLabel != null)
-            {
-                string modText = "";
-                bool hasMod = false;
-                float penalty = 0f;
-                if (demand.demandPenalties != null && demand.demandPenalties.TryGetValue(car.carName, out penalty))
-                {
-                    modText += $"⚔️ Спрос -{(1f - penalty) * 100:F0}% ";
-                    hasMod = true;
-                }
-                if (economy.TemporaryPriceModifier != 1f)
-                {
-                    float change = (economy.TemporaryPriceModifier - 1f) * 100f;
-                    string sign = change > 0 ? "+" : "";
-                    modText += $"📊 Цена {sign}{change:F0}% ";
-                    hasMod = true;
-                }
-                if (hasMod)
-                {
-                    cardData.modifierLabel.text = modText;
-                    cardData.modifierLabel.style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                    cardData.modifierLabel.text = "";
-                    cardData.modifierLabel.style.display = DisplayStyle.None;
-                }
-            }
-
-            // ========== ОБНОВЛЕНИЕ ЦЕНЫ ==========
+            // Цена
             if (cardData.detailsLabel != null)
             {
                 int currentModCost = Mathf.RoundToInt(productionCost);
                 string costSuffix = platformDiscount > 0f ? $" (🛠️-{platformDiscount * 100:F0}%)" : "";
-                string trimSuffix = cardData.selectedTrim != null ? $" [{cardData.selectedTrim.trimName}]" : "";
-                
-                // Пишем ТОЛЬКО себестоимость, так как заголовок "Себестоимость" уже есть в UI
-                cardData.detailsLabel.text = $"${currentModCost}{costSuffix}{trimSuffix}";
+                cardData.detailsLabel.text = $"${currentModCost}{costSuffix}";
             }
 
             if (cardData.priceLabel != null)
             {
                 cardData.priceLabel.text = $"${car.currentPrice}";
-            }
-
-            // ========== СИНХРОНИЗАЦИЯ ВЫПАДАЮЩЕГО СПИСКА КОРОБОК ПЕРЕДАЧ ==========
-            if (cardData.transmissionDropdown != null)
-            {
-                List<string> newOptions = new List<string>();
-                string[] allTrans = { "АКПП", "МКПП", "Робот", "Вариатор" };
-                string[] techNames = { "AKPP", "MKPP", "ROBOT", "VARIATOR" };
-                for (int i = 0; i < allTrans.Length; i++)
-                {
-                    if (tech.IsTechResearched(techNames[i]))
-                        newOptions.Add(allTrans[i]);
-                }
-                if (newOptions.Count == 0) newOptions.Add("АКПП");
-                cardData.transmissionDropdown.choices = newOptions;
-                if (!newOptions.Contains(car.transmissionType))
-                    car.transmissionType = newOptions[0];
-                cardData.transmissionDropdown.value = car.transmissionType;
             }
         }
 
@@ -3023,71 +3076,6 @@ public class UIManager : MonoBehaviour
         UpdateProductionButtonsState();
     }
 
-    private void UpdateTuningSliders(CarCardData cardData, CarBlueprint car)
-    {
-        if (cardData.powerSlider != null)
-        {
-            cardData.powerSlider.highValue = car.tuningPower;
-            cardData.powerSlider.value = car.currentPower;
-            cardData.powerValueLabel.text = car.currentPower.ToString();
-            cardData.powerMaxLabel.text = $"/{car.tuningPower}";
-            bool canUpgrade = car.tuningPower < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "power");
-            cardData.powerUpgradeBtn.SetEnabled(canUpgrade);
-        }
-        if (cardData.economySlider != null)
-        {
-            cardData.economySlider.highValue = car.tuningEconomy;
-            cardData.economySlider.value = car.currentEconomy;
-            cardData.economyValueLabel.text = car.currentEconomy.ToString();
-            cardData.economyMaxLabel.text = $"/{car.tuningEconomy}";
-            bool canUpgrade = car.tuningEconomy < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "economy");
-            cardData.economyUpgradeBtn.SetEnabled(canUpgrade);
-        }
-        if (cardData.designSlider != null)
-        {
-            cardData.designSlider.highValue = car.tuningDesign;
-            cardData.designSlider.value = car.currentDesign;
-            cardData.designValueLabel.text = car.currentDesign.ToString();
-            cardData.designMaxLabel.text = $"/{car.tuningDesign}";
-            bool canUpgrade = car.tuningDesign < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "design");
-            cardData.designUpgradeBtn.SetEnabled(canUpgrade);
-        }
-        if (cardData.safetySlider != null)
-        {
-            cardData.safetySlider.highValue = car.tuningSafety;
-            cardData.safetySlider.value = car.currentSafety;
-            cardData.safetyValueLabel.text = car.currentSafety.ToString();
-            cardData.safetyMaxLabel.text = $"/{car.tuningSafety}";
-            bool canUpgrade = car.tuningSafety < TUNING_MAX_LEVEL && tech.CanUpgradeTuning(car, "safety");
-            cardData.safetyUpgradeBtn.SetEnabled(canUpgrade);
-        }
-    }
-
-    private void UpdateColorButtons(CarCardData cardData, int selectedIndex)
-    {
-        if (cardData.colorButtons == null) return;
-        for (int i = 0; i < cardData.colorButtons.Length; i++)
-        {
-            if (i == selectedIndex)
-            {
-                cardData.colorButtons[i].style.borderTopWidth = 2;
-                cardData.colorButtons[i].style.borderBottomWidth = 2;
-                cardData.colorButtons[i].style.borderLeftWidth = 2;
-                cardData.colorButtons[i].style.borderRightWidth = 2;
-                cardData.colorButtons[i].style.borderTopColor = Color.white;
-                cardData.colorButtons[i].style.borderBottomColor = Color.white;
-                cardData.colorButtons[i].style.borderLeftColor = Color.white;
-                cardData.colorButtons[i].style.borderRightColor = Color.white;
-            }
-            else
-            {
-                cardData.colorButtons[i].style.borderTopWidth = 0;
-                cardData.colorButtons[i].style.borderBottomWidth = 0;
-                cardData.colorButtons[i].style.borderLeftWidth = 0;
-                cardData.colorButtons[i].style.borderRightWidth = 0;
-            }
-        }
-    }
 
     // ---- Конкуренты ----
     public void RefreshCompetitorsList(List<Competitor> competitors, int playerReputation)
@@ -3274,8 +3262,8 @@ public class UIManager : MonoBehaviour
         // ---- Параметры сетки ----
         const float nodeWidth = 260f;
         const float nodeHeight = 140f;
-        const float horizontalGap = 120f;
-        const float verticalGap = 90f;
+        const float horizontalGap = 180f; // Увеличили расстояние между колонками
+        const float verticalGap = 60f;    // Уменьшили расстояние по вертикали (чтобы дерево не было слишком длинным)
 
         // ---- Определяем уровни (по зависимостям) ----
         Dictionary<Technology, int> techLevels = new Dictionary<Technology, int>();
@@ -4040,6 +4028,8 @@ public class UIManager : MonoBehaviour
         if (contractsOverlay != null) contractsOverlay.style.display = DisplayStyle.None;
         if (dealerOverlay != null) dealerOverlay.style.display = DisplayStyle.None;
         if (staffOverlay != null) staffOverlay.style.display = DisplayStyle.None;
+        if (chargingOverlay != null) chargingOverlay.style.display = DisplayStyle.None;
+        if (carConfiguratorOverlay != null) carConfiguratorOverlay.style.display = DisplayStyle.None;
     }
 
     private void AnimateWindowOpen(VisualElement window)
@@ -4671,9 +4661,7 @@ public class UIManager : MonoBehaviour
             {
                 var openBtn = new Button(() =>
                 {
-                    float rent = def.baseRent * 1.2f;
-                    float salaries = def.baseSalaries * 1.2f;
-                    manager.OpenOffice(def.id, rent, salaries);
+                    manager.OpenOffice(def.id);
                     UpdateOfficesUI();
                 });
                 openBtn.text = "Открыть";
@@ -4950,6 +4938,16 @@ public class UIManager : MonoBehaviour
         title.style.fontSize = 14;
         infoCol.Add(title);
 
+        // НОВЫЙ БЛОК: Предупреждение о конкуренте
+        if (!isActive && c.isCompetitorInterested)
+        {
+            var warningLabel = new Label($"👀 {c.competitorName} присматривается!");
+            warningLabel.style.fontSize = 10;
+            warningLabel.style.color = new Color(1f, 0.6f, 0.2f); // Оранжевый
+            warningLabel.style.marginTop = 2;
+            infoCol.Add(warningLabel);
+        }
+
         // Получаем текст требований из менеджера
         string reqText = ContractManager.Instance != null 
             ? ContractManager.Instance.GetContractRequirementsText(c) 
@@ -5208,6 +5206,55 @@ public class UIManager : MonoBehaviour
 
             row.Add(actions);
             dealerContainer.Add(row);
+        }
+
+          // Блок трейд-ин предложений
+        if (CustomerManager.Instance != null && CustomerManager.Instance.tradeInOffers.Count > 0)
+        {
+            var tradeInHeader = new Label("🔄 Трейд-ин предложения"); // <--- ИСПРАВЛЕНО
+            tradeInHeader.style.fontSize = 16;
+            tradeInHeader.style.color = isDarkTheme ? Color.white : Color.black;
+            tradeInHeader.style.unityFontStyleAndWeight = FontStyle.Bold;
+            tradeInHeader.style.marginTop = 20;
+            tradeInHeader.style.marginBottom = 10;
+            dealerContainer.Add(tradeInHeader);
+
+            foreach (var offer in CustomerManager.Instance.tradeInOffers)
+            {
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.paddingTop = 8;
+                row.style.paddingBottom = 8;
+                row.style.paddingLeft = 10;
+                row.style.paddingRight = 10;
+                row.style.marginBottom = 4;
+                row.style.backgroundColor = isDarkTheme ? new Color(0.22f, 0.22f, 0.22f) : new Color(0.9f, 0.9f, 0.9f);
+                row.style.borderTopLeftRadius = 6;
+                row.style.borderTopRightRadius = 6;
+                row.style.borderBottomLeftRadius = 6;
+                row.style.borderBottomRightRadius = 6;
+
+                var label = new Label($"Клиент хочет сдать {offer.oldCarName} (ур. {offer.oldCarLevel + 1}) и купить новый со скидкой {offer.discountPercent * 100:F0}%");
+                label.style.flexGrow = 1;
+                label.style.color = isDarkTheme ? Color.white : Color.black;
+                row.Add(label);
+
+                var btn = new Button(() =>
+                {
+                    if (CustomerManager.Instance.AcceptTradeIn(offer))
+                        RefreshDealerUI();
+                });
+                btn.text = "Принять";
+                btn.style.width = 100;
+                btn.style.height = 28;
+                btn.style.backgroundColor = new Color(0.5f, 0.85f, 0.5f);
+                btn.style.color = Color.black;
+                btn.style.unityFontStyleAndWeight = FontStyle.Bold;
+                row.Add(btn);
+
+                dealerContainer.Add(row);
+            }
         }
     }
 

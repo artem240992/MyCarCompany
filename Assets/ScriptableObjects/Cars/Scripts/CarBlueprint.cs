@@ -15,6 +15,16 @@ public class CarBlueprint : ScriptableObject
     public CarRecipe recipe;
     [HideInInspector] public int finalAssemblyCostWithOptions = -1;
 
+    public bool isElectric;
+    public int currentRange;      // запас хода (км)
+    public int maxRange;
+
+
+    [Header("Текущая конфигурация игрока")]
+    public string selectedTrimName = "";
+    public string selectedTransmission = "АКПП";
+    public List<string> selectedOptionNames = new List<string>();
+
     [Header("История спроса")]
     public List<float> demandHistory = new List<float>(); // последние 12 месяцев
 
@@ -32,6 +42,7 @@ public class CarBlueprint : ScriptableObject
     public int tuningEconomy = 0;
     public int tuningDesign = 0;
     public int tuningSafety = 0;
+    
 
     [Header("Тюнинг (тек.)")]
     public int currentPower = 0;
@@ -96,6 +107,9 @@ public class CarBlueprint : ScriptableObject
         newCar.tintLevel = this.tintLevel;
         newCar.hasTint = this.hasTint;
         newCar.carIcon = this.carIcon;
+        newCar.isElectric = this.isElectric;
+        newCar.currentRange = this.currentRange;
+        newCar.maxRange = this.maxRange;
         newCar.demandMultiplier = this.demandMultiplier;
         newCar.newsMultiplier = this.newsMultiplier;
 
@@ -145,6 +159,11 @@ public class CarBlueprint : ScriptableObject
             }
         }
 
+        // ДОБАВИТЬ ЭТИ СТРОКИ:
+        newCar.selectedTrimName = this.selectedTrimName;
+        newCar.selectedTransmission = this.selectedTransmission;
+        newCar.selectedOptionNames = new List<string>(this.selectedOptionNames);
+
         return newCar;
     }
 
@@ -159,6 +178,7 @@ public class CarBlueprint : ScriptableObject
         target.bodyPrice = source.bodyPrice;
         target.wheelsPrice = source.wheelsPrice;
         target.electronicsPrice = source.electronicsPrice;
+        target.batteryPrice = source.batteryPrice;
 
         // Копирование сезонных множителей
         if (source.seasonalCostMultipliers != null)
@@ -187,6 +207,7 @@ public class CarBlueprint : ScriptableObject
         recipe.bodyPrice = newRecipe.bodyPrice;
         recipe.wheelsPrice = newRecipe.wheelsPrice;
         recipe.electronicsPrice = newRecipe.electronicsPrice;
+        recipe.batteryPrice = newRecipe.batteryPrice;
 
         // Копируем сезонные множители
         if (newRecipe.seasonalCostMultipliers != null)
@@ -240,6 +261,10 @@ public class CarBlueprint : ScriptableObject
         int baseForPrice = (currentPrice != 0) ? currentPrice : basePrice;
         float tuningPrice = baseForPrice * GetTuningPriceModifier();
         float finalPrice = tuningPrice * priceModifier * GetDemandPriceModifier();
+        if (isElectric && CarCompanyManager.Instance.EconomyManager.IsEvSubsidyActive)
+        {
+            finalPrice *= 1.15f; // +15% к цене продажи (государство доплачивает)
+        }
         return Mathf.RoundToInt(finalPrice);
     }
 

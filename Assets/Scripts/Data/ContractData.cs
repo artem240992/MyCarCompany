@@ -22,6 +22,10 @@ public class ContractData
     public bool isAccepted;
     public bool isCompleted;
 
+    // НОВЫЕ ПОЛЯ ДЛЯ КОНКУРЕНЦИИ:
+    public bool isCompetitorInterested;
+    public string competitorName = "";
+
     public float ProgressNormalized =>
         requiredQuantity > 0 ? Mathf.Clamp01((float)deliveredQuantity / requiredQuantity) : 0f;
 }

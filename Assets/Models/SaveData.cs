@@ -92,6 +92,13 @@ public class SaveData
     // ===== Бренд =====
     public string companyName;
     public string companyLogoPath;
+        // ===== Электромобили и инфраструктура =====
+    public bool evSubsidyActive;
+    public int evSubsidyMonthsLeft;
+    public List<InternationalManager.ChargingStation> chargingStations = new List<InternationalManager.ChargingStation>();
+
+    public List<CustomerRecord> customers = new List<CustomerRecord>();
+    public List<TradeInOffer> tradeInOffers = new List<TradeInOffer>();
 }
 
 [Serializable]
@@ -109,6 +116,11 @@ public class CarSaveData
     public string trimName;   // ← НОВОЕ
     public float colorR, colorG, colorB;
     public bool hasTint;
+
+    // ===== Электромобили =====
+    public List<InternationalManager.ChargingStation> chargingStations = new List<InternationalManager.ChargingStation>();
+    public bool evSubsidyActive;
+    public int evSubsidyMonthsLeft;
 }
 
 [Serializable]

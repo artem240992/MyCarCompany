@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3d48a39f9b10b46b3bb74129bd0a68, type: 3}
+  m_Name: DefaultCarEV
+  m_EditorClassIdentifier: Assembly-CSharp::CarRecipe
+  engineRequired: 0
+  bodyRequired: 1
+  wheelsRequired: 4
+  electronicsRequired: 3
+  isElectric: 1
+  batteryRequired: 2
+  availableTrims:
+  - {fileID: 11400000, guid: d1aee3c57a78d28458c1657490c32b9c, type: 2}
+  - {fileID: 11400000, guid: 7be7414a7bb07ec4a81518f51ea6f142, type: 2}
+  - {fileID: 11400000, guid: b52e0433bf6d2614ca4a03415a867d7e, type: 2}
+  assemblyCost: 80
+  reliability: 60
+  safety: 60
+  comfort: 60
+  tech: 80
+  enginePrice: -1
+  bodyPrice: -1
+  batteryPrice: 80
+  wheelsPrice: -1
+  electronicsPrice: -1
+  seasonalCostMultipliers:
+  - 0.8
+  - 0.8
+  - 0.8
+  - 0.8
+  - 1
+  - 1
+  - 1
+  - 0.8
+  - 1
+  - 1
+  - 1
+  - 1

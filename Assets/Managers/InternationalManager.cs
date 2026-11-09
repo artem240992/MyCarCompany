@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public class InternationalManager : MonoBehaviour
 {
@@ -11,6 +12,13 @@ public class InternationalManager : MonoBehaviour
 
     [Header("Регионы")]
     public List<RegionDefinition> regionDefinitions = new List<RegionDefinition>();
+    private Dictionary<string, RegionDefinition> _regionLookup;
+
+    [Header("Баланс")]
+    [Tooltip("Сколько машин в месяц условно продается в каждом офисе (для расчета выручки)")]
+    [SerializeField] private float baseCarsSoldPerMonth = 100f;
+    [SerializeField] private float businessTaxRate = 0.1f;
+    [SerializeField] private float salaryTaxRate = 0.13f;
 
     [System.Serializable]
     public class RegionDefinition
@@ -25,20 +33,33 @@ public class InternationalManager : MonoBehaviour
         public float upgradeCost = 300f;
     }
 
+    // ВАЖНО: Если вы планируете сделать отдельный ChargingManager, 
+    // лучше вынести этот класс туда. Но пока оставляем здесь для совместимости.
+    [System.Serializable]
+    public class ChargingStation
+    {
+        public string regionId;
+        public int level = 0;           // 0..5
+        public float coverage = 0f;     // 0..1
+    }
+
     private List<OfficeData> offices = new List<OfficeData>();
-    private int totalOfficesOpened = 0; // <-- добавлен счётчик
+    public List<ChargingStation> chargingStations = new List<ChargingStation>();
+    private int totalOfficesOpened = 0;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        // Кэшируем регионы для быстрого поиска O(1)
+        _regionLookup = regionDefinitions.ToDictionary(r => r.id);
     }
 
     private void Start()
     {
         if (GameTimeManager.Instance != null)
             GameTimeManager.Instance.OnMonthChanged += OnMonthChanged;
-        // Если есть сохранение, загрузим позже
     }
 
     private void OnDestroy()
@@ -49,40 +70,39 @@ public class InternationalManager : MonoBehaviour
 
     public bool IsOfficeTechUnlocked()
     {
-        var tech = CarCompanyManager.Instance.TechManager;
-        return tech != null && tech.IsTechResearched(requiredTechForOffices);
+        return CarCompanyManager.Instance.TechManager.IsTechResearched(requiredTechForOffices);
     }
 
     public bool CanOpenOffice(string regionId)
     {
         if (!IsOfficeTechUnlocked()) return false;
-        var def = regionDefinitions.FirstOrDefault(r => r.id == regionId);
-        if (def == null) return false;
+        if (!_regionLookup.TryGetValue(regionId, out var def)) return false;
         if (offices.Any(o => o.regionId == regionId && o.isActive)) return false;
-        var economy = CarCompanyManager.Instance.EconomyManager;
-        return economy.Money >= def.openCost;
+        
+        return CarCompanyManager.Instance.EconomyManager.Money >= def.openCost;
     }
 
-    public void OpenOffice(string regionId, float rent, float salaries)
+    // УПРОЩЕННАЯ СИГНАТУРА: Больше не нужно передавать rent и salaries из UI
+    public void OpenOffice(string regionId)
     {
         if (!CanOpenOffice(regionId)) return;
-        var def = regionDefinitions.First(r => r.id == regionId);
+        var def = _regionLookup[regionId];
         var economy = CarCompanyManager.Instance.EconomyManager;
-        economy.SpendMoney(def.openCost);
+
+        if (!economy.SpendMoney(def.openCost)) return;
 
         var office = new OfficeData
         {
             regionId = regionId,
             regionName = def.displayName,
-            rent = rent,
-            salaries = salaries,
+            rent = def.baseRent,
+            salaries = def.baseSalaries,
             level = 0,
             localPriceMultiplier = 1f,
             isActive = true
         };
         offices.Add(office);
 
-        // ---- Обновление достижений ----
         totalOfficesOpened++;
         CarCompanyManager.Instance.AchievementManager?.UpdateProgress("officesOpened", totalOfficesOpened);
 
@@ -94,6 +114,7 @@ public class InternationalManager : MonoBehaviour
     {
         var office = offices.FirstOrDefault(o => o.regionId == regionId && o.isActive);
         if (office == null) return;
+        
         office.isActive = false;
         UIManager.Instance?.ShowNotification($"Представительство в {office.regionName} закрыто.");
         UpdateUI();
@@ -103,11 +124,14 @@ public class InternationalManager : MonoBehaviour
     {
         var office = offices.FirstOrDefault(o => o.regionId == regionId && o.isActive);
         if (office == null) return;
-        var def = regionDefinitions.First(r => r.id == regionId);
+        
+        var def = _regionLookup[regionId];
         var economy = CarCompanyManager.Instance.EconomyManager;
-        if (!economy.SpendMoney(def.upgradeCost * (office.level + 1))) return;
+        
+        float cost = def.upgradeCost * (office.level + 1);
+        if (!economy.SpendMoney(cost)) return;
+        
         office.level++;
-        // Снижаем расходы на 5% за уровень, повышаем спрос на 10% за уровень
         UIManager.Instance?.ShowNotification($"Представительство в {office.regionName} улучшено до уровня {office.level+1}");
         UpdateUI();
     }
@@ -116,7 +140,8 @@ public class InternationalManager : MonoBehaviour
     {
         var office = offices.FirstOrDefault(o => o.regionId == regionId && o.isActive);
         if (office == null) return;
-        office.localPriceMultiplier = Mathf.Max(0.5f, Mathf.Min(2f, multiplier));
+        
+        office.localPriceMultiplier = Mathf.Clamp(multiplier, 0.5f, 2f);
         UpdateUI();
     }
 
@@ -124,23 +149,23 @@ public class InternationalManager : MonoBehaviour
 
     private void OnMonthChanged()
     {
-        if (!IsOfficeTechUnlocked()) return;
+        if (!IsOfficeTechUnlocked() || offices.Count == 0) return;
         var economy = CarCompanyManager.Instance.EconomyManager;
+
         foreach (var office in offices.Where(o => o.isActive))
         {
-            var def = regionDefinitions.First(r => r.id == office.regionId);
-            // Расходы: аренда + зарплата + налог на бизнес (10% от аренды+зарплаты) + налог на зарплату (13%)
+            if (!_regionLookup.TryGetValue(office.regionId, out var def)) continue;
+
+            // Расходы
             float rent = office.rent * (1f - office.level * 0.05f);
             float salaries = office.salaries * (1f - office.level * 0.05f);
-            float businessTax = (rent + salaries) * 0.1f;
-            float salaryTax = salaries * 0.13f;
-            float totalCost = rent + salaries + businessTax + salaryTax;
+            float totalCost = rent + salaries + (rent + salaries) * businessTaxRate + salaries * salaryTaxRate;
             office.monthlyCost = totalCost;
 
-            // Доход: продажи = базовый спрос * (1 + уровень*0.1) * локальный множитель цены * (1 - импортный налог)
+            // Доход
             float demand = def.baseDemandMultiplier * (1f + office.level * 0.1f);
             float price = economy.TotalPriceModifier * office.localPriceMultiplier;
-            float revenue = demand * price * 100f; // условно 100 машин в месяц
+            float revenue = demand * price * baseCarsSoldPerMonth; 
             float tax = revenue * def.importTax;
             float netRevenue = revenue - tax;
 
@@ -149,8 +174,9 @@ public class InternationalManager : MonoBehaviour
             // Применяем к экономике
             economy.Money -= totalCost;
             economy.Money += netRevenue;
-            CarCompanyManager.Instance.DemandManager?.UpdateDemand();
         }
+        
+        CarCompanyManager.Instance.DemandManager?.UpdateDemand();
         UpdateUI();
     }
 
@@ -159,17 +185,22 @@ public class InternationalManager : MonoBehaviour
         UIManager.Instance?.UpdateInternationalUI();
     }
 
-    // ---- Сохранение/загрузка ----
+    // ---- СОХРАНЕНИЕ / ЗАГРУЗКА ----
     public void FillSaveData(SaveData data)
     {
         data.offices = offices;
-        data.totalOfficesOpened = totalOfficesOpened; // <-- сохраняем счётчик
+        data.totalOfficesOpened = totalOfficesOpened;
+        data.chargingStations = chargingStations; // <-- ТЕПЕРЬ СОХРАНЯЕТСЯ
     }
 
     public void LoadFromSave(SaveData data)
     {
         if (data.offices != null)
             offices = data.offices;
-        totalOfficesOpened = data.totalOfficesOpened; // <-- загружаем счётчик
+            
+        totalOfficesOpened = data.totalOfficesOpened;
+
+        if (data.chargingStations != null)
+            chargingStations = data.chargingStations; // <-- ТЕПЕРЬ ЗАГРУЖАЕТСЯ
     }
 }

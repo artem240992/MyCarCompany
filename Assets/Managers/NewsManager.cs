@@ -10,7 +10,8 @@ public enum NewsType
     GovernmentSubsidy,
     EcoTrend,
     CompetitorScandal,
-    MarketSlowdown
+    MarketSlowdown,
+    EvSubsidy // <--- Новый тип
 }
 
 [System.Serializable]
@@ -38,6 +39,9 @@ public struct NewsAction
     [Range(0f, 1f)]
     [Tooltip("Доля от базового бюджета, которую платит игрок. 0.3 = 30%.")]
     public float marketingBudgetShare;
+    
+    [Tooltip("Активирует субсидию на электромобили на указанное количество месяцев.")]
+    public int evSubsidyMonths; // <--- Новое поле
 }
 
 [System.Serializable]
@@ -241,6 +245,13 @@ public class NewsManager : MonoBehaviour
             if (action.moneyImpact > 0) economy.AddMoney(action.moneyImpact);
             else economy.SpendMoney(-action.moneyImpact);
         }
+
+        if (action.evSubsidyMonths > 0)
+        {
+            economy.ActivateEvSubsidy(action.evSubsidyMonths);
+            UIManager.Instance?.ShowNotification($"🏛️ Субсидия на электромобили активна на {action.evSubsidyMonths} мес.!");
+        }
+        
 
         if (action.reputationImpact != 0)
             economy.AddReputation((int)action.reputationImpact);
@@ -556,6 +567,29 @@ public class NewsManager : MonoBehaviour
                         actionName = "Уволить часть персонала",
                         description = "Жесткая экономия.",
                         demandImpact = 1.0f, reputationImpact = -20f, moneyImpact = 1500f
+                    }
+                }
+            },
+
+            // 7. СУБСИДИЯ НА ЭЛЕКТРОМОБИЛИ
+            new InteractiveNews
+            {
+                title = "Господдержка электромобилей",
+                description = "Государство выделяет субсидии для стимулирования продаж чистого транспорта.",
+                type = NewsType.EvSubsidy,
+                actions = new NewsAction[]
+                {
+                    new NewsAction {
+                        actionName = "Воспользоваться субсидией",
+                        description = "Государство будет доплачивать 15% к цене каждого электромобиля.",
+                        demandImpact = 1.2f, reputationImpact = 10f, moneyImpact = 2000f,
+                        requiresTech = true, requiredTechName = "Электромобиль",
+                        evSubsidyMonths = 6
+                    },
+                    new NewsAction {
+                        actionName = "Отказаться",
+                        description = "Нам не нужна помощь государства.",
+                        demandImpact = 1.0f, reputationImpact = 0f, moneyImpact = 0f
                     }
                 }
             }

@@ -830,6 +830,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 964a19ad45026a449a06efadd5a7fd55, type: 2}
   - {fileID: 11400000, guid: f83ac9da3c1ee444ca94b112029eda32, type: 2}
   - {fileID: 11400000, guid: 4418b9ad54220b3469edafda789f95d0, type: 2}
+  - {fileID: 11400000, guid: 70107c0ae96c2b24883955bd98e7dd7a, type: 2}
 --- !u!4 &2044430357
 Transform:
   m_ObjectHideFlags: 0
@@ -990,6 +991,10 @@ MonoBehaviour:
     baseSalaries: 25
     openCost: 300
     upgradeCost: 200
+  baseCarsSoldPerMonth: 100
+  businessTaxRate: 0.1
+  salaryTaxRate: 0.13
+  chargingStations: []
 --- !u!1 &2144086935
 GameObject:
   m_ObjectHideFlags: 0
