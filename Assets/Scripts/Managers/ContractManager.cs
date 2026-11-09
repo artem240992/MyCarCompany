@@ -200,6 +200,13 @@ public class ContractManager : MonoBehaviour
         TickDeadlines();
         if (availableContracts.Count < 5)
             GenerateContracts(1);
+    
+    // НОВАЯ СТРОКА: Разрешаем конкурентам оценить доступные контракты
+        if (CarCompanyManager.Instance.CompetitorManager != null)
+        {
+            CarCompanyManager.Instance.CompetitorManager.EvaluateAvailableContracts(availableContracts);
+        }
+
         OnContractsChanged?.Invoke();
     }
 

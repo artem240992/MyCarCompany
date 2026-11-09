@@ -43,6 +43,12 @@
                     <ui:VisualElement class="resource-info">
                         <ui:Label text="" name="EngineLabel" class="resource-value" tooltip="Двигатели на складе"/>
                     </ui:VisualElement>
+                    <ui:VisualElement name="BatteryResourceBlock" class="resource-block parts-block" style="display: none;">
+                        <ui:Label text="🔋" class="resource-icon" tooltip="Батареи на складе"/>
+                        <ui:VisualElement class="resource-info">
+                            <ui:Label text="" name="BatteryLabel" class="resource-value" tooltip="Батареи на складе"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="resource-block parts-block">
                     <ui:Label text="🔩" class="resource-icon" tooltip="Кузова на складе"/>
@@ -221,6 +227,7 @@
                         <ui:Button text="🔩 Кузов" name="ProduceBodyButton" style="flex-grow: 1; min-width: 80px; color: black; -unity-font-style: bold;" tooltip="Произвести 1 кузов"/>
                         <ui:Button text="⚙️ Колёса" name="ProduceWheelsButton" style="flex-grow: 1; min-width: 80px; color: black; -unity-font-style: bold;" tooltip="Произвести 1 комплект колёс"/>
                         <ui:Button text="💻 Электроника" name="ProduceElectronicsButton" style="flex-grow: 1; min-width: 80px; color: black; -unity-font-style: bold;" tooltip="Произвести 1 электронику"/>
+                        <ui:Button text="🔋 Батарея" name="ProduceBatteryButton" style="flex-grow: 1; min-width: 80px; color: black; -unity-font-style: bold; display: none;" tooltip="Произвести 1 батарею"/>
                     </ui:VisualElement>
                     <ui:Label text="" name="PartsProductionInfo" style="color: #333; font-size: 12px; margin-top: 4px;" tooltip="Условия производства">
                         Требуется: 1 инженер, 1 уровень конвейера, $10 за деталь
@@ -232,6 +239,7 @@
                         <ui:Button text="💰 Продать 🔩" name="SellBodyButton" style="flex-grow: 1; min-width: 80px; background-color: #81c784; color: black; -unity-font-style: bold;" tooltip="Продать 1 кузов"/>
                         <ui:Button text="💰 Продать ⚙️" name="SellWheelsButton" style="flex-grow: 1; min-width: 80px; background-color: #81c784; color: black; -unity-font-style: bold;" tooltip="Продать 1 комплект колёс"/>
                         <ui:Button text="💰 Продать 💻" name="SellElectronicsButton" style="flex-grow: 1; min-width: 80px; background-color: #81c784; color: black; -unity-font-style: bold;" tooltip="Продать 1 электронику"/>
+                        <ui:Button text="💰 Продать 🔋" name="SellBatteryButton" style="flex-grow: 1; min-width: 80px; background-color: #81c784; color: black; -unity-font-style: bold; display: none;" tooltip="Продать 1 батарею"/>
                     </ui:VisualElement>
                     <ui:Label text="" name="PartsSellInfo" style="color: #333; font-size: 12px; margin-top: 4px;" tooltip="Цена зависит от рыночного спроса и инфляции">
                         Цена зависит от рыночного спроса и инфляции

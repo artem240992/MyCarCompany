@@ -599,4 +599,53 @@ public class CompetitorManager : MonoBehaviour
         if (playerShare < 0.01f) return 0.3f;
         return playerShare;
     }
+
+
+        // Вызывается из ContractManager раз в месяц
+    public void EvaluateAvailableContracts(List<ContractData> availableContracts)
+    {
+        if (availableContracts == null || availableContracts.Count == 0 || Competitors.Count == 0) return;
+
+        // Выбираем случайный контракт
+        int randomIndex = Random.Range(0, availableContracts.Count);
+        var contract = availableContracts[randomIndex];
+
+        // Выбираем случайного конкурента
+        var comp = Competitors[Random.Range(0, Competitors.Count)];
+        
+        // Проверяем, может ли он себе это позволить (по деньгам/репутации)
+        // Например, полицейские седаны могут брать только богатые компании
+        bool canAfford = comp.money > contract.penaltyMoney * 1.5f; 
+
+        if (canAfford)
+        {
+            // Шанс перехвата зависит от агрессии
+            float stealChance = 0.2f; // базовый 20%
+            if (comp.strategy == "Aggressive") stealChance = 0.5f;
+            if (comp.strategy == "Conservative") stealChance = 0.1f;
+
+            if (Random.value < stealChance)
+            {
+                // Конкурент забирает контракт!
+                comp.money += (float)contract.rewardMoney;
+                comp.reputation += 5;
+                
+                availableContracts.RemoveAt(randomIndex);
+                
+                UIManager.Instance?.ShowNotification($"⚠️ Конкурент '{comp.companyName}' перехватил контракт: {contract.title}!");
+                CarCompanyManager.Instance.ActionLogManager?.AddLog(comp.companyName, "Перехват контракта", true, $"Забрал {contract.title}");
+                
+                if (UIManager.Instance != null)
+                    UIManager.Instance.RefreshContractsUI();
+            }
+            else
+            {
+                // Конкурент просто присматривается к контракту (для UI)
+                contract.isCompetitorInterested = true;
+                contract.competitorName = comp.companyName;
+                if (UIManager.Instance != null)
+                    UIManager.Instance.RefreshContractsUI();
+            }
+        }
+    }
 }

@@ -49,6 +49,11 @@ public class UIManager : MonoBehaviour
     private Label demoTimerLabel;
     private Label demoProgressLabel;
 
+    private VisualElement batteryResourceBlock;
+    private Label batteryLabel;
+    private Button produceBatteryButton;
+    private Button sellBatteryButton;
+
     // ---- Оверлеи для международной экспансии и патентов ----
     private VisualElement officesOverlay;
     private VisualElement patentsOverlay;
@@ -893,6 +898,11 @@ public class UIManager : MonoBehaviour
         bodyLabel = root.Q<Label>("BodyLabel");
         wheelsLabel = root.Q<Label>("WheelsLabel");
         electronicsLabel = root.Q<Label>("ElectronicsLabel");
+
+        batteryResourceBlock = root.Q<VisualElement>("BatteryResourceBlock");
+        batteryLabel = root.Q<Label>("BatteryLabel");
+        produceBatteryButton = root.Q<Button>("ProduceBatteryButton");
+        sellBatteryButton = root.Q<Button>("SellBatteryButton");
 
         marketingOverlay = root.Q<VisualElement>("MarketingOverlay");
         marketVisOverlay = root.Q<VisualElement>("MarketVisOverlay");
@@ -1979,6 +1989,8 @@ public class UIManager : MonoBehaviour
     // ---- Обновление лейблов склада ----
     public void UpdateWarehouseLabels()
     {
+         if (batteryLabel != null && warehouse != null)
+            batteryLabel.text = warehouse.GetPartCount(PartType.Battery).ToString(); // <--- ДОБАВИТЬ
         if (carStockLabel != null)
             carStockLabel.text = WarehouseManager.Instance?.GetTotalCarCount().ToString() ?? "0";
         if (warehouse == null) return;
@@ -2394,8 +2406,28 @@ public class UIManager : MonoBehaviour
         UpdateDifficultyDisplay();
     }
 
+
+    private void UpdateBatteryUIState()
+    {
+        // Проверяем, изучена ли технология
+        bool isUnlocked = tech != null && tech.IsTechResearched("Производство Battery");
+
+        // Показываем/скрываем в шапке
+        if (batteryResourceBlock != null)
+            batteryResourceBlock.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+
+        // Показываем/скрываем кнопки в окне Улучшений
+        if (produceBatteryButton != null)
+            produceBatteryButton.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+            
+        if (sellBatteryButton != null)
+            sellBatteryButton.style.display = isUnlocked ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+
     public void UpdateUpgradeUI()
     {
+        UpdateBatteryUIState();
         if (conveyorLevelLabel != null) conveyorLevelLabel.text = $"Уровень конвейера: {economy.ConveyorLevel}";
 
         if (buyConveyorButton != null)
@@ -4905,6 +4937,16 @@ public class UIManager : MonoBehaviour
         title.style.unityFontStyleAndWeight = FontStyle.Bold;
         title.style.fontSize = 14;
         infoCol.Add(title);
+
+        // НОВЫЙ БЛОК: Предупреждение о конкуренте
+        if (!isActive && c.isCompetitorInterested)
+        {
+            var warningLabel = new Label($"👀 {c.competitorName} присматривается!");
+            warningLabel.style.fontSize = 10;
+            warningLabel.style.color = new Color(1f, 0.6f, 0.2f); // Оранжевый
+            warningLabel.style.marginTop = 2;
+            infoCol.Add(warningLabel);
+        }
 
         // Получаем текст требований из менеджера
         string reqText = ContractManager.Instance != null 
