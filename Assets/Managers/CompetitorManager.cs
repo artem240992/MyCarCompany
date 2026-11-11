@@ -91,9 +91,9 @@ public class CompetitorManager : MonoBehaviour
         var diff = CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
         switch (diff)
         {
-            case DifficultyManager.DifficultyLevel.Easy:   return 10f;
-            case DifficultyManager.DifficultyLevel.Normal: return 7f;
-            case DifficultyManager.DifficultyLevel.Hard:   return 5f;
+            case DifficultyManager.DifficultyLevel.Easy:   return 15f; // Медленно
+            case DifficultyManager.DifficultyLevel.Normal: return 10f; // Средне
+            case DifficultyManager.DifficultyLevel.Hard:   return 5f;  // Очень быстро
             default: return 8f;
         }
     }
@@ -192,9 +192,8 @@ public class CompetitorManager : MonoBehaviour
     {
         if (comp == null) return;
 
-        float aggressionMod = 1f;
-        if (CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty == DifficultyManager.DifficultyLevel.Hard)
-            aggressionMod = 1.5f;
+         int diffLevel = (int)CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
+         float aggressionMod = 1f + (diffLevel * 0.25f);
 
         float decision = Random.value * aggressionMod;
 
@@ -606,23 +605,32 @@ public class CompetitorManager : MonoBehaviour
     {
         if (availableContracts == null || availableContracts.Count == 0 || Competitors.Count == 0) return;
 
-        // Выбираем случайный контракт
-        int randomIndex = Random.Range(0, availableContracts.Count);
-        var contract = availableContracts[randomIndex];
-
-        // Выбираем случайного конкурента
-        var comp = Competitors[Random.Range(0, Competitors.Count)];
+        // Получаем текущую сложность (0 = Easy, 1 = Normal, 2 = Hard)
+        int difficulty = (int)CarCompanyManager.Instance.DifficultyManager.CurrentDifficulty;
         
-        // Проверяем, может ли он себе это позволить (по деньгам/репутации)
-        // Например, полицейские седаны могут брать только богатые компании
-        bool canAfford = comp.money > contract.penaltyMoney * 1.5f; 
+        // 1. Сколько контрактов конкурент вообще посмотрит (Easy: 1-2, Hard: 4-5)
+        int contractsToScan = Mathf.Clamp(1 + difficulty * 2, 1, availableContracts.Count);
+        
+        // Берем случайные контракты из доступных для сканирования
+        var contractsToEvaluate = availableContracts.OrderBy(x => Random.value).Take(contractsToScan).ToList();
 
-        if (canAfford)
+        foreach (var contract in contractsToEvaluate)
         {
-            // Шанс перехвата зависит от агрессии
-            float stealChance = 0.2f; // базовый 20%
-            if (comp.strategy == "Aggressive") stealChance = 0.5f;
-            if (comp.strategy == "Conservative") stealChance = 0.1f;
+            // Выбираем случайного конкурента для этого контракта
+            var comp = Competitors[Random.Range(0, Competitors.Count)];
+            
+            // Проверяем, может ли он себе это позволить (по деньгам)
+            bool canAfford = comp.money > contract.penaltyMoney * 1.5f; 
+            if (!canAfford) continue;
+
+            // 2. Базовый шанс перехвата зависит от сложности (Easy: 20%, Normal: 35%, Hard: 50%)
+            float stealChance = 0.2f + (difficulty * 0.15f); 
+            
+            // Корректируем шанс в зависимости от стратегии конкурента
+            if (comp.strategy == "Aggressive") stealChance += 0.15f;
+            else if (comp.strategy == "Conservative") stealChance -= 0.1f;
+
+            stealChance = Mathf.Clamp01(stealChance); // Ограничиваем от 0 до 1
 
             if (Random.value < stealChance)
             {
@@ -630,22 +638,24 @@ public class CompetitorManager : MonoBehaviour
                 comp.money += (float)contract.rewardMoney;
                 comp.reputation += 5;
                 
-                availableContracts.RemoveAt(randomIndex);
+                // Отжимаем рынок: конкурент забирает часть доли рынка
+                comp.marketShare += 0.01f * (difficulty + 1);
+                
+                // Убираем контракт из пула игрока
+                availableContracts.Remove(contract);
                 
                 UIManager.Instance?.ShowNotification($"⚠️ Конкурент '{comp.companyName}' перехватил контракт: {contract.title}!");
                 CarCompanyManager.Instance.ActionLogManager?.AddLog(comp.companyName, "Перехват контракта", true, $"Забрал {contract.title}");
-                
-                if (UIManager.Instance != null)
-                    UIManager.Instance.RefreshContractsUI();
             }
             else
             {
-                // Конкурент просто присматривается к контракту (для UI)
+                // Конкурент присматривается к контракту (для UI)
                 contract.isCompetitorInterested = true;
                 contract.competitorName = comp.companyName;
-                if (UIManager.Instance != null)
-                    UIManager.Instance.RefreshContractsUI();
             }
         }
+        
+        if (UIManager.Instance != null)
+            UIManager.Instance.RefreshContractsUI();
     }
 }

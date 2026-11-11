@@ -165,6 +165,23 @@ public class SaveLoadManager : MonoBehaviour
 
         currentSaveData = new SaveData();
 
+        
+        // 2. ДОБАВЬТЕ СБРОС КОНТРАКТОВ:
+        if (ContractManager.Instance != null)
+        {
+            ContractManager.Instance.ResetContracts();
+        }
+
+        // 3. ДОБАВЬТЕ СБРОС КОНКУРЕНТОВ:
+        if (CarCompanyManager.Instance.CompetitorManager != null)
+        {
+            // Если нужно полностью пересоздать конкурентов (новые имена, машины):
+            CarCompanyManager.Instance.CompetitorManager.Initialize(); 
+            
+            // ИЛИ, если вы хотите просто сбросить их деньги/репутацию:
+            // CarCompanyManager.Instance.CompetitorManager.ResetCompetitors();
+        }
+        // 1. Сброс экономики и персонала (вы уже добавили это ранее)
         CarCompanyManager.Instance.EconomyManager.ResetState();
         CarCompanyManager.Instance.TechManager.ResetTechs();
         if (GameTimeManager.Instance != null)

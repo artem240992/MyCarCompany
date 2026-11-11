@@ -284,4 +284,62 @@ public class ContractManager : MonoBehaviour
         isAccepted       = s.isAccepted,
         isCompleted      = s.isCompleted
     };
+
+
+    // 1. Зарезервировать контракт (чтобы игрок его не взял)
+    public bool TryReserveContractForCompetitor(string contractId, string competitorName)
+    {
+        var contract = availableContracts.Find(c => c.contractId == contractId);
+        if (contract == null || contract.isCompetitorInterested) return false;
+
+        contract.isCompetitorInterested = true;
+        contract.competitorName = competitorName;
+        OnContractsChanged?.Invoke(); 
+        return true;
+    }
+
+    // 2. Отпустить контракт (если конкурент передумал)
+    public void ReleaseContractFromCompetitor(string contractId, string competitorName)
+    {
+        var contract = availableContracts.Find(c => c.contractId == contractId);
+        if (contract != null && contract.competitorName == competitorName)
+        {
+            contract.isCompetitorInterested = false;
+            contract.competitorName = "";
+            OnContractsChanged?.Invoke();
+        }
+    }
+
+    // 3. Забрать контракт навсегда (удалить с доски)
+    public bool CompetitorAcceptContract(string contractId, string competitorName)
+    {
+        var contract = availableContracts.Find(c => c.contractId == contractId);
+        if (contract == null || contract.competitorName != competitorName) return false;
+
+        availableContracts.Remove(contract);
+        OnContractsChanged?.Invoke();
+        return true;
+    }
+
+    public void ResetContracts()
+    {
+        // Очищаем все доступные контракты на доске
+        availableContracts.Clear();
+        
+        // Если у вас есть список активных (взятых) контрактов, очищаем и его
+        // activeContracts.Clear(); 
+        
+        // Если у вас есть история выполненных контрактов, её тоже можно очистить
+        // completedContracts.Clear();
+
+        // Обновляем UI, чтобы доска контрактов стала пустой
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.RefreshContractsUI();
+        }
+        
+        Debug.Log("[ContractManager] Все контракты сброшены для новой игры.");
+    }
+
+
 }

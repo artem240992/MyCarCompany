@@ -183,6 +183,9 @@ public class EconomyManager : MonoBehaviour
         Reputation = 50;
         ConveyorLevel = 0;
         EngineerCount = 0;
+        DesignerCount = 0;        // ← добавлено
+        MarketerCount = 0;        // ← добавлено
+        ManagerCount = 0;         // ← добавлено
         PassiveIncome = 0;
         basePriceMultiplier = 1f;
         TemporaryPriceModifier = 1f;
@@ -438,6 +441,9 @@ public class EconomyManager : MonoBehaviour
         Money = StartMoney;
         ConveyorLevel = 0;
         EngineerCount = 0;
+        DesignerCount = 0;        // ← добавлено
+        MarketerCount = 0;        // ← добавлено
+        ManagerCount = 0;         // ← добавлено
         Reputation = 50;
         PassiveIncome = 0;
         basePriceMultiplier = 1f;
